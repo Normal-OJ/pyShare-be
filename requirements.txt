@@ -1,0 +1,10 @@
+flask
+
+gunicorn
+
+mongoengine
+PyJWT
+requests
+
+pre-commit
+yapf
