@@ -1,0 +1,17 @@
+{
+    "template": {
+        "email": "",
+        "username": "",
+        "password": ""
+    },
+    "test": {
+        "email": "test@test.test",
+        "username": "test",
+        "password": "test"
+    },
+    "test2": {
+        "email": "test2@test.test",
+        "username": "test2",
+        "password": "test2"
+    }
+}

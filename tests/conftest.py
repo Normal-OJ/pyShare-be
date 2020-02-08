@@ -1,4 +1,4 @@
-from app import app as flask_app
+from app import setup_app
 from mongo import *
 from mongo import engine
 from mongoengine import connect
@@ -6,38 +6,49 @@ from mongoengine import connect
 import os
 import pytest
 import random
+import json
 import secrets
 from datetime import datetime
 from zipfile import ZipFile
 from collections import defaultdict
-from tests.base_tester import random_string
-from tests.test_homework import CourseData
-from tests.test_problem import get_file
-from tests.base_tester import BaseTester
+from tests.base_tester import random_string, BaseTester
+from tests.api_test.test_homework import CourseData
+from tests.api_test.test_problem import get_file
 
 MONGO_MOCK_HOST = 'mongomock://localhost'
 DB = 'normal-oj'
 
 
 @pytest.fixture
-def app():
-    flask_app.config['TESTING'] = True
-    return flask_app
+def config_app():
+    def config_app(config=None, env=None):
+        return setup_app(config, env)
+
+    return config_app
 
 
 @pytest.fixture
-def client(app):
-    with app.test_client() as client:
+def config_client(config_app):
+    def config_client(config=None, env=None):
+        with config_app(config, env).test_client() as client:
+            return client
+
+    return config_client
+
+
+@pytest.fixture
+def client():
+    with setup_app().test_client() as client:
         yield client
 
 
 @pytest.fixture
 def forge_client(client):
-    def seted_cookie(username):
+    def cookied(username):
         client.set_cookie('test.test', 'piann', User(username).secret)
         return client
 
-    return seted_cookie
+    return cookied
 
 
 @pytest.fixture
