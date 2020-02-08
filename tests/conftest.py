@@ -37,9 +37,8 @@ def config_client(config_app):
 
 
 @pytest.fixture
-def client():
-    with setup_app().test_client() as client:
-        yield client
+def client(config_client):
+    return config_client()
 
 
 @pytest.fixture

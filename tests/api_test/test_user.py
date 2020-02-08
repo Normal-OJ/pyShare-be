@@ -1,3 +1,6 @@
+from tests.base_tester import BaseTester
+
+
 def test_get_all_user(config_client):
     client = config_client(env='default_user')
     rv = client.get('/user')
