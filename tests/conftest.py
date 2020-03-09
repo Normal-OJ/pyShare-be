@@ -1,7 +1,6 @@
 from app import setup_app
 from mongo import *
 from mongo import engine
-from mongoengine import connect
 
 import os
 import pytest
@@ -24,14 +23,16 @@ def config_app():
     def config_app(config=None, env=None):
         return setup_app(config, env)
 
-    return config_app
+    yield config_app
+    # clean db
+    conn = connect(DB, host=MONGO_MOCK_HOST)
+    conn.drop_database(DB)
 
 
 @pytest.fixture
 def config_client(config_app):
     def config_client(config=None, env=None):
-        with config_app(config, env).test_client() as client:
-            return client
+        return config_app(config, env).test_client()
 
     return config_client
 
@@ -68,13 +69,13 @@ def client_student(forge_client):
 @pytest.fixture
 def test_token():
     # Token for user: test
-    return 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ0ZXN0LnRlc3QiLCJleHAiOjE1ODM2Nzc2MzQsInNlY3JldCI6dHJ1ZSwiZGF0YSI6eyJ1c2VybmFtZSI6InRlc3QiLCJ1c2VySWQiOiI2NGMzN2YxNWNhNzNmMDRkNGFiMzRmNmYifX0.RB8V0h5_-EUdmFogAmSEnZFAnJIIFA3I17r1Z6PX0AQ'
+    return User('test').secret
 
 
 @pytest.fixture
 def test2_token():
     # Token for user: test2
-    return 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ0ZXN0LnRlc3QiLCJleHAiOjE1ODM2Nzc2NzIsInNlY3JldCI6dHJ1ZSwiZGF0YSI6eyJ1c2VybmFtZSI6InRlc3QyIiwidXNlcklkIjoiNWY5YjdjZGZhYTEwYjRiNTY3MDBkZmNiIn19.GP5ArKe7ETbcPmVLsEKVhj_NW8-Fy9D4TVbB2kp6gH4'
+    return User('test2').secret
 
 
 def random_problem_data(username=None, status=-1):

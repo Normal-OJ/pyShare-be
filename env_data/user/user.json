@@ -13,5 +13,11 @@
         "email": "test2@test.test",
         "username": "test2",
         "password": "test2"
+    },
+    "madoka": {
+        "email": "admin@pyshare.io",
+        "username": "madoka",
+        "password": "madoka",
+        "role": 0
     }
 }

@@ -1,4 +1,5 @@
 import json
+import logging
 from flask import Flask
 from model import *
 from mongo import *
@@ -21,7 +22,20 @@ def setup_user(usernames):
     with open('env_data/user/user.json') as f:
         USER_DATA = json.load(f)
     for username in usernames:
-        User.signup(**USER_DATA[username])
+        # if we can find the pre defined user and it haven't sing up
+        if username in USER_DATA and not User(username):
+            user_data = USER_DATA[username]
+            u = User.signup(
+                email=user_data['email'],
+                username=user_data['username'],
+                password=user_data['password'],
+            )
+            u.update(
+                active=0,
+                role=user_data.get('role', 1),
+            )
+        else:
+            logging.error(f'Try to setup with non-exist user {username}')
 
 
 def setup_comment(comments):
@@ -34,11 +48,11 @@ def setup_problem(problems):
 
 def setup_app(config=None, env=None, testing=True):
     '''
-    setup flask app from config and pre-configed env
+    setup flask app from config and pre-configured env
     '''
     # force testing, can be overwritten
     app.config['TESTING'] = testing
-    # read config from pyfile
+    # read flask app config from pyfile
     if config:
         app.config.from_pyfile(config)
     # setup environment for testing
@@ -56,17 +70,11 @@ def setup_app(config=None, env=None, testing=True):
     return app
 
 
-if not User("first_admin"):
-    ADMIN = {
-        'username': 'first_admin',
-        'password': 'firstpasswordforadmin',
-        'email': 'i.am.first.admin@noj.tw'
-    }
-
-    admin = User.signup(**ADMIN)
-    admin.update(active=True, role=0)
-
-if Number("serial_number").obj is None:
-    engine.Number(name="serial_number").save()
-
-problem.number = Number("serial_number").obj.number
+def gunicorn_prod_app():
+    # get production app
+    app = setup_app(env='prod', testing=False)
+    # let flask app user gunicorn error logger
+    g_logger = logging.getLogger('gunicorn.error')
+    app.logger.handlers = g_logger.handlers
+    app.logger.setLevel(g_logger.level)
+    return app
