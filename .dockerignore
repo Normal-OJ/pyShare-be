@@ -1,0 +1,10 @@
+tests/
+.github
+**/__pycache__/**
+.pytest_cache/
+.venv/
+.vscode/
+.gitignore
+.pre-commit-config.yaml
+.yapfignore
+pytest.ini
