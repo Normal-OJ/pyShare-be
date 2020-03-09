@@ -6,7 +6,7 @@ from datetime import datetime
 
 __all__ = [*mongoengine.__all__]
 
-MONGO_HOST = os.environ.get('MONGO_HOST', 'mongomock://localhost')
+MONGO_HOST = os.getenv('MONGO_HOST', 'mongomock://localhost')
 connect('normal-oj', host=MONGO_HOST)
 
 
@@ -20,128 +20,70 @@ class User(Document):
     user_id = StringField(db_field='userId', max_length=24, required=True)
     user_id2 = StringField(db_field='userId2', max_length=24, default='')
     email = EmailField(required=True, unique=True)
-    md5 = StringField(required=True)
+    md5 = StringField(required=True, max_length=32)
     active = BooleanField(default=False)
-    role = IntField(default=2, choices=[0, 1, 2])
-    display_name = StringField(db_field='displayName')
+    # role: 0 -> teacher / 1 -> student
+    role = IntField(default=1, choices=[0, 1])
+    display_name = StringField(db_field='displayName', max_length=64)
+    course = ReferenceField('Course', required=True)
     submissions = ListField(ReferenceField('Submission'))
     last_submit = DateTimeField(default=datetime.min)
-    AC_problem_ids = ListField(IntField(), default=list)
-    AC_submission = IntField(default=0)
+    AC_problem_ids = ListField(
+        IntField(),
+        default=list,
+        db_field='ACProblemIds',
+    )
+    AC_submission = IntField(
+        default=0,
+        db_field='ACSubmission',
+    )
+    # number of submissions
     submission = IntField(default=0)
-    star = IntField(default=0)
+    like = IntField(default=0)
 
 
-class Number(Document):
-    name = StringField()
-    number = IntField(default=1)
-
-
-class ProblemCase(EmbeddedDocument):
-    case_score = IntField(required=True, db_field='caseScore')
-    case_count = IntField(required=True, db_field='caseCount')
-    memory_limit = IntField(required=True, db_field='memoryLimit')
-    time_limit = IntField(required=True, db_field='timeLimit')
-    input = ListField(StringField(), default=list)
-    output = ListField(StringField(), default=list)
-
-
-class ProblemTestCase(EmbeddedDocument):
-    language = IntField(choices=[0, 1, 2])
-    fill_in_template = StringField(db_field='fillInTemplate', max_length=16000)
-    cases = ListField(EmbeddedDocumentField(ProblemCase, default=ProblemCase),
-                      default=list)
+class Course(Document):
+    name = StringField(required=True, max_length=64)
+    teacher = ReferenceField('User', required=True)
+    students = ListField(ReferenceField('User'), default=True)
+    problems = ListField(ReferenceField('Problem'), default=list)
 
 
 class Problem(Document):
-    problem_id = IntField(db_field='problemId', required=True, unique=True)
-    courses = ListField(ReferenceField('Course'), default=list)
-    problem_status = IntField(default=1, choices=[0, 1])
-    problem_type = IntField(default=0, choices=[0, 1])
-    problem_name = StringField(db_field='problemName',
-                               max_length=64,
-                               required=True)
+    meta = {'indexes': [{'fields': ['$name']}]}
+    pid = SequenceField(required=True, primary_key=True)
+    name = StringField(max_length=64, required=True)
+    course = ReferenceField('Course', reuired=True)
     description = StringField(max_length=100000, required=True)
     owner = StringField(max_length=16, required=True)
-    # pdf =
-    tags = ListField(StringField(max_length=16))
-    test_case = EmbeddedDocumentField(ProblemTestCase,
-                                      db_field='testCase',
-                                      required=True,
-                                      default=ProblemTestCase,
-                                      null=True)
-    ac_user = IntField(db_field='ACUser', default=0)
-    submitter = IntField(default=0)
-    homeworks = ListField(ReferenceField('Homework'), default=list)
-    contests = ListField(ReferenceField('Contest'), default=list)
-    # user can view stdout/stderr
-    can_view_stdout = BooleanField(db_field='canViewStdout', default=True)
+    tags = ListField(StringField(max_length=16), deafult=list)
+    attatchments = ListField(FileField())
+    comments = EmbeddedDocumentListField('Comment', default=list)
 
 
-class CaseResult():
-    pass
-
-
-class TaskResult(EmbeddedDocument):
-    status = IntField(required=True)
-    exec_time = IntField(required=True, db_field='execTime')
-    memory_usage = IntField(required=True, db_field='memoryUsage')
-    stdout = StringField(required=True)
-    stderr = StringField(required=True)
+class SubmissionResult(EmbeddedDocument):
+    image = ImageField(required=True)
+    stdout = StringField(max_length=10**6, required=True)
+    stderr = StringField(max_length=10**6, required=True)
 
 
 class Submission(Document):
     problem = ReferenceField(Problem, required=True)
     user = ReferenceField(User, required=True)
-    language = IntField(required=True, db_field='languageType')
-    timestamp = DateTimeField(required=True)
-    status = IntField(default=-2)
-    score = IntField(default=0)
-    cases = ListField(EmbeddedDocumentField(TaskResult), default=list)
-    exec_time = IntField(default=-1, db_field='runTime')
-    memory_usage = IntField(default=-1, db_field='memoryUsage')
-    code = BooleanField(
-        default=False)  # wheather the user has uploaded source code
-
-
-class Message(Document):
+    code = StringField(max_length=10000, default='')
     timestamp = DateTimeField(default=datetime.utcnow)
-    sender = StringField(max_length=16, required=True)
-    receivers = ListField(StringField(max_length=16), required=True)
-    status = IntField(default=0, choices=[0, 1])  # not delete / delete
-    title = StringField(max_length=32, required=True)
-    markdown = StringField(max_length=100000, required=True)
+    result = EmbeddedDocumentField(SubmissionResult, default=None)
 
 
-class Inbox(Document):
-    receiver = StringField(max_length=16, required=True)
-    status = IntField(default=0, choices=[0, 1, 2])  # unread / read / delete
-    message = ReferenceField('Message')
-
-
-class Announcement(Document):
-    status = IntField(default=0, choices=[0, 1])  # not delete / delete
-    title = StringField(max_length=64, required=True)
-    course = ReferenceField('Course', required=True)
-    create_time = DateTimeField(db_field='createTime', default=datetime.utcnow)
-    update_time = DateTimeField(db_field='updateTime', default=datetime.utcnow)
-    creator = ReferenceField('User', required=True)
-    updater = ReferenceField('User', required=True)
-    markdown = StringField(max_length=100000, required=True)
-
-
-class PostThread(Document):
-    markdown = StringField(default='', required=True, max_length=100000)
-    author = ReferenceField('User', db_field='author')
-    course_id = ReferenceField('Course', db_field='courseId')
+class Comment(EmbeddedDocument):
+    markdown = StringField(default='', max_length=100000)
+    author = ReferenceField('User', required=True)
+    submission = ReferenceField('Submission', default=None)
     depth = IntField(default=0)  # 0 is top post, 1 is reply to post
-    created = DateTimeField(required=True)
-    updated = DateTimeField(required=True)
-    status = IntField(default=0, choices=[0, 1])  # not delete / delete
-    reply = ListField(ReferenceField('PostThread', db_field='postThread'),
-                      dafault=list)
-
-
-class Post(Document):
-    post_name = StringField(default='', required=True, max_length=64)
-    thread = ReferenceField('PostThread', db_field='postThread')
+    created = DateTimeField(default=datetime.utcnow)
+    updated = DateTimeField(default=datetime.utcnow)
+    deleted = BooleanField(default=False)
+    replies = ListField(
+        ReferenceField('Comment'),
+        dafault=list,
+    )
