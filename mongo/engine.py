@@ -43,16 +43,30 @@ class User(Document):
 
 
 class Course(Document):
-    name = StringField(required=True, max_length=64)
+    name = StringField(primary_key=True, required=True, max_length=64)
     teacher = ReferenceField('User', required=True)
     students = ListField(ReferenceField('User'), default=True)
     problems = ListField(ReferenceField('Problem'), default=list)
 
 
+class Comment(EmbeddedDocument):
+    markdown = StringField(default='', max_length=100000)
+    author = ReferenceField('User', required=True)
+    submission = ReferenceField('Submission', default=None)
+    depth = IntField(default=0, choice=[0, 1])  # 0 is top post, 1 is reply
+    created = DateTimeField(default=datetime.now)
+    updated = DateTimeField(default=datetime.now)
+    deleted = BooleanField(default=False)
+    replies = ListField(
+        ReferenceField('Comment'),
+        dafault=list,
+    )
+
+
 class Problem(Document):
-    meta = {'indexes': [{'fields': ['$name']}]}
+    meta = {'indexes': [{'fields': ['$title']}]}
     pid = SequenceField(required=True, primary_key=True)
-    name = StringField(max_length=64, required=True)
+    title = StringField(max_length=64, required=True)
     course = ReferenceField('Course', reuired=True)
     description = StringField(max_length=100000, required=True)
     owner = StringField(max_length=16, required=True)
@@ -71,19 +85,5 @@ class Submission(Document):
     problem = ReferenceField(Problem, required=True)
     user = ReferenceField(User, required=True)
     code = StringField(max_length=10000, default='')
-    timestamp = DateTimeField(default=datetime.utcnow)
+    timestamp = DateTimeField(default=datetime.now)
     result = EmbeddedDocumentField(SubmissionResult, default=None)
-
-
-class Comment(EmbeddedDocument):
-    markdown = StringField(default='', max_length=100000)
-    author = ReferenceField('User', required=True)
-    submission = ReferenceField('Submission', default=None)
-    depth = IntField(default=0)  # 0 is top post, 1 is reply to post
-    created = DateTimeField(default=datetime.utcnow)
-    updated = DateTimeField(default=datetime.utcnow)
-    deleted = BooleanField(default=False)
-    replies = ListField(
-        ReferenceField('Comment'),
-        dafault=list,
-    )
