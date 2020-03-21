@@ -86,7 +86,7 @@ class User(MongoBase, engine=engine.User):
         }
 
     def get_role_id(self, role):
-        _role = self.role_id.get(role)
+        _role = self.role_ids.get(role)
         if _role is None:
             self.logger.warning(f'unknown role \'{role}\'')
         return _role
@@ -111,7 +111,8 @@ class User(MongoBase, engine=engine.User):
         # compare to unknown role always return `False`
         if role is None:
             return False
-        return self.role > role
+        # the less id means more permission
+        return self.role < role
 
     def __ge__(self, value):
         return self > value or self == value
