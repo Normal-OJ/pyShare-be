@@ -22,8 +22,8 @@ class User(Document):
     email = EmailField(required=True, unique=True)
     md5 = StringField(required=True, max_length=32)
     active = BooleanField(default=False)
-    # role: 0 -> teacher / 1 -> student
-    role = IntField(default=1, choices=[0, 1])
+    # role: 0 -> admin / 1 -> teacher / 2 -> student
+    role = IntField(default=2, choices=[0, 1, 2])
     display_name = StringField(db_field='displayName', max_length=64)
     course = ReferenceField('Course', required=True)
     submissions = ListField(ReferenceField('Submission'))
@@ -45,8 +45,8 @@ class User(Document):
 class Course(Document):
     name = StringField(primary_key=True, required=True, max_length=64)
     teacher = ReferenceField('User', required=True)
-    students = ListField(ReferenceField('User'), default=True)
-    problems = ListField(ReferenceField('Problem'), default=list)
+    students = ListField(ReferenceField('User'), default=[])
+    problems = ListField(ReferenceField('Problem'), default=[])
 
 
 class Comment(EmbeddedDocument):
