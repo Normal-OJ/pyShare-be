@@ -1,11 +1,11 @@
 import time
 import json
-
 from functools import wraps
+from flask import request, current_app
 
-from flask import request
-
-from model import *
+# from model import *
+from mongo import *
+from mongo import engine
 from .response import *
 
 __all__ = ['Request', 'timing_request']
@@ -61,7 +61,27 @@ class _Request(type):
 
 
 class Request(metaclass=_Request):
-    pass
+    @staticmethod
+    def doc(src, des, cls):
+        '''
+        a warpper to `doc_required` for flask route
+        '''
+        def deco(func):
+            @wraps(func)
+            @doc_required(src, des, cls)
+            def wrapper(*args, **ks):
+                try:
+                    return func(*args, **ks)
+                # if document not exists in db
+                except engine.DoesNotExist as e:
+                    return HTTPError(str(e), 404)
+                # if args missing
+                except TypeError as e:
+                    return HTTPError(str(e), 500)
+
+            return wrapper
+
+        return deco
 
 
 def timing_request(func):
@@ -76,18 +96,15 @@ def timing_request(func):
         start = time.time()
         resp, status_code = func(*args, **kwargs)
         exec_time = f'{time.time() - start:.2f}s'
-
         # load response data
         data = resp.data
         data = json.loads(data)
-
         # inject execution time into response
         if data['data'] is None:
             data['data'] = {}
         data['data'].update({'__execTime': exec_time})
-
+        # make response
         resp.data = json.dumps(data)
-
         return resp, status_code
 
     return wrapper
