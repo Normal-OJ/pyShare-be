@@ -1,11 +1,12 @@
 from . import engine
+from .base import MongoBase
 from zipfile import ZipFile, is_zipfile
 from pathlib import Path
 from random import randint
+from typing import List
 import os
 
 __all__ = [
-    'Number',
     'Problem',
     'get_problem_list',
     'add_problem',
@@ -17,33 +18,48 @@ __all__ = [
     'can_view',
 ]
 
-number = 1
 
-
-class Number:
-    def __init__(self, name):
-        self.name = name
-
-    @property
-    def obj(self):
-        try:
-            obj = engine.Number.objects.get(name=self.name)
-        except:
-            return None
-        return obj
-
-
-class Problem:
+class Problem(MongoBase, engine=engine.Problem):
     def __init__(self, problem_id):
         self.problem_id = problem_id
 
-    @property
-    def obj(self):
-        try:
-            obj = engine.Problem.objects.get(problem_id=self.problem_id)
-        except:
-            return None
-        return obj
+    def copy(self, target_course):
+        '''
+        copy the problem to another course, and drop all comments $ replies
+        '''
+        pass
+
+    def permission(self, user):
+        '''
+        check the user's permission of this problem
+        '''
+        pass
+
+    @classmethod
+    def filter(
+            cls,
+            user,
+            permission,
+            name: str = None,
+            tags: list = None,
+    ) -> 'List[Problem]':
+        '''
+        read a list of problem filtered by given paramter
+        '''
+        pass
+
+    @classmethod
+    def add(cls) -> 'Problem':
+        '''
+        add a problem to db
+        '''
+        pass
+
+    def delete(self) -> engine.Problem:
+        '''
+        delete the problem
+        '''
+        pass
 
 
 def increased_number():

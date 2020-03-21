@@ -1,12 +1,12 @@
 from flask import Blueprint, request
 from urllib import parse
+import threading
 
 from mongo import *
 from mongo import engine
+# from mongo.problem import *
 from .auth import *
 from .utils import *
-from mongo.problem import *
-import threading
 
 __all__ = ['problem_api']
 
@@ -14,11 +14,90 @@ problem_api = Blueprint('problem_api', __name__)
 lock = threading.Lock()
 
 
+@problem_api.route('/<int:pid>/detail', methods=['GET'])
+def detailed_info():
+    '''
+    return a detailed info of problem for the purpose of management
+    '''
+    pass
+
+
+@problem_api.route('/', methods=['POST'])
+@Request.json(
+    'title: str',
+    'description: str',
+    'tags: list',
+    'course: str',
+)
+@Request.doc('course', 'course', Course)
+@login_required
+@identity_verify(0)
+def create_problem(user, title, description, tags, course):
+    '''
+    create a new problem
+    '''
+    try:
+        problem = Problem.add(
+            title=title,
+            description=description,
+            tags=tags or [],
+            course=course,
+            owner=user.obj,
+        )
+    except:
+        pass
+    return HTTPResponse(
+        'success',
+        data={
+            'pid': problem.pid,
+        },
+    )
+
+
+@problem_api.route('/<int:pid>', methods=['DELETE'])
+def delete_problem():
+    '''
+    delete a problem
+    '''
+    pass
+
+
+@problem_api.route('/<int:pid>/attachment/<action>', methods=['PATCH'])
+def patch_attatchment():
+    '''
+    update the problem attachment
+    '''
+    pass
+
+
+@problem_api.route('/<int:pid>/clone/<course_name>', methods=['GET'])
+@identity_verify(0)
+@Request.doc('pid', 'problem', Problem)
+@Request.doc('course_name', 'course', Course)
+def clone_problem(user, problem, course):
+    '''
+    clone a problem to another course
+    '''
+    # check permission
+    if problem.permission(user, 'delete'):
+        return HTTPError('Problem can not view.', 403)
+    try:
+        problem.copy(course)
+    except:
+        pass
+    return HTTPResponse('Success.')
+
+
+# old below
+
+
 @problem_api.route('/', methods=['GET'])
 @login_required
-@Request.args('offset', 'count', 'problem_id', 'tags', 'name')
-def view_problem_list(user, offset, count, problem_id, tags, name):
-
+@Request.args('offset', 'count', 'pid', 'tags', 'name')
+def view_problem_list(user, offset, count, pid, tags, name):
+    '''
+    get list of problem
+    '''
     if offset is None or count is None:
         return HTTPError(
             'offset and count are required!',
@@ -45,21 +124,21 @@ def view_problem_list(user, offset, count, problem_id, tags, name):
         return HTTPError('count must >=-1!', 400)
 
     try:
-        problem_id, name, tags = (parse.unquote(p or '') or None
-                                  for p in [problem_id, name, tags])
+        pid, name, tags = (parse.unquote(p or '') or None
+                           for p in [pid, name, tags])
 
         data = get_problem_list(
             user,
             offset,
             count,
-            problem_id,
+            pid,
             name,
             tags and tags.split(','),
         )
         data = [
             *map(
                 lambda p: {
-                    'problemId': p.problem_id,
+                    'problemId': p.pid,
                     'problemName': p.problem_name,
                     'ACUser': p.ac_user,
                     'submitter': p.submitter,
@@ -72,10 +151,13 @@ def view_problem_list(user, offset, count, problem_id, tags, name):
     return HTTPResponse('Success.', data=data)
 
 
-@problem_api.route('/view/<problem_id>', methods=['GET'])
+@problem_api.route('/<pid>', methods=['GET'])
 @login_required
-def view_problem(user, problem_id):
-    problem = Problem(problem_id).obj
+def view_problem(user, pid):
+    '''
+    get single problem
+    '''
+    problem = Problem(pid).obj
     if problem is None:
         return HTTPError('Problem not exist.', 404)
     if not can_view(user, problem):
@@ -97,9 +179,9 @@ def view_problem(user, problem_id):
 
 
 @problem_api.route('/manage', methods=['POST'])
-@problem_api.route('/manage/<problem_id>', methods=['GET', 'PUT', 'DELETE'])
+@problem_api.route('/manage/<pid>', methods=['GET', 'PUT', 'DELETE'])
 @identity_verify(0, 1)
-def manage_problem(user, problem_id=None):
+def manage_problem(user, pid=None):
     @Request.json('courses: list', 'status', 'type', 'description', 'tags',
                   'problem_name', 'test_case_info', 'can_view_stdout')
     def modify_problem(courses, status, type, problem_name, description, tags,
@@ -115,18 +197,18 @@ def manage_problem(user, problem_id=None):
             lock.release()
             return HTTPResponse('Success.', data={'problemId': pid})
         elif request.method == 'PUT':
-            result = edit_problem(user, problem_id, courses, status, type,
+            result = edit_problem(user, pid, courses, status, type,
                                   problem_name, description, tags,
                                   test_case_info)
             return HTTPResponse('Success.', data=result)
 
     @Request.files('case')
     def modify_problem_test_case(case):
-        result = edit_problem_test_case(problem_id, case)
+        result = edit_problem_test_case(pid, case)
         return HTTPResponse('Success.', data=result)
 
     if request.method != 'POST':
-        problem = Problem(problem_id).obj
+        problem = Problem(pid).obj
         if problem is None:
             return HTTPError('Problem not exist.', 404)
         if user.role == 1 and problem.owner != user.username:
@@ -159,7 +241,7 @@ def manage_problem(user, problem_id=None):
         }
         return HTTPResponse('Success.', data=data)
     elif request.method == 'DELETE':
-        delete_problem(problem_id)
+        delete_problem(pid)
         return HTTPResponse('Success.')
     else:
         try:
@@ -175,33 +257,3 @@ def manage_problem(user, problem_id=None):
                              data=ve.to_dict())
         except engine.DoesNotExist:
             return HTTPError('Course not found.', 404)
-
-
-@problem_api.route('/clone', methods=['POST'])
-@identity_verify(0, 1)
-@Request.json(vars_dict={'problem_id': 'problemId'})
-def clone_problem(user, problem_id):
-    problem = Problem(problem_id).obj
-    if problem is None:
-        return HTTPError('Problem not exist.', 404)
-    if not can_view(user, problem):
-        return HTTPError('Problem can not view.', 403)
-
-    lock.acquire()
-    copy_problem(user, problem_id)
-    lock.release()
-    return HTTPResponse('Success.')
-
-
-@problem_api.route('/publish', methods=['POST'])
-@identity_verify(0, 1)
-@Request.json(vars_dict={'problem_id': 'problemId'})
-def publish_problem(user, problem_id):
-    problem = Problem(problem_id).obj
-    if problem is None:
-        return HTTPError('Problem not exist.', 404)
-    if user.role == 1 and problem.owner != user.username:
-        return HTTPError('Not the owner.', 403)
-
-    release_problem(problem_id)
-    return HTTPResponse('Success.')

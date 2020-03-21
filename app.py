@@ -46,6 +46,22 @@ def setup_problem(problems):
     pass
 
 
+def setup_env(env):
+    '''
+    setup environment (insert document into DB)
+    '''
+    with open(f'env_data/env/{env}.json') as f:
+        j = json.load(f)
+    setup_funcs = [
+        ('user', setup_user),
+        ('problem', setup_problem),
+        ('comment', setup_comment),
+    ]
+    for key, func in setup_funcs:
+        if key in j:
+            func(j[key])
+
+
 def setup_app(config=None, env=None, testing=True):
     '''
     setup flask app from config and pre-configured env
@@ -57,16 +73,7 @@ def setup_app(config=None, env=None, testing=True):
         app.config.from_pyfile(config)
     # setup environment for testing
     if env:
-        with open(f'env_data/env/{env}.json') as f:
-            j = json.load(f)
-        setup_funcs = [
-            ('user', setup_user),
-            ('problem', setup_problem),
-            ('comment', setup_comment),
-        ]
-        for key, func in setup_funcs:
-            if key in j:
-                func(j[key])
+        setup_env(env)
     return app
 
 
