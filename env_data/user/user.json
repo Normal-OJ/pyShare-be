@@ -14,6 +14,24 @@
         "username": "test2",
         "password": "test2"
     },
+    "teacher1": {
+        "email": "teacher1@test.test",
+        "username": "teacher1",
+        "password": "teacher1",
+        "role": 1
+    },
+    "teacher2": {
+        "email": "teacher2@test.test",
+        "username": "teacher2",
+        "password": "teacher2",
+        "role": 1
+    },
+    "admin": {
+        "email": "admin@test.test",
+        "username": "admin",
+        "password": "admin",
+        "role": 1
+    },
     "madoka": {
         "email": "admin@pyshare.io",
         "username": "madoka",
