@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from hmac import compare_digest
+from flask import current_app
 
 from . import engine
 from .utils import *
@@ -14,9 +15,9 @@ import os
 
 __all__ = ['User', 'jwt_decode']
 
-JWT_EXP = timedelta(days=int(os.environ.get('JWT_EXP', '30')))
-JWT_ISS = os.environ.get('JWT_ISS', 'test.test')
-JWT_SECRET = os.environ.get('JWT_SECRET', 'SuperSecretString')
+JWT_EXP = timedelta(days=int(os.getenv('JWT_EXP', '30')))
+JWT_ISS = os.getenv('JWT_ISS', 'test.test')
+JWT_SECRET = os.getenv('JWT_SECRET', 'SuperSecretString')
 
 
 class User(MongoBase, engine=engine.User):
@@ -76,6 +77,59 @@ class User(MongoBase, engine=engine.User):
         keys = ['username', 'userId']
         return self.jwt(*keys, secret=True)
 
+    @property
+    def role_ids(self):
+        return {
+            'admin': 0,
+            'teacher': 1,
+            'student': 2,
+        }
+
+    def get_role_id(self, role):
+        _role = self.role_ids.get(role)
+        if _role is None:
+            self.logger.warning(f'unknown role \'{role}\'')
+        return _role
+
+    def __eq__(self, other):
+        # whether the user is the role?
+        if isinstance(other, str):
+            return self.get_role_id(other) == self.role
+        return super().__eq__(other)
+
+    def __gt__(self, value):
+        '''
+        check whether the user has a role super than `value` (string)
+        e.g.
+            if self is a admin
+            self < 'student' will be True
+        '''
+        # only support compare to string
+        if not isinstance(value, str):
+            return False
+        role = self.get_role_id(value)
+        # compare to unknown role always return `False`
+        if role is None:
+            return False
+        # the less id means more permission
+        return self.role < role
+
+    def __ge__(self, value):
+        return self > value or self == value
+
+    def __lt__(self, value):
+        return not self >= value
+
+    def __le__(self, value):
+        return not self > value
+
+    def is_role(self, *roles):
+        '''
+        is this user belonging one of the required roles?
+        '''
+        roles = {r: self.get_role_id(r) for r in role}
+        return self.role in roles
+
     def jwt(self, *keys, secret=False, **kwargs):
         if not self:
             return ''
@@ -85,7 +139,7 @@ class User(MongoBase, engine=engine.User):
         data.update(kwargs)
         payload = {
             'iss': JWT_ISS,
-            'exp': datetime.utcnow() + JWT_EXP,
+            'exp': datetime.now() + JWT_EXP,
             'secret': secret,
             'data': data
         }

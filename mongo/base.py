@@ -1,6 +1,7 @@
+from flask import current_app
 from functools import wraps
-
-from mongoengine.errors import *
+from . import engine
+import logging
 
 __all__ = ['MongoBase']
 
@@ -32,7 +33,7 @@ class MongoBase:
     def __bool__(self):
         try:
             return self._qs.filter(pk=self.pk, **self.qs_filter).__bool__()
-        except ValidationError:
+        except engine.ValidationError:
             return False
 
     def __repr__(self):
@@ -42,3 +43,10 @@ class MongoBase:
         if self:
             self.obj.reload()
         return self
+
+    @property
+    def logger(self):
+        try:
+            return current_app.logger
+        except RuntimeError:
+            return logging.getLogger('gunicorn.error')
