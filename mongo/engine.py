@@ -25,7 +25,7 @@ class User(Document):
     # role: 0 -> admin / 1 -> teacher / 2 -> student
     role = IntField(default=2, choices=[0, 1, 2])
     display_name = StringField(db_field='displayName', max_length=64)
-    course = ReferenceField('Course', required=True)
+    course = ReferenceField('Course', default=None, null=True)
     submissions = ListField(ReferenceField('Submission'))
     last_submit = DateTimeField(default=datetime.min)
     AC_problem_ids = ListField(
@@ -69,9 +69,9 @@ class Problem(Document):
     title = StringField(max_length=64, required=True)
     course = ReferenceField('Course', reuired=True)
     description = StringField(max_length=100000, required=True)
-    owner = StringField(max_length=16, required=True)
+    owner = ReferenceField('User', requried=True)
     tags = ListField(StringField(max_length=16), deafult=list)
-    attatchments = ListField(FileField())
+    attatchments = ListField(FileField(), default=[])
     comments = EmbeddedDocumentListField('Comment', default=list)
 
 
