@@ -14,9 +14,10 @@ def doc_required(src, des, cls):
     '''
     query db to inject document into functions.
     if the document does not exist in db, raise `engine.DoesNotExist`.
+    if `src` not in parameters, this funtcion will raise `TypeError`
     `doc_required` will check the existence of `des` in `func` parameters,
-    if `des` is exist, this function will raise `TypeError`
-    but `src == des` are acceptable
+    if `des` is exist, this function will override it, so `src == des`
+    are acceptable
     '''
     def deco(func):
         @wraps(func)
@@ -26,7 +27,11 @@ def doc_required(src, des, cls):
             if src_param is None:
                 raise TypeError(f'{src} not found in function argument')
             # convert it to document
-            doc = cls(src_param)
+            if not isinstance(src_param, cls)
+                doc = cls(src_param)
+            # or, it is already target class instance
+            else:
+                doc = src_param
             if not doc:
                 raise engine.DoesNotExist(doc)
             # replace original paramters
