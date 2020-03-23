@@ -15,9 +15,7 @@ def course_list(user):
     get a list of course with course name and teacher's name
     '''
     cs = engine.Course.objects.only('name', 'teacher')
-    for c in cs:
-        c.teacher = c.teacher.username
-    return HTTPRespoense('here you are', data=cs)
+    return HTTPResponse('here you are', data=cs)
 
 
 @course_api.route('/<name>', methods=['GET'])
