@@ -14,7 +14,10 @@ def course_list(user):
     '''
     get a list of course with course name and teacher's name
     '''
-    cs = engine.Course.objects.only('name', 'teacher')
+    cs = list({
+        'name': data.name,
+        'teacher': User(data.teacher.username).info
+    } for data in engine.Course.objects.only('name', 'teacher'))
     return HTTPResponse('here you are', data=cs)
 
 
