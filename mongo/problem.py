@@ -1,5 +1,6 @@
 import os
-from . import 
+import io
+from . import engine
 from .engine import GridFSProxy
 from .base import MongoBase
 from .course import Course
@@ -12,6 +13,9 @@ class Problem(MongoBase, engine=engine.Problem):
     def __init__(self, pid):
         self.pid = pid
 
+    def __str__(self):
+        return f'problem [{self.pid}]'
+
     @doc_required('target_course', 'target_course', Course)
     def copy(self, target_course):
         '''
@@ -19,47 +23,26 @@ class Problem(MongoBase, engine=engine.Problem):
         '''
         # serialize
         p = self.to_mongo()
-        # copy files
-        p['attatchments'] = [*map(GridFSProxy, p['attatchments'])]
-        # delete comments
+        # delete comments & attachments
         del p['comments']
+        del p['attachments']
         # add it to DB
-        return Problem.add(**p)
+        p = Problem.add(**p)
+        # copy files
+        attachments = [
+            engine.Attachment(
+                name=a.name,
+                data=io.BytesIO(a.data.read()),
+            ) for a in self.attachments
+        ]
+        # update info
+        p.update(
+            attachments=attachments,
+            course=target_course.obj,
+        )
+        return p.reload()
 
-    def permission(self, user):
-        '''
-        check the user's permission of this problem
-        '''
-        pass
-
-    @classmethod
-    def filter(
-            cls,
-            offset=0,
-            count=-1,
-            name: str = None,
-            tags: list = None,
-    ) -> 'List[engine.Problem]':
-        '''
-        read a list of problem filtered by given paramter
-        '''
-        qs = {'title': name, 'tags': tags}
-        # filter None parameter
-        qs = {k: v for k, v in qs.items() if v is None}
-        ps = cls.engine.objects(**qs).order_by('pid')[offset:]
-        count = len(ps) if count != -1 else count
-        return ps[:count]
-
-    @classmethod
-    def add(cls, **ks) -> 'Problem':
-        '''
-        add a problem to db
-        '''
-        p = engine.Problem(**ks)
-        p.save()
-        return cls(p.pid)
-
-    def delete(self) -> engine.Problem:
+    def delete(self):
         '''
         delete the problem
         '''
@@ -70,3 +53,61 @@ class Problem(MongoBase, engine=engine.Problem):
             a.delete()
         # remove problem document
         self.obj.delete()
+
+    def insert_attachment(self, name, **ks):
+        '''
+        insert a attahment into this problem.
+        ks is the arguments for create a attachment document
+        '''
+        if any([att.name == name for att in self.attachment]):
+            raise FileExistsError(
+                f'A attachment named [{name}] '
+                'already exists!', )
+        attachment = engine.Attachment(
+            name=name,
+            **ks,
+        )
+        attachment.save()
+        problem.update(push__attachments=attachment)
+
+    def remove_attachment(self, name):
+        for att in problem.attachments:
+            if att.name == name:
+                att.delete()
+                return True
+        raise FileNotFoundError(f'can not find a attachment named [{name}]')
+
+    @classmethod
+    def filter(
+            cls,
+            offset=0,
+            count=-1,
+            name: str = None,
+            tags: list = None,
+            only: list = None,
+    ) -> 'List[engine.Problem]':
+        '''
+        read a list of problem filtered by given paramter
+        '''
+        qs = {'title': name, 'tags': tags}
+        # filter None parameter
+        qs = {k: v for k, v in qs.items() if v is None}
+        ps = cls.engine.objects(**qs)
+        # retrive fields
+        if only is not None:
+            ps = ps.only(*only)
+        ps = ps.order_by('pid')[offset:]
+        count = len(ps) if count != -1 else count
+        return ps[:count]
+
+    @classmethod
+    @doc_required('author', 'author', User)
+    def add(cls, author, **ks) -> 'Problem':
+        '''
+        add a problem to db
+        '''
+        if user < 'teacher':
+            raise PermissionError('Only teacher or admin can create problem!')
+        p = engine.Problem(**ks)
+        p.save()
+        return cls(p.pid)
