@@ -27,7 +27,7 @@ def doc_required(src, des, cls):
             if src_param is None:
                 raise TypeError(f'{src} not found in function argument')
             # convert it to document
-            if not isinstance(src_param, cls)
+            if not isinstance(src_param, cls):
                 doc = cls(src_param)
             # or, it is already target class instance
             else:
