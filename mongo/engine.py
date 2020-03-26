@@ -42,6 +42,15 @@ class User(Document):
     like = IntField(default=0)
 
 
+class Attatchment(Document):
+    name = StringField(max_length=128, requried=True)
+    data = FileField(default=None, null=True)
+
+    def delete(self, signal_kwargs=None, **write_concern):
+        self.data.delete()
+        return super().delete(signal_kwargs=signal_kwargs, **write_concern)
+
+
 class Course(Document):
     name = StringField(primary_key=True, required=True, max_length=64)
     teacher = ReferenceField('User', required=True)
@@ -64,15 +73,23 @@ class Comment(EmbeddedDocument):
 
 
 class Problem(Document):
-    meta = {'indexes': [{'fields': ['$title']}]}
+    meta = {'indexes': [{'fields': ['$title']}, 'pid']}
     pid = SequenceField(required=True, primary_key=True)
     title = StringField(max_length=64, required=True)
     course = ReferenceField('Course', reuired=True)
     description = StringField(max_length=100000, required=True)
-    owner = ReferenceField('User', requried=True)
+    author = ReferenceField('User', requried=True)
     tags = ListField(StringField(max_length=16), deafult=list)
-    attatchments = ListField(FileField(), default=[])
+    attatchments = ListField(ReferenceField('Attatchment'), default=[])
     comments = EmbeddedDocumentListField('Comment', default=list)
+    timestamp = DateTimeField(default=datetime.now)
+    # 1: online / 0: offline
+    status = IntField(default=1)
+    default_code = StringField(
+        default='',
+        max_length=100000,
+        db_field='defaultCode',
+    )
 
 
 class SubmissionResult(EmbeddedDocument):
