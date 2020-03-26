@@ -1,5 +1,6 @@
 import os
-from . import 
+import io
+from . import engine
 from .engine import GridFSProxy
 from .base import MongoBase
 from .course import Course
@@ -19,12 +20,24 @@ class Problem(MongoBase, engine=engine.Problem):
         '''
         # serialize
         p = self.to_mongo()
-        # copy files
-        p['attatchments'] = [*map(GridFSProxy, p['attatchments'])]
-        # delete comments
+        # delete comments & attatchments
         del p['comments']
+        del p['attatchments']
         # add it to DB
-        return Problem.add(**p)
+        p = Problem.add(**p)
+        # copy files
+        attatchments = [
+            engine.Attatchment(
+                name=a.name,
+                data=io.BytesIO(a.data.read()),
+            ) for a in self.attatchments
+        ]
+        # update info
+        p.update(
+            attatchments=attatchments,
+            course=target_course.obj,
+        )
+        return p.reload()
 
     def permission(self, user):
         '''
