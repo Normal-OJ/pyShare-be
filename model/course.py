@@ -14,10 +14,12 @@ def course_list(user):
     '''
     get a list of course with course name and teacher's name
     '''
-    cs = engine.Course.objects.only('name', 'teacher')
-    for c in cs:
-        c.teacher = c.teacher.username
-    return HTTPRespoense('here you are', data=cs)
+    cs = list({
+        'name': data.name,
+        'teacher': User(data.teacher.username).info
+    } for data in engine.Course.objects.only('name', 'teacher'))
+    return HTTPResponse('here you are', data=cs)
+
 
 
 @course_api.route('/<name>', methods=['GET'])
@@ -29,7 +31,7 @@ def get_single_course(user, course):
 
 @course_api.route('/<name>', methods=['DELETE'])
 @login_required
-@identity_verify(0)
+@identity_verify(0)  # only admin can call this route
 @Request.doc('name', 'course', Course)
 def delete_course(name, course):
     course.delete()
@@ -62,6 +64,7 @@ def create_course(user, name, teacher):
 @login_required
 @Request.json('users: list')
 @Request.doc('name', 'course', Course)
+@identity_verify(0, 1)  # only admin and teacher can call this route
 def update_students(user, course, users, action):
     '''
     update course students, action should be `insert` or `remove`
