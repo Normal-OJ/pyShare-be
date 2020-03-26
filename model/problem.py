@@ -4,22 +4,12 @@ import threading
 
 from mongo import *
 from mongo import engine
-# from mongo.problem import *
 from .auth import *
 from .utils import *
 
 __all__ = ['problem_api']
 
 problem_api = Blueprint('problem_api', __name__)
-lock = threading.Lock()
-
-
-@problem_api.route('/<int:pid>/detail', methods=['GET'])
-def detailed_info():
-    '''
-    return a detailed info of problem for the purpose of management
-    '''
-    pass
 
 
 @problem_api.route('/', methods=['POST'])
@@ -28,11 +18,21 @@ def detailed_info():
     'description: str',
     'tags: list',
     'course: str',
+    'default_code: str',
+    'status: int',
 )
 @Request.doc('course', 'course', Course)
 @login_required
-@identity_verify(0)
-def create_problem(user, title, description, tags, course):
+@identity_verify(0, 1)
+def create_problem(
+    user,
+    title,
+    description,
+    tags,
+    course,
+    default_code,
+    status,
+):
     '''
     create a new problem
     '''
@@ -42,15 +42,15 @@ def create_problem(user, title, description, tags, course):
             description=description,
             tags=tags or [],
             course=course,
-            owner=user.obj,
+            author=user.obj,
+            default_code=default_code,
+            status=status if status is not None else 1,
         )
-    except:
-        pass
+    except engine.ValidationError as ve:
+        return HTTPError(str(ve), 400, data=ve.to_dict())
     return HTTPResponse(
         'success',
-        data={
-            'pid': problem.pid,
-        },
+        data={'pid': problem.pid},
     )
 
 
@@ -66,6 +66,7 @@ def delete_problem():
 def patch_attatchment():
     '''
     update the problem attachment
+    action: {'insert', 'remove'}
     '''
     pass
 
