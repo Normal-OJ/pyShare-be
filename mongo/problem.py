@@ -42,11 +42,40 @@ class Problem(MongoBase, engine=engine.Problem):
         )
         return p.reload()
 
-    def permission(self, user):
+    def delete(self):
         '''
-        check the user's permission of this problem
+        delete the problem
         '''
-        pass
+        # remove self from course
+        self.course.update(pull__problems=self.obj)
+        # delete attachments
+        for a in self.attachments:
+            a.delete()
+        # remove problem document
+        self.obj.delete()
+
+    def insert_attachment(self, name, **ks):
+        '''
+        insert a attahment into this problem.
+        ks is the arguments for create a attachment document
+        '''
+        if any([att.name == name for att in self.attachment]):
+            raise FileExistsError(
+                f'A attachment named [{name}] '
+                'already exists!', )
+        attachment = engine.Attachment(
+            name=name,
+            **ks,
+        )
+        attachment.save()
+        problem.update(push__attachments=attachment)
+
+    def remove_attachment(self, name):
+        for att in problem.attachments:
+            if att.name == name:
+                att.delete()
+                return True
+        raise FileNotFoundError(f'can not find a attachment named [{name}]')
 
     @classmethod
     def filter(
@@ -77,15 +106,3 @@ class Problem(MongoBase, engine=engine.Problem):
         p = engine.Problem(**ks)
         p.save()
         return cls(p.pid)
-
-    def delete(self) -> engine.Problem:
-        '''
-        delete the problem
-        '''
-        # remove self from course
-        self.course.update(pull__problems=self.obj)
-        # delete attachments
-        for a in self.attachments:
-            a.delete()
-        # remove problem document
-        self.obj.delete()

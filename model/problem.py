@@ -43,8 +43,8 @@ def create_problem(
             tags=tags or [],
             course=course,
             author=user.username,
-            default_code=default_code,
-            status=status if status is not None else 1,
+            default_code=default_code or '',
+            status=status,
         )
     except engine.ValidationError as ve:
         return HTTPError(str(ve), 400, data=ve.to_dict())
@@ -68,30 +68,51 @@ def delete_problem(user, problem):
     return HTTPResponse(f'{problem} deleted.')
 
 
-@problem_api.route('/<int:pid>/attachment/<action>', methods=['PATCH'])
-def patch_attatchment():
+@problem_api.route('/<int:pid>/attachment', methods=['POST', 'DELETE'])
+@Request.doc('pid', 'problem', Problem)
+@Request.files('attachment')
+@Request.form('attachment_name')
+@login_required
+@identity_verify(0, 1)
+def patch_attachment(
+    user,
+    problem,
+    attachment,
+    attachment_name,
+):
     '''
-    update the problem attachment
-    action: {'insert', 'remove'}
+    update the problem's attachment
     '''
-    pass
+    if request.method == 'POST':
+        try:
+            problem.insert_attachment(
+                name=attachment.filename,
+                data=attachment.read(),
+            )
+        except FileExistsError as e:
+            return HTTPError(str(e), 400)
+    elif request.method == 'DELETE':
+        try:
+            problem.remove_attachment(attachment_name)
+        except FileNotFoundError as e:
+            return HTTPError(str(e), 400)
+    return HTTPResponse('success')
 
 
 @problem_api.route('/<int:pid>/clone/<course_name>', methods=['GET'])
-@identity_verify(0)
+@identity_verify(0, 1)
 @Request.doc('pid', 'problem', Problem)
 @Request.doc('course_name', 'course', Course)
 def clone_problem(user, problem, course):
     '''
     clone a problem to another course
     '''
-    # check permission
-    if problem.permission(user, 'delete'):
-        return HTTPError('Problem can not view.', 403)
     try:
         problem.copy(course)
-    except:
-        pass
+    except engine.ValidationError as ve:
+        return HTTPError(str(ve), 400, data=ve.to_dict())
+    except PermissionError as e:
+        return HTTPError(str(e), 403)
     return HTTPResponse('Success.')
 
 
