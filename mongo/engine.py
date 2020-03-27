@@ -42,7 +42,7 @@ class User(Document):
     like = IntField(default=0)
 
 
-class Attatchment(Document):
+class Attachment(Document):
     name = StringField(max_length=128, requried=True)
     data = FileField(default=None, null=True)
 
@@ -80,7 +80,7 @@ class Problem(Document):
     description = StringField(max_length=100000, required=True)
     author = ReferenceField('User', requried=True)
     tags = ListField(StringField(max_length=16), deafult=list)
-    attatchments = ListField(ReferenceField('Attatchment'), default=[])
+    attachments = ListField(ReferenceField('Attachment'), default=[])
     comments = EmbeddedDocumentListField('Comment', default=list)
     timestamp = DateTimeField(default=datetime.now)
     # 1: online / 0: offline

@@ -23,21 +23,21 @@ class Problem(MongoBase, engine=engine.Problem):
         '''
         # serialize
         p = self.to_mongo()
-        # delete comments & attatchments
+        # delete comments & attachments
         del p['comments']
-        del p['attatchments']
+        del p['attachments']
         # add it to DB
         p = Problem.add(**p)
         # copy files
-        attatchments = [
-            engine.Attatchment(
+        attachments = [
+            engine.Attachment(
                 name=a.name,
                 data=io.BytesIO(a.data.read()),
-            ) for a in self.attatchments
+            ) for a in self.attachments
         ]
         # update info
         p.update(
-            attatchments=attatchments,
+            attachments=attachments,
             course=target_course.obj,
         )
         return p.reload()
