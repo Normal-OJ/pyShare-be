@@ -4,6 +4,7 @@ from . import engine
 from .engine import GridFSProxy
 from .base import MongoBase
 from .course import Course
+from .user import User
 from .utils import doc_required
 
 __all__ = ['Problem']

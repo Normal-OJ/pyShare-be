@@ -95,7 +95,7 @@ def create_problem(
 
 
 @problem_api.route('/<int:pid>', methods=['DELETE'])
-@Request.doc('pid', 'problem')
+@Request.doc('pid', 'problem', Problem)
 @login_required
 @identity_verify(0, 1)
 def delete_problem(user, problem):

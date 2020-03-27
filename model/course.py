@@ -21,7 +21,6 @@ def course_list(user):
     return HTTPResponse('here you are', data=cs)
 
 
-
 @course_api.route('/<name>', methods=['GET'])
 @login_required
 @Request.doc('name', 'course', Course)
