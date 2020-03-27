@@ -84,6 +84,7 @@ class Problem(MongoBase, engine=engine.Problem):
             count=-1,
             name: str = None,
             tags: list = None,
+            only: list = None,
     ) -> 'List[engine.Problem]':
         '''
         read a list of problem filtered by given paramter
@@ -91,7 +92,11 @@ class Problem(MongoBase, engine=engine.Problem):
         qs = {'title': name, 'tags': tags}
         # filter None parameter
         qs = {k: v for k, v in qs.items() if v is None}
-        ps = cls.engine.objects(**qs).order_by('pid')[offset:]
+        ps = cls.engine.objects(**qs)
+        # retrive fields
+        if only is not None:
+            ps = ps.only(*only)
+        ps = ps.order_by('pid')[offset:]
         count = len(ps) if count != -1 else count
         return ps[:count]
 

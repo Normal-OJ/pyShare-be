@@ -13,8 +13,30 @@ problem_api = Blueprint('problem_api', __name__)
 
 
 @problem_api.route('/', methods=['GET'])
-def get_problem_list():
-    pass
+@Request.args(
+    'offset',
+    'count',
+    'title',
+    'tags',
+)
+@login_required
+def get_problem_list(user, tags, **ks):
+    ks = {k: v for k, v in ks.items() if v is not None}
+    tags = tags.split(',') if tags else []
+    ps = Problem.filter(
+        tags=tags,
+        only=[
+            'pid',
+            'title',
+            'timestamp',
+            'author',
+        ] + ['status'] if user > 'student' else [],
+        **ks,
+    )
+    ps = [p.to_mongo() for p in ps]
+    for p in ps:
+        p['author'] = User(p['author']).info
+    return HTTPResponse('here you are, bro', data=ps)
 
 
 @problem_api.route('/<int:pid>', methods=['GET'])
