@@ -42,12 +42,14 @@ def create_problem(
             description=description,
             tags=tags or [],
             course=course,
-            author=user.obj,
+            author=user.username,
             default_code=default_code,
             status=status if status is not None else 1,
         )
     except engine.ValidationError as ve:
         return HTTPError(str(ve), 400, data=ve.to_dict())
+    except PermissionError as e:
+        return HTTPError(str(e), 403)
     return HTTPResponse(
         'success',
         data={'pid': problem.pid},
@@ -55,11 +57,15 @@ def create_problem(
 
 
 @problem_api.route('/<int:pid>', methods=['DELETE'])
-def delete_problem():
+@Request.doc('pid', 'problem')
+@login_required
+@identity_verify(0, 1)
+def delete_problem(user, problem):
     '''
     delete a problem
     '''
-    pass
+    problem.delete()
+    return HTTPResponse(f'{problem} deleted.')
 
 
 @problem_api.route('/<int:pid>/attachment/<action>', methods=['PATCH'])

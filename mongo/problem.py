@@ -13,6 +13,9 @@ class Problem(MongoBase, engine=engine.Problem):
     def __init__(self, pid):
         self.pid = pid
 
+    def __str__(self):
+        return f'problem [{self.pid}]'
+
     @doc_required('target_course', 'target_course', Course)
     def copy(self, target_course):
         '''
@@ -64,10 +67,13 @@ class Problem(MongoBase, engine=engine.Problem):
         return ps[:count]
 
     @classmethod
-    def add(cls, **ks) -> 'Problem':
+    @doc_required('author', 'author', User)
+    def add(cls, author, **ks) -> 'Problem':
         '''
         add a problem to db
         '''
+        if user < 'teacher':
+            raise PermissionError('Only teacher or admin can create problem!')
         p = engine.Problem(**ks)
         p.save()
         return cls(p.pid)
