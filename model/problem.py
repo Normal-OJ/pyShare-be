@@ -40,8 +40,14 @@ def get_problem_list(user, tags, **ks):
 
 
 @problem_api.route('/<int:pid>', methods=['GET'])
-def get_single_problem():
-    pass
+@login_required
+@Request.doc('pid', 'problem', Problem)
+def get_single_problem(user, problem):
+    p = problem.to_mongo()
+    p['author'] = User(p['author']).info
+    if not user > 'student':
+        del p['status']
+    return HTTPResponse('here you are, bro', data=p)
 
 
 @problem_api.route('/', methods=['POST'])
