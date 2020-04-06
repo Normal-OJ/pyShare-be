@@ -17,6 +17,11 @@ class Duration(EmbeddedDocument):
 
 class User(Document):
     username = StringField(max_length=16, required=True, primary_key=True)
+    display_name = StringField(
+        db_field='displayName',
+        max_length=32,
+        required=True,
+    )
     user_id = StringField(db_field='userId', max_length=24, required=True)
     user_id2 = StringField(db_field='userId2', max_length=24, default='')
     email = EmailField(required=True, unique=True)
@@ -24,7 +29,6 @@ class User(Document):
     active = BooleanField(default=False)
     # role: 0 -> admin / 1 -> teacher / 2 -> student
     role = IntField(default=2, choices=[0, 1, 2])
-    display_name = StringField(db_field='displayName', max_length=64)
     course = ReferenceField('Course', default=None, null=True)
     submissions = ListField(ReferenceField('Submission'))
     last_submit = DateTimeField(default=datetime.min)
@@ -39,7 +43,33 @@ class User(Document):
     )
     # number of submissions
     submission = IntField(default=0)
+    # the number of like this user receive
     like = IntField(default=0)
+    # problems this user created
+    problems = ListField(
+        ReferenceField(
+            'Problem',
+            reverse_delete_rule=PULL,
+        ),
+        default=[],
+    )
+    # comments this user wrote
+    comments = ListField(
+        ReferenceField(
+            'Comment',
+            reverse_delete_rule=PULL,
+        ),
+        default=[],
+    )
+    # comments this user liked
+    liked_comments = ListField(
+        ReferenceField('Comment'),
+        default=[],
+        de_field='likedComments',
+    )
+    # successed / failed execution counter
+    success = IntField(default=0)
+    fail = IntField(default=0)
 
 
 class Attachment(Document):
@@ -59,13 +89,18 @@ class Course(Document):
 
 
 class Comment(EmbeddedDocument):
+    title = StringField(default='', max_length=128)
     markdown = StringField(default='', max_length=100000)
     author = ReferenceField('User', required=True)
     submission = ReferenceField('Submission', default=None)
-    depth = IntField(default=0, choice=[0, 1])  # 0 is top post, 1 is reply
+    # 0 is top post, 1 is reply
+    depth = IntField(default=0, choice=[0, 1])
+    # how much user like this comment
+    like = IntField(default=0)
+    # 0: hidden / 1: show
+    status = IntField(default=1)
     created = DateTimeField(default=datetime.now)
     updated = DateTimeField(default=datetime.now)
-    deleted = BooleanField(default=False)
     replies = ListField(
         ReferenceField('Comment'),
         dafault=list,
@@ -90,6 +125,8 @@ class Problem(Document):
         max_length=100000,
         db_field='defaultCode',
     )
+    # whether a user passed this problem
+    passed = MapField(BooleanField(default=False), default={})
 
 
 class SubmissionResult(EmbeddedDocument):
