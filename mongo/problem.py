@@ -17,6 +17,26 @@ class Problem(MongoBase, engine=engine.Problem):
     def __str__(self):
         return f'problem [{self.pid}]'
 
+    @doc_required('user', 'user', User)
+    def permission(self, user: User, req: set):
+        '''
+        check user's permission, `req` is a set of required
+        permissions, currently accept values are {'r', 'w'}
+        represent read and write respectively
+
+        Returns:
+            a `bool` value denotes whether user has these
+            permissions 
+        '''
+        _permission = {'r'}
+        # problem author can edit, delete problem
+        if user == self.author:
+            _permission.add('w')
+        # teacher and admin can, too
+        elif user > 'student':
+            _permission.add('w')
+        return bool(req & _permission)
+
     @doc_required('target_course', 'target_course', Course)
     def copy(self, target_course):
         '''
@@ -60,6 +80,7 @@ class Problem(MongoBase, engine=engine.Problem):
         insert a attahment into this problem.
         ks is the arguments for create a attachment document
         '''
+        # check permission
         if any([att.filename == filename for att in self.attachments]):
             raise FileExistsError(
                 f'A attachment named [{filename}] '
@@ -116,12 +137,15 @@ class Problem(MongoBase, engine=engine.Problem):
 
     @classmethod
     @doc_required('author', 'author', User)
-    def add(cls, author, **ks) -> 'Problem':
+    def add(cls, author: User, **ks) -> 'Problem':
         '''
         add a problem to db
         '''
-        if user < 'teacher':
-            raise PermissionError('Only teacher or admin can create problem!')
+        # student can create problem only in their course
+        # but teacher and admin are not limited by this rule
+        if user.course != self.course and user < 'teacher':
+            raise PermissionError('Not enough permission')
+        # insert a new problem into DB
         p = engine.Problem(**ks)
         p.save()
         return cls(p.pid)
