@@ -10,11 +10,6 @@ MONGO_HOST = os.getenv('MONGO_HOST', 'mongomock://localhost')
 connect('normal-oj', host=MONGO_HOST)
 
 
-class Duration(EmbeddedDocument):
-    start = DateTimeField(default=datetime.now())
-    end = DateTimeField(default=datetime.max)
-
-
 class User(Document):
     username = StringField(max_length=16, required=True, primary_key=True)
     display_name = StringField(
