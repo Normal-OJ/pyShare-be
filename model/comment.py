@@ -1,5 +1,6 @@
-from flask import blueprints
+from flask import Blueprint
 from .utils import *
+from .auth import *
 
 __all__ = ['comment_api']
 
@@ -21,7 +22,7 @@ def create_comment(user, target, code, **ks):
 
 
 @comment_api.route('/<_id>', methods=['GET'])
-@login_requried
+@login_required
 def get_comment(user, _id):
     pass
 

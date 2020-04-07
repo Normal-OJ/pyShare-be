@@ -1,11 +1,11 @@
-from flask import blueprints
+from flask import Blueprint
 from .utils import *
 from mongo import *
 from mongo import engine
 
 __all__ = ['course_api']
 
-course_api = blueprints('course_api', __name__)
+course_api = Blueprint('course_api', __name__)
 
 
 @course_api.route('/', methods=['GET'])
