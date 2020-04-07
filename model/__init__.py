@@ -4,6 +4,7 @@ from . import problem
 from . import test
 from . import post
 from . import user
+from . import comment
 
 from .auth import *
 from .problem import *
@@ -11,6 +12,7 @@ from .problem import *
 from .test import *
 from .post import *
 from .user import *
+from .comment import *
 
 __all__ = [
     *auth.__all__,
