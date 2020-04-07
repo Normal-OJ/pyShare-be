@@ -72,15 +72,6 @@ class User(Document):
     fail = IntField(default=0)
 
 
-class Attachment(Document):
-    name = StringField(max_length=128, requried=True)
-    data = FileField(default=None, null=True)
-
-    def delete(self, signal_kwargs=None, **write_concern):
-        self.data.delete()
-        return super().delete(signal_kwargs=signal_kwargs, **write_concern)
-
-
 class Course(Document):
     name = StringField(primary_key=True, required=True, max_length=64)
     teacher = ReferenceField('User', required=True)
@@ -115,7 +106,7 @@ class Problem(Document):
     description = StringField(max_length=100000, required=True)
     author = ReferenceField('User', requried=True)
     tags = ListField(StringField(max_length=16), deafult=list)
-    attachments = ListField(ReferenceField('Attachment'), default=[])
+    attachments = ListField(FileField(), default=[])
     comments = EmbeddedDocumentListField('Comment', default=list)
     timestamp = DateTimeField(default=datetime.now)
     # 1: online / 0: offline

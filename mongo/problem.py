@@ -31,9 +31,9 @@ class Problem(MongoBase, engine=engine.Problem):
         p = Problem.add(**p)
         # copy files
         attachments = [
-            engine.Attachment(
-                name=a.name,
-                data=io.BytesIO(a.data.read()),
+            self.new_attatchment(
+                filename=a.filename,
+                data=a.data.read(),
             ) for a in self.attachments
         ]
         # update info
@@ -55,25 +55,27 @@ class Problem(MongoBase, engine=engine.Problem):
         # remove problem document
         self.obj.delete()
 
-    def insert_attachment(self, name, **ks):
+    def insert_attachment(self, filename, **ks):
         '''
         insert a attahment into this problem.
         ks is the arguments for create a attachment document
         '''
-        if any([att.name == name for att in self.attachment]):
+        if any([att.filename == filename for att in self.attachments]):
             raise FileExistsError(
-                f'A attachment named [{name}] '
+                f'A attachment named [{filename}] '
                 'already exists!', )
-        attachment = engine.Attachment(
-            name=name,
-            **ks,
-        )
-        attachment.save()
+        # create a new attachment
+        att = self.new_attatchment(filename=filename, **ks)
+        # push into problem
         problem.update(push__attachments=attachment)
 
     def remove_attachment(self, name):
+        # search by name
         for att in problem.attachments:
             if att.name == name:
+                # remove attachment from problem
+                self.update(pull__attachments=att)
+                # delete it
                 att.delete()
                 return True
         raise FileNotFoundError(f'can not find a attachment named [{name}]')
@@ -100,6 +102,17 @@ class Problem(MongoBase, engine=engine.Problem):
         ps = ps.order_by('pid')[offset:]
         count = len(ps) if count != -1 else count
         return ps[:count]
+
+    @classmethod
+    def new_attatchment(cls, **ks):
+        '''
+        create a new attachment, ks will be passed
+        to `GridFSProxy`
+        '''
+        att = GridFSProxy()
+        att.put(**ks)
+        att.save()
+        return att
 
     @classmethod
     @doc_required('author', 'author', User)

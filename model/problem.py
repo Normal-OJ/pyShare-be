@@ -124,7 +124,7 @@ def patch_attachment(
     if request.method == 'POST':
         try:
             problem.insert_attachment(
-                name=attachment.filename,
+                filename=attachment.filename,
                 data=attachment.read(),
             )
         except FileExistsError as e:
