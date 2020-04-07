@@ -41,21 +41,9 @@ class User(Document):
     # the number of like this user receive
     like = IntField(default=0)
     # problems this user created
-    problems = ListField(
-        ReferenceField(
-            'Problem',
-            reverse_delete_rule=PULL,
-        ),
-        default=[],
-    )
+    problems = ListField(ReferenceField('Problem'), default=[])
     # comments this user wrote
-    comments = ListField(
-        ReferenceField(
-            'Comment',
-            reverse_delete_rule=PULL,
-        ),
-        default=[],
-    )
+    comments = ListField(ReferenceField('Comment'), default=[])
     # comments this user liked
     liked_comments = ListField(
         ReferenceField('Comment'),
@@ -74,7 +62,7 @@ class Course(Document):
     problems = ListField(ReferenceField('Problem'), default=[])
 
 
-class Comment(EmbeddedDocument):
+class Comment(Document):
     title = StringField(default='', max_length=128)
     markdown = StringField(default='', max_length=100000)
     author = ReferenceField('User', required=True)
@@ -89,7 +77,7 @@ class Comment(EmbeddedDocument):
     updated = DateTimeField(default=datetime.now)
     replies = ListField(
         ReferenceField('Comment'),
-        dafault=list,
+        dafault=[],
     )
 
 
@@ -100,9 +88,9 @@ class Problem(Document):
     course = ReferenceField('Course', reuired=True)
     description = StringField(max_length=100000, required=True)
     author = ReferenceField('User', requried=True)
-    tags = ListField(StringField(max_length=16), deafult=list)
+    tags = ListField(StringField(max_length=16), deafult=[])
     attachments = ListField(FileField(), default=[])
-    comments = EmbeddedDocumentListField('Comment', default=list)
+    comments = ListField(ReferenceField('Comment'), default=[])
     timestamp = DateTimeField(default=datetime.now)
     # 1: online / 0: offline
     status = IntField(default=1)
@@ -127,3 +115,22 @@ class Submission(Document):
     code = StringField(max_length=10000, default='')
     timestamp = DateTimeField(default=datetime.now)
     result = EmbeddedDocumentField(SubmissionResult, default=None)
+
+
+# register delete rule. execute here to resolve `NotRegistered`
+# exception caused by two-way reference
+# see detailed info at https://github.com/MongoEngine/mongoengine/issues/1707
+User.register_delete_rule(Problem, 'problems', PULL)
+User.register_delete_rule(Comment, 'comments', PULL)
+User.register_delete_rule(Comment, 'liked_comments', PULL)
+User.register_delete_rule(Course, 'course', NULLIFY)
+Course.register_delete_rule(User, 'teacher', NULLIFY)
+Course.register_delete_rule(User, 'students', PULL)
+Course.register_delete_rule(Problem, 'problems', PULL)
+Comment.register_delete_rule(User, 'author', NULLIFY)
+Comment.register_delete_rule(Submission, 'submission', NULLIFY)
+Comment.register_delete_rule(Comment, 'replies', NULLIFY)
+Problem.register_delete_rule(Course, 'course', NULLIFY)
+Problem.register_delete_rule(User, 'author', NULLIFY)
+Submission.register_delete_rule(Problem, 'problem', NULLIFY)
+Submission.register_delete_rule(User, 'user', NULLIFY)
