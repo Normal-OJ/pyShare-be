@@ -48,15 +48,15 @@ class Course(Document):
 
 
 class Comment(Document):
-    title = StringField(default='', max_length=128)
+    title = StringField(required=True, max_length=128)
     floor = IntField(required=True)
-    markdown = StringField(default='', max_length=100000)
+    content = StringField(required=True, max_length=100000)
     author = ReferenceField('User', required=True)
     submission = ReferenceField('Submission', default=None)
-    # 0 is top post, 1 is reply
+    # 0 is direct comment, 1 is reply of comments
     depth = IntField(default=0, choice=[0, 1])
     # those who like this comment
-    liked = ListField(ReferenceField('User'))
+    liked = ListField(ReferenceField('User'), default=[])
     # 0: hidden / 1: show
     status = IntField(default=1)
     # is this submission accepted?
@@ -72,7 +72,7 @@ class Comment(Document):
 class Problem(Document):
     meta = {'indexes': [{'fields': ['$title']}, 'pid']}
     pid = SequenceField(required=True, primary_key=True)
-    height = SequenceField(default=0)
+    height = IntField(default=0)
     title = StringField(max_length=64, required=True)
     course = ReferenceField('Course', reuired=True)
     description = StringField(max_length=100000, required=True)
