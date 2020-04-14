@@ -54,8 +54,13 @@ class Attachment(Document):
 class Course(Document):
     name = StringField(primary_key=True, required=True, max_length=64)
     teacher = ReferenceField('User', required=True)
+    tags = ListField(ReferenceField('Tag'), default=[])
     students = ListField(ReferenceField('User'), default=[])
     problems = ListField(ReferenceField('Problem'), default=[])
+
+
+class Tag(Document):
+    value = StringField(primary_key=True, required=True, max_length=64)
 
 
 class Comment(EmbeddedDocument):

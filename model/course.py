@@ -97,3 +97,14 @@ def update_students(user, course, users, action):
             },
         )
     return HTTPResponse('success')
+
+
+@course_api.route('/<name>/tag', methods=['PATCH'])
+@login_required
+@Request.json('push: list', 'pop: list')
+@Request.doc('name', 'course', Course)
+@identity_verify(0, 1)  # only admin and teacher can call this route
+def update_tags(course, push, pop):
+    '''
+    push/pop tags to/from course
+    '''
