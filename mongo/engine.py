@@ -25,27 +25,12 @@ class User(Document):
     # role: 0 -> admin / 1 -> teacher / 2 -> student
     role = IntField(default=2, choices=[0, 1, 2])
     course = ReferenceField('Course', default=None, null=True)
-    submissions = ListField(ReferenceField('Submission'))
-    last_submit = DateTimeField(default=datetime.min)
-    AC_problem_ids = ListField(
-        IntField(),
-        default=list,
-        db_field='ACProblemIds',
-    )
-    AC_submission = IntField(
-        default=0,
-        db_field='ACSubmission',
-    )
-    # number of submissions
-    submission = IntField(default=0)
-    # the number of like this user receive
-    like = IntField(default=0)
     # problems this user created
     problems = ListField(ReferenceField('Problem'), default=[])
     # comments this user wrote
     comments = ListField(ReferenceField('Comment'), default=[])
     # comments this user liked
-    liked_comments = ListField(
+    likes = ListField(
         ReferenceField('Comment'),
         default=[],
         de_field='likedComments',
@@ -63,16 +48,19 @@ class Course(Document):
 
 
 class Comment(Document):
-    title = StringField(default='', max_length=128)
-    markdown = StringField(default='', max_length=100000)
+    title = StringField(required=True, max_length=128)
+    floor = IntField(required=True)
+    content = StringField(required=True, max_length=100000)
     author = ReferenceField('User', required=True)
     submission = ReferenceField('Submission', default=None)
-    # 0 is top post, 1 is reply
+    # 0 is direct comment, 1 is reply of comments
     depth = IntField(default=0, choice=[0, 1])
-    # how much user like this comment
-    like = IntField(default=0)
+    # those who like this comment
+    liked = ListField(ReferenceField('User'), default=[])
     # 0: hidden / 1: show
     status = IntField(default=1)
+    # is this submission accepted?
+    passed = BooleanField(default=False)
     created = DateTimeField(default=datetime.now)
     updated = DateTimeField(default=datetime.now)
     replies = ListField(
@@ -84,6 +72,7 @@ class Comment(Document):
 class Problem(Document):
     meta = {'indexes': [{'fields': ['$title']}, 'pid']}
     pid = SequenceField(required=True, primary_key=True)
+    height = IntField(default=0)
     title = StringField(max_length=64, required=True)
     course = ReferenceField('Course', reuired=True)
     description = StringField(max_length=100000, required=True)
@@ -104,7 +93,7 @@ class Problem(Document):
 
 
 class SubmissionResult(EmbeddedDocument):
-    image = ImageField(required=True)
+    files = FileField(required=True)
     stdout = StringField(max_length=10**6, required=True)
     stderr = StringField(max_length=10**6, required=True)
 
@@ -122,12 +111,13 @@ class Submission(Document):
 # see detailed info at https://github.com/MongoEngine/mongoengine/issues/1707
 User.register_delete_rule(Problem, 'problems', PULL)
 User.register_delete_rule(Comment, 'comments', PULL)
-User.register_delete_rule(Comment, 'liked_comments', PULL)
+User.register_delete_rule(Comment, 'likes', PULL)
 User.register_delete_rule(Course, 'course', NULLIFY)
 Course.register_delete_rule(User, 'teacher', NULLIFY)
 Course.register_delete_rule(User, 'students', PULL)
 Course.register_delete_rule(Problem, 'problems', PULL)
 Comment.register_delete_rule(User, 'author', NULLIFY)
+Comment.register_delete_rule(User, 'liked', PULL)
 Comment.register_delete_rule(Submission, 'submission', NULLIFY)
 Comment.register_delete_rule(Comment, 'replies', NULLIFY)
 Problem.register_delete_rule(Course, 'course', NULLIFY)
