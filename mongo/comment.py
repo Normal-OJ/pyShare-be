@@ -1,22 +1,46 @@
 from . import engine
 from .base import MongoBase
 from .problem import Problem
+from .user import User
+from .utils import doc_required
+
+__all__ = ['Comment']
 
 
 class Comment(MongoBase, engine=engine.Comment):
     def __init__(self, _id):
         self.id = _id
 
+    @doc_required('user', 'user', User)
+    def permission(self, user: User, req):
+        _permission = {'r'}
+        if user == self.author:
+            _permission.add('w')
+            _permission.add('d')
+        elif user > 'student':
+            _permission.add('d')
+        return bool(req & _permission)
+
     def delete(self):
-        self.status = 0
+        self.update(status=0)
         for reply in self.replies:
             reply.update(status=0)
-        self.save()
+
+    @doc_required('user', 'user', User)
+    def like(self, user):
+        # unlike
+        if user.obj in self.liked:
+            action = 'pull'
+        else:
+            action = 'push'
+        self.update(**{f'{action}__liked': user.obj})
+        user.update(**{f'{action}__likes': self.obj})
 
     @classmethod
     def add_to_problem(
         cls,
         target,
+        code,
         **ks,
     ):
         # directly submit
@@ -56,11 +80,12 @@ class Comment(MongoBase, engine=engine.Comment):
         return comment
 
     @classmethod
+    @doc_required('author', 'author', User)
     def add(
         cls,
         title: str,
         content: str,
-        author,
+        author: User,
         floor: int,
         depth: int,
     ):
@@ -68,9 +93,11 @@ class Comment(MongoBase, engine=engine.Comment):
         comment = engine.Comment(
             title=title,
             content=content,
-            author=author,
+            author=author.obj,
             floor=floor,
             depth=depth,
         )
         comment.save()
+        # append to author's
+        author.update(push__comments=comment)
         return cls(comment.id)
