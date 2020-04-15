@@ -14,6 +14,17 @@ class Problem(MongoBase, engine=engine.Problem):
     def __init__(self, pid):
         self.pid = pid
 
+    @doc_required('user', 'user', User)
+    def permission(self, user: User, req):
+        _permission = {'r'}
+        if user == self.author:
+            _permission.add('w')
+            _permission.add('d')
+        elif user > 'student':
+            _permission.add('d')
+        return bool(req & _permission)
+
+
     def __str__(self):
         return f'problem [{self.pid}]'
 
@@ -103,12 +114,16 @@ class Problem(MongoBase, engine=engine.Problem):
 
     @classmethod
     @doc_required('author', 'author', User)
-    def add(cls, author, **ks) -> 'Problem':
+    @doc_required('course', 'course', Course)
+    def add(cls, author, tags, **ks) -> 'Problem':
         '''
         add a problem to db
         '''
         if user < 'teacher':
             raise PermissionError('Only teacher or admin can create problem!')
+        for tag in tags:
+            if tag not in course.tags:
+                raise TagNotFoundError('Exist tag that is not allowed to use in this course')
         p = engine.Problem(**ks)
         p.save()
         return cls(p.pid)
