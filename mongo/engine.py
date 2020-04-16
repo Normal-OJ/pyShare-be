@@ -43,6 +43,7 @@ class User(Document):
 class Course(Document):
     name = StringField(primary_key=True, required=True, max_length=64)
     teacher = ReferenceField('User', required=True)
+    tags = ListField(StringField(max_length=16), deafult=list)
     students = ListField(ReferenceField('User'), default=[])
     problems = ListField(ReferenceField('Problem'), default=[])
 

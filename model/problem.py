@@ -83,7 +83,7 @@ def create_problem(
             default_code=default_code or '',
             status=status,
         )
-    except engine.ValidationError as ve:
+    except (engine.ValidationError, TagNotFoundError) as ve:
         return HTTPError(str(ve), 400, data=ve.to_dict())
     except PermissionError as e:
         return HTTPError(str(e), 403)
@@ -91,6 +91,48 @@ def create_problem(
         'success',
         data={'pid': problem.pid},
     )
+
+
+@problem_api.route('/<int:pid>', methods=['PUT'])
+@Request.json(
+    'title: str',
+    'description: str',
+    'tags: list',
+    'default_code: str',
+    'status: int',
+)
+@Request.doc('pid', 'problem', problem)
+@login_required
+def modify_problem(
+    user,
+    problem,
+    title,
+    description,
+    tags,
+    default_code,
+    status,
+):
+    if not problem.permission(user, {'w'}):
+        return HTTPError('Permission denied.', 403)
+    for tag in tags:
+        if not course.check_tag(tag):
+            return HTTPError(
+                'Exist tag that is not allowed to use in this course', 400)
+    try:
+        problem.update(
+            title=title,
+            description=description,
+            tags=tags,
+            default_code=default_code,
+            status=status,
+        )
+    except engine.ValidationError as ve:
+        return HTTPError(
+            'Invalid data',
+            400,
+            data=ve.to_dict(),
+        )
+    return HTTPResponse('success')
 
 
 @problem_api.route('/<int:pid>', methods=['DELETE'])

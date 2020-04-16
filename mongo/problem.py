@@ -14,6 +14,16 @@ class Problem(MongoBase, engine=engine.Problem):
     def __init__(self, pid):
         self.pid = pid
 
+    @doc_required('user', 'user', User)
+    def permission(self, user: User, req):
+        _permission = {'r'}
+        if user == self.author:
+            _permission.add('w')
+            _permission.add('d')
+        elif user > 'student':
+            _permission.add('d')
+        return bool(req & _permission)
+
     def __str__(self):
         return f'problem [{self.pid}]'
 
@@ -137,15 +147,20 @@ class Problem(MongoBase, engine=engine.Problem):
 
     @classmethod
     @doc_required('author', 'author', User)
+    @doc_required('course', 'course', Course)
     def add(cls, author: User, **ks) -> 'Problem':
         '''
         add a problem to db
         '''
         # student can create problem only in their course
         # but teacher and admin are not limited by this rule
-        if user.course != self.course and user < 'teacher':
+        if author.course != self.course and author < 'teacher':
             raise PermissionError('Not enough permission')
+        for tag in tags:
+            if not course.check_tag(tag):
+                raise TagNotFoundError(
+                    'Exist tag that is not allowed to use in this course')
         # insert a new problem into DB
-        p = engine.Problem(**ks)
+        p = engine.Problem(author=author, **ks)
         p.save()
         return cls(p.pid)
