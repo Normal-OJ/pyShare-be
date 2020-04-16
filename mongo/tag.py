@@ -13,6 +13,7 @@ class Tag(MongoBase, engine=engine.Tag):
         delete the problem
         '''
 
+
 # remove tag from problem if it have
 
     engine.Problem.objects(tags=self.value).update(pull__tags=self.value)

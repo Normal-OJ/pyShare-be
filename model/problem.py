@@ -114,6 +114,10 @@ def modify_problem(
 ):
     if not Problem.permission(user, {'w'}):
         return HTTPError('Permission denied.', 403)
+    for tag in tags:
+        if not course.check_tag(tag):
+            return HTTPError(
+                'Exist tag that is not allowed to use in this course', 400)
     try:
         problem.update(
             title=title,

@@ -121,7 +121,7 @@ class Problem(MongoBase, engine=engine.Problem):
         if user < 'teacher':
             raise PermissionError('Only teacher or admin can create problem!')
         for tag in tags:
-            if tag not in course.tags:
+            if not course.check_tag(tag):
                 raise TagNotFoundError(
                     'Exist tag that is not allowed to use in this course')
         p = engine.Problem(**ks)

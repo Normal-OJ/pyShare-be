@@ -9,6 +9,9 @@ class Course(MongoBase, engine=engine.Course):
     def __init__(self, name):
         self.name = name
 
+    def check_tag(self, tag):
+        return (tag in self.tags)
+
     @classmethod
     def add(cls, teacher, **ks):
         # convert username to user document
