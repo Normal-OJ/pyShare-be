@@ -109,14 +109,17 @@ def update_tags(course, push, pop):
     push/pop tags to/from course
     '''
     for t in push:
-        if t not in engine.Tag.objects:
+        if Tag(t):
             return HTTPError('Push: Tag not found', 404)
         if t in pop:
             return HTTPError('Tag appears in both list', 400)
     for t in pop:
         if t not in Course.tags:
             return HTTPError('Pop: Tag not found', 404)
-    course.tags += push
-    course.tags = list(set([tag for tag in course.tags if tag not in pop]))
+    try:
+        course.tags += push
+        course.tags = list(set([tag for tag in course.tags if tag not in pop]))
+        course.save()
+    except engine.ValidationError as ve:
+        return HTTPError(str(ve), 400, data=ve.to_dict())
     return HTTPResponse('success')
-

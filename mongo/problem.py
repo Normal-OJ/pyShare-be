@@ -24,7 +24,6 @@ class Problem(MongoBase, engine=engine.Problem):
             _permission.add('d')
         return bool(req & _permission)
 
-
     def __str__(self):
         return f'problem [{self.pid}]'
 
@@ -123,7 +122,8 @@ class Problem(MongoBase, engine=engine.Problem):
             raise PermissionError('Only teacher or admin can create problem!')
         for tag in tags:
             if tag not in course.tags:
-                raise TagNotFoundError('Exist tag that is not allowed to use in this course')
+                raise TagNotFoundError(
+                    'Exist tag that is not allowed to use in this course')
         p = engine.Problem(**ks)
         p.save()
         return cls(p.pid)
