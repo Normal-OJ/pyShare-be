@@ -10,14 +10,10 @@ class Tag(MongoBase, engine=engine.Tag):
 
     def delete(self):
         '''
-        delete the problem
+        remove tag from problem if it have
         '''
-
-
-# remove tag from problem if it have
-
-    engine.Problem.objects(tags=self.value).update(pull__tags=self.value)
-    self.obj.delete()
+        engine.Problem.objects(tags=self.value).update(pull__tags=self.value)
+        self.obj.delete()
 
     @classmethod
     def add(value):
@@ -25,5 +21,4 @@ class Tag(MongoBase, engine=engine.Tag):
 		add a tag to db
 		'''
         t = engine.Tag(value)
-
-    t.save()
+        t.save()

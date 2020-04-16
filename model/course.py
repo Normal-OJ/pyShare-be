@@ -109,7 +109,7 @@ def update_tags(course, push, pop):
     push/pop tags to/from course
     '''
     for t in push:
-        if Tag(t):
+        if not Tag(t):
             return HTTPError('Push: Tag not found', 404)
         if t in pop:
             return HTTPError('Tag appears in both list', 400)

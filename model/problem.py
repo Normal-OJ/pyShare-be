@@ -112,7 +112,7 @@ def modify_problem(
     default_code,
     status,
 ):
-    if not Problem.permission(user, {'w'}):
+    if not problem.permission(user, {'w'}):
         return HTTPError('Permission denied.', 403)
     for tag in tags:
         if not course.check_tag(tag):
