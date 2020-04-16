@@ -6,11 +6,11 @@ import threading
 
 __all__ = ['send_noreply']
 
-SMTP_SERVER = os.environ.get('SMTP_SERVER')
-SMTP_ADMIN = os.environ.get('SMTP_ADMIN')
-SMTP_ADMIN_PASSWORD = os.environ.get('SMTP_PASSWORD')
-SMTP_NOREPLY = os.environ.get('SMTP_NOREPLY')
-SMTP_NOREPLY_PASSWORD = os.environ.get('SMTP_NOREPLY_PASSWORD')
+SMTP_SERVER = os.getenv('SMTP_SERVER')
+SMTP_ADMIN = os.getenv('SMTP_ADMIN')
+SMTP_ADMIN_PASSWORD = os.getenv('SMTP_PASSWORD')
+SMTP_NOREPLY = os.getenv('SMTP_NOREPLY')
+SMTP_NOREPLY_PASSWORD = os.getenv('SMTP_NOREPLY_PASSWORD')
 
 
 def send(from_addr, password, to_addrs, subject, content):

@@ -138,11 +138,13 @@ def modify_problem(
 @problem_api.route('/<int:pid>', methods=['DELETE'])
 @Request.doc('pid', 'problem', Problem)
 @login_required
-@identity_verify(0, 1)
 def delete_problem(user, problem):
     '''
     delete a problem
     '''
+    # student can delete only self problem
+    if not problem.permission(user, {'w'}):
+        return HTTPError('Not enough permission', 403)
     problem.delete()
     return HTTPResponse(f'{problem} deleted.')
 
@@ -152,7 +154,6 @@ def delete_problem(user, problem):
 @Request.files('attachment')
 @Request.form('attachment_name')
 @login_required
-@identity_verify(0, 1)
 def patch_attachment(
     user,
     problem,
@@ -162,10 +163,12 @@ def patch_attachment(
     '''
     update the problem's attachment
     '''
+    if not problem.permission(user, {'w'}):
+        return HTTPError('Not enough permission', 403)
     if request.method == 'POST':
         try:
             problem.insert_attachment(
-                name=attachment.filename,
+                filename=attachment.filename,
                 data=attachment.read(),
             )
         except FileExistsError as e:

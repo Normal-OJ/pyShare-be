@@ -10,13 +10,13 @@ MONGO_HOST = os.getenv('MONGO_HOST', 'mongomock://localhost')
 connect('normal-oj', host=MONGO_HOST)
 
 
-class Duration(EmbeddedDocument):
-    start = DateTimeField(default=datetime.now())
-    end = DateTimeField(default=datetime.max)
-
-
 class User(Document):
     username = StringField(max_length=16, required=True, primary_key=True)
+    display_name = StringField(
+        db_field='displayName',
+        max_length=32,
+        required=True,
+    )
     user_id = StringField(db_field='userId', max_length=24, required=True)
     user_id2 = StringField(db_field='userId2', max_length=24, default='')
     email = EmailField(required=True, unique=True)
@@ -24,31 +24,20 @@ class User(Document):
     active = BooleanField(default=False)
     # role: 0 -> admin / 1 -> teacher / 2 -> student
     role = IntField(default=2, choices=[0, 1, 2])
-    display_name = StringField(db_field='displayName', max_length=64)
     course = ReferenceField('Course', default=None, null=True)
-    submissions = ListField(ReferenceField('Submission'))
-    last_submit = DateTimeField(default=datetime.min)
-    AC_problem_ids = ListField(
-        IntField(),
-        default=list,
-        db_field='ACProblemIds',
+    # problems this user created
+    problems = ListField(ReferenceField('Problem'), default=[])
+    # comments this user wrote
+    comments = ListField(ReferenceField('Comment'), default=[])
+    # comments this user liked
+    likes = ListField(
+        ReferenceField('Comment'),
+        default=[],
+        de_field='likedComments',
     )
-    AC_submission = IntField(
-        default=0,
-        db_field='ACSubmission',
-    )
-    # number of submissions
-    submission = IntField(default=0)
-    like = IntField(default=0)
-
-
-class Attachment(Document):
-    name = StringField(max_length=128, requried=True)
-    data = FileField(default=None, null=True)
-
-    def delete(self, signal_kwargs=None, **write_concern):
-        self.data.delete()
-        return super().delete(signal_kwargs=signal_kwargs, **write_concern)
+    # successed / failed execution counter
+    success = IntField(default=0)
+    fail = IntField(default=0)
 
 
 class Course(Document):
@@ -59,34 +48,39 @@ class Course(Document):
     problems = ListField(ReferenceField('Problem'), default=[])
 
 
-class Tag(Document):
-    value = StringField(primary_key=True, required=True, max_length=16)
-
-
-class Comment(EmbeddedDocument):
-    markdown = StringField(default='', max_length=100000)
+class Comment(Document):
+    title = StringField(required=True, max_length=128)
+    floor = IntField(required=True)
+    content = StringField(required=True, max_length=100000)
     author = ReferenceField('User', required=True)
     submission = ReferenceField('Submission', default=None)
-    depth = IntField(default=0, choice=[0, 1])  # 0 is top post, 1 is reply
+    # 0 is direct comment, 1 is reply of comments
+    depth = IntField(default=0, choice=[0, 1])
+    # those who like this comment
+    liked = ListField(ReferenceField('User'), default=[])
+    # 0: hidden / 1: show
+    status = IntField(default=1)
+    # is this submission accepted?
+    passed = BooleanField(default=False)
     created = DateTimeField(default=datetime.now)
     updated = DateTimeField(default=datetime.now)
-    deleted = BooleanField(default=False)
     replies = ListField(
         ReferenceField('Comment'),
-        dafault=list,
+        dafault=[],
     )
 
 
 class Problem(Document):
     meta = {'indexes': [{'fields': ['$title']}, 'pid']}
     pid = SequenceField(required=True, primary_key=True)
+    height = IntField(default=0)
     title = StringField(max_length=64, required=True)
     course = ReferenceField('Course', reuired=True)
     description = StringField(max_length=100000, required=True)
     author = ReferenceField('User', requried=True)
-    tags = ListField(StringField(max_length=16), deafult=list)
-    attachments = ListField(ReferenceField('Attachment'), default=[])
-    comments = EmbeddedDocumentListField('Comment', default=list)
+    tags = ListField(StringField(max_length=16), deafult=[])
+    attachments = ListField(FileField(), default=[])
+    comments = ListField(ReferenceField('Comment'), default=[])
     timestamp = DateTimeField(default=datetime.now)
     # 1: online / 0: offline
     status = IntField(default=1)
@@ -95,10 +89,12 @@ class Problem(Document):
         max_length=100000,
         db_field='defaultCode',
     )
+    # whether a user passed this problem
+    passed = MapField(BooleanField(default=False), default={})
 
 
 class SubmissionResult(EmbeddedDocument):
-    image = ImageField(required=True)
+    files = FileField(required=True)
     stdout = StringField(max_length=10**6, required=True)
     stderr = StringField(max_length=10**6, required=True)
 
@@ -109,3 +105,23 @@ class Submission(Document):
     code = StringField(max_length=10000, default='')
     timestamp = DateTimeField(default=datetime.now)
     result = EmbeddedDocumentField(SubmissionResult, default=None)
+
+
+# register delete rule. execute here to resolve `NotRegistered`
+# exception caused by two-way reference
+# see detailed info at https://github.com/MongoEngine/mongoengine/issues/1707
+User.register_delete_rule(Problem, 'problems', PULL)
+User.register_delete_rule(Comment, 'comments', PULL)
+User.register_delete_rule(Comment, 'likes', PULL)
+User.register_delete_rule(Course, 'course', NULLIFY)
+Course.register_delete_rule(User, 'teacher', NULLIFY)
+Course.register_delete_rule(User, 'students', PULL)
+Course.register_delete_rule(Problem, 'problems', PULL)
+Comment.register_delete_rule(User, 'author', NULLIFY)
+Comment.register_delete_rule(User, 'liked', PULL)
+Comment.register_delete_rule(Submission, 'submission', NULLIFY)
+Comment.register_delete_rule(Comment, 'replies', NULLIFY)
+Problem.register_delete_rule(Course, 'course', NULLIFY)
+Problem.register_delete_rule(User, 'author', NULLIFY)
+Submission.register_delete_rule(Problem, 'problem', NULLIFY)
+Submission.register_delete_rule(User, 'user', NULLIFY)

@@ -27,6 +27,26 @@ class Problem(MongoBase, engine=engine.Problem):
     def __str__(self):
         return f'problem [{self.pid}]'
 
+    @doc_required('user', 'user', User)
+    def permission(self, user: User, req: set):
+        '''
+        check user's permission, `req` is a set of required
+        permissions, currently accept values are {'r', 'w'}
+        represent read and write respectively
+
+        Returns:
+            a `bool` value denotes whether user has these
+            permissions 
+        '''
+        _permission = {'r'}
+        # problem author can edit, delete problem
+        if user == self.author:
+            _permission.add('w')
+        # teacher and admin can, too
+        elif user > 'student':
+            _permission.add('w')
+        return bool(req & _permission)
+
     @doc_required('target_course', 'target_course', Course)
     def copy(self, target_course):
         '''
@@ -41,9 +61,9 @@ class Problem(MongoBase, engine=engine.Problem):
         p = Problem.add(**p)
         # copy files
         attachments = [
-            engine.Attachment(
-                name=a.name,
-                data=io.BytesIO(a.data.read()),
+            self.new_attatchment(
+                filename=a.filename,
+                data=a.data.read(),
             ) for a in self.attachments
         ]
         # update info
@@ -65,25 +85,28 @@ class Problem(MongoBase, engine=engine.Problem):
         # remove problem document
         self.obj.delete()
 
-    def insert_attachment(self, name, **ks):
+    def insert_attachment(self, filename, **ks):
         '''
         insert a attahment into this problem.
         ks is the arguments for create a attachment document
         '''
-        if any([att.name == name for att in self.attachment]):
+        # check permission
+        if any([att.filename == filename for att in self.attachments]):
             raise FileExistsError(
-                f'A attachment named [{name}] '
+                f'A attachment named [{filename}] '
                 'already exists!', )
-        attachment = engine.Attachment(
-            name=name,
-            **ks,
-        )
-        attachment.save()
+        # create a new attachment
+        att = self.new_attatchment(filename=filename, **ks)
+        # push into problem
         problem.update(push__attachments=attachment)
 
     def remove_attachment(self, name):
+        # search by name
         for att in problem.attachments:
             if att.name == name:
+                # remove attachment from problem
+                self.update(pull__attachments=att)
+                # delete it
                 att.delete()
                 return True
         raise FileNotFoundError(f'can not find a attachment named [{name}]')
@@ -112,18 +135,32 @@ class Problem(MongoBase, engine=engine.Problem):
         return ps[:count]
 
     @classmethod
+    def new_attatchment(cls, **ks):
+        '''
+        create a new attachment, ks will be passed
+        to `GridFSProxy`
+        '''
+        att = GridFSProxy()
+        att.put(**ks)
+        att.save()
+        return att
+
+    @classmethod
     @doc_required('author', 'author', User)
     @doc_required('course', 'course', Course)
-    def add(cls, author, tags, **ks) -> 'Problem':
+    def add(cls, author: User, **ks) -> 'Problem':
         '''
         add a problem to db
         '''
-        if user < 'teacher':
-            raise PermissionError('Only teacher or admin can create problem!')
+        # student can create problem only in their course
+        # but teacher and admin are not limited by this rule
+        if author.course != self.course and author < 'teacher':
+            raise PermissionError('Not enough permission')
         for tag in tags:
             if not course.check_tag(tag):
                 raise TagNotFoundError(
                     'Exist tag that is not allowed to use in this course')
-        p = engine.Problem(**ks)
+        # insert a new problem into DB
+        p = engine.Problem(author=author, **ks)
         p.save()
         return cls(p.pid)
