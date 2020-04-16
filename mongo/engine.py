@@ -93,17 +93,18 @@ class Problem(Document):
 
 
 class SubmissionResult(EmbeddedDocument):
-    files = FileField(required=True)
-    stdout = StringField(max_length=10**6, required=True)
-    stderr = StringField(max_length=10**6, required=True)
+    files = ListField(FileField(), default=[])
+    stdout = StringField(max_length=10**6, default='')
+    stderr = StringField(max_length=10**6, default='')
 
 
 class Submission(Document):
     problem = ReferenceField(Problem, required=True)
     user = ReferenceField(User, required=True)
-    code = StringField(max_length=10000, default='')
+    code = StringField(max_length=10**6, default='')
     timestamp = DateTimeField(default=datetime.now)
     result = EmbeddedDocumentField(SubmissionResult, default=None)
+    status = IntField(default=-1)
 
 
 # register delete rule. execute here to resolve `NotRegistered`

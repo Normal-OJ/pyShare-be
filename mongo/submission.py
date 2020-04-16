@@ -4,70 +4,85 @@ import pathlib
 import secrets
 import requests as rq
 from flask import current_app
-from datetime import date
 from typing import List
-from zipfile import ZipFile, is_zipfile
-from model.submission_config import SubmissionConfig
+import redis
+import fakeredis
 
 from . import engine
 from .base import MongoBase
 from .user import User
 from .problem import Problem, can_view
+from .utils import doc_required
 
 __all__ = [
     'Submission',
-    'get_token',
-    'assign_token',
-    'verify_token',
-    'JudgeQueueFullError',
+    'Token',
 ]
 
-# pid, hash()
-p_hash = {}
-
-# TODO: save tokens in db
-tokens = {}
-
-
-def get_token():
-    return secrets.token_urlsafe()
+REDIS_POOL = redis.ConnectionPool(
+    host=os.getenv('REDIS_HOST'),
+    port=os.getenv('REDIS_PORT'),
+    db=0,
+)
 
 
-def assign_token(submission_id, token_pool=tokens):
-    '''
-    generate a token for the submission
-    '''
-    token = get_token()
-    token_pool[submission_id] = token
-    return token
+def get_redis_client():
+    if current_app.config['TESTING']:
+        return fakeredis.FakeStrictRedis()
+    else:
+        return redis.Redis(connection_pool=REDIS_POOL)
 
 
-def verify_token(submission_id, token):
-    if submission_id not in tokens:
-        return False
-    return secrets.compare_digest(tokens[submission_id], token)
+class Token:
+    def __init__(self, val=None):
+        self._client = get_redis_client()
+        if val is None:
+            val = self.gen()
+        self.val = val
 
+    @staticmethod
+    def gen():
+        return secrets.token_urlsafe()
 
-# Errors
-class JudgeQueueFullError(Exception):
-    '''
-    when sandbox task queue is full
-    '''
+    def assign(self, submission_id):
+        '''
+        assign a token to submission, if no token provided
+        generate a random one
+        '''
+        # only accept one pending submission
+        if self._client.exists(submission_id):
+            return None
+        self._client.set(submission_id, self.val)
+        return self.val
+
+    def verify(self, submission_id):
+        # no token found
+        if not self._client.exists(submission_id):
+            return False
+        # get submission token
+        s_token = self._client.get(submission_id)
+        result = secrets.compare_digest(s_token, self.val)
+        # delete if success
+        if result is True:
+            self._client.delete(submission_id)
+        return result
 
 
 class Submission(MongoBase, engine=engine.Submission):
-    def __init__(self, submission_id):
-        self.submission_id = str(submission_id)
+    JUDGE_URL = os.getenv(
+        'JUDGE_URL',
+        'http://sandbox:1450',
+    )
+    SANDBOX_TOKEN = os.getenv(
+        'SANDBOX_TOKEN',
+        '14508888',
+    )
+
+    def __init__(self, _id):
+        self.id = str(_id)
 
     def __str__(self):
-        return f'submission [{self.submission_id}]'
-
-    @property
-    def id(self):
-        '''
-        convert mongo ObjectId to hex string for serialize
-        '''
-        return str(self.obj.id)
+        return f'submission [{self.id}]'
 
     @property
     def problem_id(self):
@@ -94,31 +109,17 @@ class Submission(MongoBase, engine=engine.Submission):
 
         return ret
 
-    @property
-    def code_dir(self) -> pathlib.Path:
-        return SubmissionConfig.SOURCE_PATH / self.id
+    def delete(self):
+        if not self:
+            raise engine.DoesNotExist(f'{self}')
+        # delete files
+        if self.result is not None:
+            for f in self.result.files:
+                f.delete()
+        # delete document
+        self.obj.delete()
 
-    @property
-    def tmp_dir(self) -> pathlib.Path:
-        return SubmissionConfig.TMP_DIR / self.id
-
-    @property
-    def main_code_path(self) -> str:
-        lang2ext = {0: '.c', 1: '.cpp', 2: '.py'}
-        if self.language not in lang2ext:
-            raise ValueError
-        return str(
-            (self.code_dir / f'main{lang2ext[self.language]}').absolute())
-
-    def get_code(self, path: str) -> str:
-        path = self.code_dir / path
-
-        if not path.exists():
-            raise FileNotFoundError(path)
-
-        return path.read_text()
-
-    def submit(self, code_file, rejudge=False) -> bool:
+    def submit(self) -> bool:
         '''
         prepara data for submit code to sandbox and then send it
 
@@ -128,238 +129,67 @@ class Submission(MongoBase, engine=engine.Submission):
         # unexisted id
         if not self:
             raise engine.DoesNotExist(f'{self}')
-        if self.code_dir.is_dir():
-            raise FileExistsError(f'{submission} code found on server')
-
-        # create submission folder
-        self.code_dir.mkdir()
-        # tmp path to store zipfile
-        zip_path = self.tmp_dir / 'source.zip'
-        zip_path.parent.mkdir()
-        zip_path.write_bytes(code_file.read())
-        if not is_zipfile(zip_path):
-            # delete source file
-            zip_path.unlink()
-            raise ValueError('only accept zip file.')
-        with ZipFile(zip_path, 'r') as f:
-            f.extractall(self.code_dir)
-        self.update(code=True, status=-1)
-
-        # we no need to actually send code to sandbox during testing
-        if current_app.config['TESTING']:
-            return False
-        return self.send(zip_path)
-
-    def send(self, code_path) -> bool:
-        '''
-        send code to sandbox
-
-        Args:
-            code_path: code path for the user's code zip file
-        '''
-        # prepare problem testcase
-        # get testcases
-        cases = self.problem.test_case.cases
-        # metadata
-        meta = {'language': self.language, 'tasks': []}
-        # problem path
-        testcase_zip_path = SubmissionConfig.TMP_DIR / str(
-            self.problem_id) / 'testcase.zip'
-
-        h = hash(str(cases))
-        if p_hash.get(self.problem_id) != h:
-            p_hash[self.problem_id] = h
-            with ZipFile(testcase_zip_path, 'w') as zf:
-                for i, case in enumerate(cases):
-                    meta['tasks'].append({
-                        'caseCount': case['case_count'],
-                        'taskScore': case['case_score'],
-                        'memoryLimit': case['memory_limit'],
-                        'timeLimit': case['time_limit']
-                    })
-
-                    for j in range(len(case['input'])):
-                        filename = f'{i:02d}{j:02d}'
-                        zf.writestr(f'{filename}.in', case['input'][j])
-                        zf.writestr(f'{filename}.out', case['output'][j])
-
-        # generate token for submission
-        token = assign_token(self.id)
-        # setup post body
-        post_data = {
-            'token': token,
-            'checker': 'print("not implement yet. qaq")',
-        }
-        files = {
-            'src': (
-                f'{self.id}-source.zip',
-                zip_path.open('rb'),
-            ),
-            'testcase': (
-                f'{self.id}-testcase.zip',
-                testcase_zip_path.open('rb'),
-            ),
-            'meta.json': (
-                f'{self.id}-meta.json',
-                io.BytesIO(str(meta), ),
-            ),
-        }
-
-        judge_url = f'{SubmissionConfig.JUDGE_URL}/{self.id}'
-
+        token = Token(self.SANDBOX_TOKEN).assign(self.id)
+        judge_url = f'{self.JUDGE_URL}/{self.id}'
         # send submission to snadbox for judgement
-        resp = rq.post(
-            judge_url,
-            data=post_data,
-            files=files,
-            cookies=request.cookies,
-        )  # cookie: for debug, need better solution
-
-        # Queue is full now
-        if resp.status_code == 500:
-            raise JudgeQueueFullError
-        # Invlid data
-        elif resp.status_code == 400:
-            raise ValueError(resp.text)
-        elif resp.status_code != 200:
-            exit(10086)
+        resp = rq.post(f'{judge_url}?token={token}')
         return True
 
-    def process_result(self, tasks: dict):
-        try:
-            for case in tasks:
-                del case['exitCode']
-
-            # process task
-            for task_no, cases in tasks.items():
-                task_result = engine.TaskResult()
-                for case_no, case_info in cases.items():
-                    pass
-            # get the case which has the longest execution time
-            m_case = sorted(tasks, key=lambda c: c['execTime'])[-1]
-            submission.update(
-                score=score,
-                status=status,
-                cases=tasks,
-                exec_time=m_case['execTime'],
-                memory_usage=m_case['memoryUsage'],
-            )
-
-            # update user's submission
-            user.add_submission(submission.reload())
-            # update homework data
-            for homework in submission.problem.homeworks:
-                stat = homework.student_status[user.username][str(
-                    submission.problem.problem_id)]
-                stat['submissionIds'].append(submission.id)
-                if submission.score >= stat['score']:
-                    stat['score'] = submission.score
-                    stat['problemStatus'] = submission.status
-            # update problem
-            ac_submissions = Submission.filter(
-                user=user,
-                offset=0,
-                count=-1,
-                problem=submission.problem,
-                status=0,
-            )
-            ac_users = {s.user.username for s in ac_submissions}
-            submission.problem.ac_user = len(ac_users)
-            submission.problem.save()
-        except (ValidationError, KeyError) as e:
-            return HTTPError(f'invalid data!\n{e}', 400)
-        return HTTPResponse(f'{submission} result recieved.')
-
-    @staticmethod
-    def count():
-        return len(engine.Submission.objects)
-
-    @staticmethod
-    def filter(
-        user,
-        offset,
-        count,
-        problem=None,
-        submission=None,
-        q_user=None,
-        status=None,
-        language_type=None,
+    def complete(
+        self,
+        files,
+        stderr: str,
+        stdout: str,
     ):
-        if offset is None or count is None:
-            raise ValueError('offset and count are required!')
-        try:
-            offset = int(offset)
-            count = int(count)
-        except ValueError:
-            raise ValueError('offset and count must be integer!')
-        if offset < 0:
-            raise ValueError(f'offset must >= 0! get {offset}')
-        if count < -1:
-            raise ValueError(f'count must >=-1! get {count}')
-        if not isinstance(problem, Problem):
-            problem = Problem(problem).obj
-        if isinstance(submission, Submission):
-            submission = submission.id
-        if not isinstance(q_user, User):
-            q_user = User(q_user)
-            q_user = q_user.obj if q_user else None
-
-        # query args
-        q = {
-            'problem': problem,
-            'id': submission,
-            'status': status,
-            'language': language_type,
-            'user': q_user
-        }
-        q = {k: v for k, v in q.items() if v is not None}
-
-        submissions = engine.Submission.objects(**q).order_by('-timestamp')
-        submissions = [
-            *filter(lambda s: can_view(user, s.problem), submissions)
-        ]
-
-        if offset >= len(submissions) and len(submissions):
-            raise ValueError(f'offset ({offset}) is out of range!')
-
-        right = min(offset + count, len(submissions))
-        if count == -1:
-            right = len(submissions)
-
-        return submissions[offset:right]
+        '''
+        judgement complete
+        '''
+        # create files
+        files = [self.new_file(f.filename, f.read()) for f in files]
+        # update status
+        self.update(status=0)
+        # update result
+        self.result.update(
+            stdout=stdout,
+            stderr=stderr,
+            files=files,
+        )
+        # notify user
+        user.add_submission(self.reload())
+        return True
 
     @staticmethod
-    def count():
-        return engine.Submission.objects.count()
+    def new_file(filename, data):
+        '''
+        create a new file
+        '''
+        f = engine.GridFSProxy()
+        f.put(
+            filename=filename,
+            data=data,
+        )
+        f.save()
+        return f
 
     @classmethod
+    @doc_required('problem', Problem)
+    @doc_required('user', User)
     def add(
             cls,
-            problem_id: str,
-            username: str,
-            lang: int,
-            timestamp: date,
-    ) -> 'Submission':
+            problem: Problem,
+            user: User,
+            code: str,
+    ) -> cls:
         '''
         Insert a new submission into db
 
         Returns:
             The created submission
         '''
-        user = User(username)
-        if not user:
-            raise engine.DoesNotExist(f'user {username} does not exist')
-
-        problem = Problem(problem_id)
-        if problem.obj is None:
-            raise engine.DoesNotExist(f'problem {problem_id} dose not exist')
-
         submission = engine.Submission(
             problem=problem.obj,
             user=user.obj,
-            language=lang,
-            timestamp=timestamp,
+            code=code,
         )
         submission.save()
-
         return cls(submission.id)
