@@ -17,6 +17,7 @@ from .utils import doc_required
 __all__ = [
     'Submission',
     'Token',
+    'SubmissionPending',
 ]
 
 REDIS_POOL = redis.ConnectionPool(
@@ -31,6 +32,11 @@ def get_redis_client():
         return fakeredis.FakeStrictRedis()
     else:
         return redis.Redis(connection_pool=REDIS_POOL)
+
+
+class SubmissionPending(Exception):
+    def __init__(self, _id):
+        super().__init__(f'{_id} still pending.')
 
 
 class Token:
@@ -51,8 +57,8 @@ class Token:
         '''
         # only accept one pending submission
         if self._client.exists(submission_id):
-            return None
-        self._client.set(submission_id, self.val)
+            raise SubmissionPending(submission_id)
+        self._client.set(submission_id, self.val, ex=600)
         return self.val
 
     def verify(self, submission_id):

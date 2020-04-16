@@ -3,6 +3,7 @@ from .base import MongoBase
 from .problem import Problem
 from .user import User
 from .utils import doc_required
+from .submission import Submission
 
 __all__ = ['Comment']
 
@@ -13,12 +14,14 @@ class Comment(MongoBase, engine=engine.Comment):
 
     @doc_required('user', 'user', User)
     def permission(self, user: User, req):
+        '''
+        require 'j' for rejudge
+        '''
         _permission = {'r'}
         if user == self.author:
-            _permission.add('w')
-            _permission.add('d')
+            _permission |= {'w', 'j', 'd'}
         elif user > 'student':
-            _permission.add('d')
+            _permission |= {'d', 'j'}
         return bool(req & _permission)
 
     def delete(self):
@@ -41,25 +44,36 @@ class Comment(MongoBase, engine=engine.Comment):
         cls,
         target,
         code,
+        author,
         **ks,
     ):
         # directly submit
         if not isinstance(target, (Problem, engine.Problem)):
             # try convert to document
             target = Problem(target)
+        if isinstance(target, Problem):
+            target = target.obj
         # create new commment
         comment = cls.add(
             floor=problem.height + 1,
             depth=0,
+            author=author,
             **ks,
         )
         # try create a submission
+        submission = Submission.add(
+            problem=target,
+            user=author,
+            code=code,
+        )
+        submission.submit()
+        comment.update(submission=submission)
         # append to problem
         target.update(
             push__comments=comment,
             height__inc=1,
         )
-        return comment
+        return comment.reload()
 
     @classmethod
     def add_to_comment(

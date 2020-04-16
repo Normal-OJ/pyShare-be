@@ -102,5 +102,14 @@ def like_comment(user, comment: Comment):
 
 @comment_api.route('/<_id>/rejudge', methods=['GET'])
 @login_required
-def rejudge(user, _id):
-    pass
+@Request.doc('_id', 'comment', Comment)
+def rejudge(user, comment: Comment):
+    if comment.depth != 0:
+        return HTTPError('Not a submission', 400)
+    if not comment.permission({'j'}):
+        return HTTPError('Forbidden', 403)
+    try:
+        comment.submission.submit()
+    except SubmissionPending as e:
+        return HTTPError(str(e), 503)
+    return HTTPResponse('success')
