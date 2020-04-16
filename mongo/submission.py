@@ -11,7 +11,7 @@ import fakeredis
 from . import engine
 from .base import MongoBase
 from .user import User
-from .problem import Problem, can_view
+from .problem import Problem
 from .utils import doc_required
 
 __all__ = [
@@ -185,7 +185,7 @@ class Submission(MongoBase, engine=engine.Submission):
             problem: Problem,
             user: User,
             code: str,
-    ) -> cls:
+    ) -> 'Submission':
         '''
         Insert a new submission into db
 
