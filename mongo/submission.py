@@ -128,9 +128,6 @@ class Submission(MongoBase, engine=engine.Submission):
     def submit(self) -> bool:
         '''
         prepara data for submit code to sandbox and then send it
-
-        Args:
-            code_file: a zip file contains user's code
         '''
         # unexisted id
         if not self:
@@ -138,7 +135,16 @@ class Submission(MongoBase, engine=engine.Submission):
         token = Token(self.SANDBOX_TOKEN).assign(self.id)
         judge_url = f'{self.JUDGE_URL}/{self.id}'
         # send submission to snadbox for judgement
-        resp = rq.post(f'{judge_url}?token={token}')
+        resp = rq.post(
+            f'{judge_url}?token={token}',
+            files={
+                'attachments':
+                [(a.filename, a, None) for a in self.problem.attachments]
+            },
+            data={
+                'src': self.code,
+            },
+        )
         return True
 
     def complete(

@@ -3,6 +3,7 @@ from .utils import *
 from .auth import *
 from mongo import *
 from mongo import engine
+from datetime import datetime
 
 __all__ = ['comment_api']
 
@@ -29,7 +30,7 @@ def create_comment(user, target, code, id_, **ks):
             return HTTPError('Can not find some docuemnt', 404)
     elif target == 'problem':
         try:
-            comment = Comment.add_to_comment(
+            comment = Comment.add_to_problem(
                 target=id_,
                 code=code,
                 **ks,
@@ -68,8 +69,15 @@ def modify_comment(
         return HTTPError('Permission denied.', 403)
     try:
         # update content
-        comment.update(content=content)
-        # update code & rejudge
+        comment.update(
+            content=content,
+            updated=datetime.now(),
+        )
+        # if it's a direct comment and need to rejudge
+        if comment.depth == 0 and code and code != comment.code:
+            # update code & rejudge
+            comment.submission.update(code=code)
+            comment.submit()
     except engine.ValidationError as ve:
         return HTTPError(
             'Invalid data',
@@ -109,7 +117,7 @@ def rejudge(user, comment: Comment):
     if not comment.permission({'j'}):
         return HTTPError('Forbidden', 403)
     try:
-        comment.submission.submit()
+        comment.submit()
     except SubmissionPending as e:
         return HTTPError(str(e), 503)
     return HTTPResponse('success')

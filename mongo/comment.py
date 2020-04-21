@@ -5,7 +5,19 @@ from .user import User
 from .utils import doc_required
 from .submission import Submission
 
-__all__ = ['Comment']
+__all__ = [
+    'Comment',
+    'NotAComment',
+    'SubmissionNotFound',
+]
+
+
+class NotAComment(Exception):
+    pass
+
+
+class SubmissionNotFound(Exception):
+    pass
 
 
 class Comment(MongoBase, engine=engine.Comment):
@@ -39,6 +51,22 @@ class Comment(MongoBase, engine=engine.Comment):
         self.update(**{f'{action}__liked': user.obj})
         user.update(**{f'{action}__likes': self.obj})
 
+    def submit(self):
+        if self.depth != 0:
+            raise NotAComment
+        submission = Submission(self.submission.id)
+        # delete old submission
+        if not submission:
+            raise SubmissionNotFound
+        code = submission.code
+        submission.delete()
+        # create a new one
+        submission = Submission.add(
+            problem=self.problem.obj,
+            user=self.author.obj,
+            code=code,
+        )
+
     @classmethod
     def add_to_problem(
         cls,
@@ -58,6 +86,7 @@ class Comment(MongoBase, engine=engine.Comment):
             floor=problem.height + 1,
             depth=0,
             author=author,
+            problem=target,
             **ks,
         )
         # try create a submission
@@ -102,6 +131,7 @@ class Comment(MongoBase, engine=engine.Comment):
         author: User,
         floor: int,
         depth: int,
+        problem: engine.Problem = None,
     ):
         # insert into DB
         comment = engine.Comment(
@@ -110,6 +140,7 @@ class Comment(MongoBase, engine=engine.Comment):
             author=author.obj,
             floor=floor,
             depth=depth,
+            problem=problem,
         )
         comment.save()
         # append to author's
