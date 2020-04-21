@@ -6,3 +6,5 @@ PyJWT
 requests
 pre-commit
 yapf
+redis
+fakeredis
