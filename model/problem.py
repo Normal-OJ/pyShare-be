@@ -18,6 +18,7 @@ problem_api = Blueprint('problem_api', __name__)
     'count',
     'title',
     'tags',
+    'course',
 )
 @login_required
 def get_problem_list(user, tags, **ks):
@@ -101,7 +102,7 @@ def create_problem(
     'default_code: str',
     'status: int',
 )
-@Request.doc('pid', 'problem', problem)
+@Request.doc('pid', 'problem', Problem)
 @login_required
 def modify_problem(
     user,
