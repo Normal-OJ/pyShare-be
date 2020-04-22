@@ -121,7 +121,7 @@ class Problem(MongoBase, engine=engine.Problem):
         ps = cls.engine.objects(**qs)
         # search for title
         if name is not None:
-            ps = ps.text_search(name)
+            ps = ps.search_text(name)
         # retrive fields
         if only is not None:
             ps = ps.only(*only)
