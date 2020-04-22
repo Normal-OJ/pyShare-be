@@ -21,4 +21,5 @@ __all__ = [
     *test.__all__,
     *post.__all__,
     *user.__all__,
+    *comment.__all__,
 ]
