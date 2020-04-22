@@ -14,16 +14,6 @@ class Problem(MongoBase, engine=engine.Problem):
     def __init__(self, pid):
         self.pid = pid
 
-    @doc_required('user', 'user', User)
-    def permission(self, user: User, req):
-        _permission = {'r'}
-        if user == self.author:
-            _permission.add('w')
-            _permission.add('d')
-        elif user > 'student':
-            _permission.add('d')
-        return bool(req & _permission)
-
     def __str__(self):
         return f'problem [{self.pid}]'
 
@@ -31,7 +21,7 @@ class Problem(MongoBase, engine=engine.Problem):
     def permission(self, user: User, req: set):
         '''
         check user's permission, `req` is a set of required
-        permissions, currently accept values are {'r', 'w'}
+        permissions, currently accept values are {'r', 'w', 'd'}
         represent read and write respectively
 
         Returns:
@@ -42,9 +32,10 @@ class Problem(MongoBase, engine=engine.Problem):
         # problem author can edit, delete problem
         if user == self.author:
             _permission.add('w')
+            _permission.add('d')
         # teacher and admin can, too
         elif user > 'student':
-            _permission.add('w')
+            _permission.add('d')
         return bool(req & _permission)
 
     @doc_required('target_course', 'target_course', Course)
@@ -117,16 +108,20 @@ class Problem(MongoBase, engine=engine.Problem):
             offset=0,
             count=-1,
             name: str = None,
+            course: str = None,
             tags: list = None,
             only: list = None,
     ) -> 'List[engine.Problem]':
         '''
         read a list of problem filtered by given paramter
         '''
-        qs = {'title': name, 'tags': tags}
+        qs = {'course': course, 'tags': tags}
         # filter None parameter
         qs = {k: v for k, v in qs.items() if v is None}
         ps = cls.engine.objects(**qs)
+        # search for title
+        if name is not None:
+            ps = ps.search_text(name)
         # retrive fields
         if only is not None:
             ps = ps.only(*only)
