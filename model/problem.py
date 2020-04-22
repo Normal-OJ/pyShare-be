@@ -101,7 +101,7 @@ def create_problem(
     'default_code: str',
     'status: int',
 )
-@Request.doc('pid', 'problem', problem)
+@Request.doc('pid', 'problem', Problem)
 @login_required
 def modify_problem(
     user,
