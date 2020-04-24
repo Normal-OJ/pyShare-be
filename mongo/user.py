@@ -159,12 +159,10 @@ class User(MongoBase, engine=engine.User):
         self.reload()
 
     def add_submission(self, submission: engine.Submission):
-        if submission.score == 100:
-            if submission.problem_id not in self.AC_problem_ids:
-                self.AC_problem_ids.append(submission.problem_id)
-            self.AC_submission += 1
-        self.submission += 1
-        self.save()
+        if submission.result.stderr:
+            self.update(fail__inc=1)
+        else:
+            self.update(success__inc=1)
 
 
 def jwt_decode(token):

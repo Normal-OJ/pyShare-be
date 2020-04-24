@@ -49,10 +49,12 @@ class Course(Document):
 
 
 class Comment(Document):
+    meta = {'indexes': ['floor', 'id']}
     title = StringField(required=True, max_length=128)
     floor = IntField(required=True)
     content = StringField(required=True, max_length=100000)
     author = ReferenceField('User', required=True)
+    problem = ReferenceField('Problem', default=None)
     submission = ReferenceField('Submission', default=None)
     # 0 is direct comment, 1 is reply of comments
     depth = IntField(default=0, choice=[0, 1])
@@ -94,17 +96,18 @@ class Problem(Document):
 
 
 class SubmissionResult(EmbeddedDocument):
-    files = FileField(required=True)
-    stdout = StringField(max_length=10**6, required=True)
-    stderr = StringField(max_length=10**6, required=True)
+    files = ListField(FileField(), default=[])
+    stdout = StringField(max_length=10**6, default='')
+    stderr = StringField(max_length=10**6, default='')
 
 
 class Submission(Document):
     problem = ReferenceField(Problem, required=True)
     user = ReferenceField(User, required=True)
-    code = StringField(max_length=10000, default='')
+    code = StringField(max_length=10**6, default='')
     timestamp = DateTimeField(default=datetime.now)
     result = EmbeddedDocumentField(SubmissionResult, default=None)
+    status = IntField(default=-1)
 
 
 # register delete rule. execute here to resolve `NotRegistered`
@@ -118,6 +121,7 @@ Course.register_delete_rule(User, 'teacher', NULLIFY)
 Course.register_delete_rule(User, 'students', PULL)
 Course.register_delete_rule(Problem, 'problems', PULL)
 Comment.register_delete_rule(User, 'author', NULLIFY)
+Comment.register_delete_rule(Problem, 'problem', NULLIFY)
 Comment.register_delete_rule(User, 'liked', PULL)
 Comment.register_delete_rule(Submission, 'submission', NULLIFY)
 Comment.register_delete_rule(Comment, 'replies', NULLIFY)

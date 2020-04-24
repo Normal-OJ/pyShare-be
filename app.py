@@ -11,11 +11,16 @@ app = Flask(__name__)
 app.url_map.strict_slashes = False
 
 # Regist flask blueprint
-app.register_blueprint(auth_api, url_prefix='/auth')
-app.register_blueprint(problem_api, url_prefix='/problem')
-app.register_blueprint(test_api, url_prefix='/test')
-app.register_blueprint(post_api, url_prefix='/post')
-app.register_blueprint(user_api, url_prefix='/user')
+api2name = [
+    (auth_api, '/auth'),
+    (problem_api, '/problem'),
+    (test_api, '/test'),
+    (user_api, '/user'),
+    (comment_api, '/comment'),
+    (submission_api, '/submission'),
+]
+for api, name in api2name:
+    app.register_blueprint(api, url_prefix=name)
 
 
 def setup_user(usernames):

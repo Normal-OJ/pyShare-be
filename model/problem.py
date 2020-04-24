@@ -18,6 +18,7 @@ problem_api = Blueprint('problem_api', __name__)
     'count',
     'title',
     'tags',
+    'course',
 )
 @login_required
 def get_problem_list(user, tags, **ks):
