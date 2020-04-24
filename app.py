@@ -35,10 +35,10 @@ def setup_user(usernames):
                 username=user_data['username'],
                 password=user_data['password'],
             )
-            u.update(
-                active=0,
-                role=user_data.get('role', 1),
-            )
+            # update user's role if specified
+            role = user_data.get('role')
+            if role is not None:
+                u.update(role=role)
         else:
             logging.error(f'Try to setup with non-exist user {username}')
 

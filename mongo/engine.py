@@ -21,7 +21,7 @@ class User(Document):
     user_id2 = StringField(db_field='userId2', max_length=24, default='')
     email = EmailField(required=True, unique=True)
     md5 = StringField(required=True, max_length=32)
-    active = BooleanField(default=False)
+    active = BooleanField(default=True)
     # role: 0 -> admin / 1 -> teacher / 2 -> student
     role = IntField(default=2, choices=[0, 1, 2])
     course = ReferenceField('Course', default=None, null=True)

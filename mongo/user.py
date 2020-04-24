@@ -25,16 +25,23 @@ class User(MongoBase, engine=engine.User):
         self.username = username
 
     @classmethod
-    def signup(cls, username, password, email):
+    def signup(
+        cls,
+        username,
+        password,
+        email,
+        display_name=None,
+    ):
         user = cls(username)
         user_id = hash_id(user.username, password)
+        email = email.lower().strip()
         cls.engine(
             user_id=user_id,
             user_id2=user_id,
             username=user.username,
+            display_name=display_name or user.username,
             email=email,
-            md5=hashlib.md5(email.strip().encode()).hexdigest(),
-            active=False,
+            md5=hashlib.md5(email.encode()).hexdigest(),
         ).save(force_insert=True)
         return user.reload()
 
@@ -57,7 +64,7 @@ class User(MongoBase, engine=engine.User):
 
     @classmethod
     def get_by_email(cls, email):
-        obj = cls.engine.objects.get(email=email)
+        obj = cls.engine.objects.get(email=email.strip().lower())
         return cls(obj.username)
 
     @property
