@@ -1,7 +1,6 @@
 flask
 gunicorn
 mongoengine
-pillow
 PyJWT
 requests
 pre-commit
