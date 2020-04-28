@@ -17,9 +17,9 @@ class Tag(MongoBase, engine=engine.Tag):
         self.obj.delete()
 
     @classmethod
-    def add(value):
+    def add(cls, value):
         '''
         add a tag to db
         '''
-        t = engine.Tag(value)
+        t = engine.Tag(value=value)
         t.save()

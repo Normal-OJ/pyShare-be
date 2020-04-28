@@ -48,6 +48,10 @@ class Course(Document):
     problems = ListField(ReferenceField('Problem'), default=[])
 
 
+class Tag(Document):
+    value = StringField(primary_key=True, required=True, max_length=16)
+
+
 class Comment(Document):
     meta = {'indexes': ['floor', 'id']}
     title = StringField(required=True, max_length=128)
