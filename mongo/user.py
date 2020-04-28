@@ -30,6 +30,7 @@ class User(MongoBase, engine=engine.User):
         username,
         password,
         email,
+        course=None,
         display_name=None,
     ):
         user = cls(username)
@@ -43,6 +44,8 @@ class User(MongoBase, engine=engine.User):
             email=email,
             md5=hashlib.md5(email.encode()).hexdigest(),
         ).save(force_insert=True)
+        if course is not None:
+            user.update(course=course)
         return user.reload()
 
     @classmethod
