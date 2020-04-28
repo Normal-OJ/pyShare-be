@@ -102,13 +102,15 @@ def session():
 
 @auth_api.route('/signup', methods=['POST'])
 @Request.json('username: str', 'password: str', 'email: str')
-def signup(username, password, email):
+def signup(username, password, email, course):
     try:
-        user = User.signup(username, password, email)
+        user = User.signup(username, password, email, course)
     except ValidationError as ve:
         return HTTPError('Signup Failed', 400, data=ve.to_dict())
     except NotUniqueError as ne:
         return HTTPError('User Exists', 400)
+    except CourseNotFound as ce:
+        return HTTPError('Sign Up Course Not Found', 404)
     verify_link = f'https://noj.tw/api/auth/active/{user.cookie}'
     send_noreply([email], '[N-OJ] Varify Your Email', verify_link)
     return HTTPResponse('Signup Success')
