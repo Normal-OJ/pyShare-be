@@ -26,6 +26,18 @@
         "password": "teacher2",
         "role": 1
     },
+    "student1": {
+        "email": "student1@test.test",
+        "username": "student1",
+        "password": "student1",
+        "role": 2
+    },
+    "student2": {
+        "email": "student2@test.test",
+        "username": "student2",
+        "password": "student2",
+        "role": 2
+    },
     "admin": {
         "email": "admin@test.test",
         "username": "admin",
