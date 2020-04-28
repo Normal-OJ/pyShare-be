@@ -1,0 +1,23 @@
+{
+	"course_108-1": {
+		"name": "course_108-1",
+		"teacher": "teacher1",
+		"tags": ["tag2"],
+		"students": ["student1", "student2"],
+		"problems": []
+	},
+	"course_108-2": {
+		"name": "course_108-2",
+		"teacher": "teacher1",
+		"tags": [],
+		"students": [],
+		"problems": []
+	},
+	"course_107-2": {
+		"name": "course_107-2",
+		"teacher": "teacher2",
+		"tags": [],
+		"students": [],
+		"problems": []
+	}
+}
