@@ -163,4 +163,5 @@ class Problem(MongoBase, engine=engine.Problem):
         p.save()
         # update reference
         course.update(push__problems=p.obj)
+        author.update(push__problems=p.obj)
         return cls(p.pid)
