@@ -1,5 +1,6 @@
 from flask import Blueprint
 from .utils import *
+from .auth import *
 from mongo import *
 from mongo import engine
 
