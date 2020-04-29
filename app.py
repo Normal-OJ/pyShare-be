@@ -108,18 +108,6 @@ def setup_course(courses):
             )
 
 
-def setup_comment(comments):
-    with open('env_data/comment/comment.json') as f:
-        COMMENT_DATA = json.load(f)
-    for comment in comments:
-        if comment in COMMENT_DATA:
-            pass
-        else:
-            logging.error(
-                f'Try to setup with comment that is not in comment.json: {comment}'
-            )
-
-
 def setup_problem(problems):
     with open('env_data/problem/problem.json') as f:
         PROBLEM_DATA = json.load(f)
@@ -162,7 +150,6 @@ def setup_env(env):
         ('tag', setup_tag),
         ('course', setup_course),
         ('problem', setup_problem),
-        ('comment', setup_comment),
     ]
     for key, func in setup_funcs:
         if key in j:
