@@ -174,6 +174,54 @@ class User(MongoBase, engine=engine.User):
         else:
             self.update(success__inc=1)
 
+    def liked_amount(self):
+        return sum(len(c.liked) for c in self.comments)
+
+    def statistic(self):
+        '''
+        return user's statistic data
+        '''
+        ret = {}
+        # all problems
+        ret['problems'] = [{
+            'course': p.course.name,
+            'pid': p.pid,
+        } for p in self.problems]
+        # liked comments
+        ret['likes'] = [{
+            'course': c.problem.course.name,
+            'pid': c.problem.pid,
+            'floor': c.floor,
+            'staree': c.author.username,
+        } for c in self.likes]
+        # comments
+        ret['comments'] = [{
+            'course': c.problem.course.name,
+            'pid': c.problem.pid,
+            'floor': c.floor,
+        } for c in self.comments if c.depth == 0]
+        ret['replies'] = [{
+            'course': c.problem.course.name,
+            'pid': c.problem.pid,
+            'floor': c.floor,
+        } for c in self.comments if c.depth != 0]
+        # comments be liked
+        ret['liked'] = [{
+            'course': c.problem.course.name,
+            'pid': c.problem.pid,
+            'floor': c.floor,
+            'starers': [u.username for u in c.liked],
+        } for c in self.comments]
+        # success & fail
+        ret['execInfo'] = [{
+            'course': c.problem.course.name,
+            'pid': c.problem.pid,
+            'floor': c.floor,
+            'success': c.success,
+            'fail': c.fail,
+        } for c in self.comments if c.depth == 0]
+        return ret
+
 
 def jwt_decode(token):
     try:
