@@ -64,25 +64,17 @@ def get_single_problem(user, problem):
 @login_required
 def create_problem(
     user,
-    title,
-    description,
-    tags,
-    course,
-    default_code,
-    status,
+    **p_ks, # problem args
 ):
     '''
     create a new problem
     '''
     try:
+        # filter None
+        p_ks = {k:v for k, v in p_ks.items() if v is not None}
         problem = Problem.add(
-            title=title,
-            description=description,
-            tags=tags or [],
-            course=course,
-            author=user.username,
-            default_code=default_code or '',
-            status=status,
+            author=user.pk,
+            **p_ks,
         )
     except (engine.ValidationError, TagNotFoundError) as ve:
         return HTTPError(str(ve), 400, data=ve.to_dict())
