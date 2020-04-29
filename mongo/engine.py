@@ -35,9 +35,6 @@ class User(Document):
         default=[],
         de_field='likedComments',
     )
-    # successed / failed execution counter
-    success = IntField(default=0)
-    fail = IntField(default=0)
 
 
 class Course(Document):
@@ -74,6 +71,9 @@ class Comment(Document):
         ReferenceField('Comment'),
         dafault=[],
     )
+    # successed / failed execution counter
+    success = IntField(default=0)
+    fail = IntField(default=0)
 
 
 class Problem(Document):
@@ -107,6 +107,7 @@ class SubmissionResult(EmbeddedDocument):
 
 class Submission(Document):
     problem = ReferenceField(Problem, required=True)
+    comment = ReferenceField(Comment, required=True)
     user = ReferenceField(User, required=True)
     code = StringField(max_length=10**6, default='')
     timestamp = DateTimeField(default=datetime.now)
