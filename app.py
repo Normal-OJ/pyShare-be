@@ -18,6 +18,7 @@ api2name = [
     (user_api, '/user'),
     (comment_api, '/comment'),
     (submission_api, '/submission'),
+    (tag_api, '/tag'),
 ]
 for api, name in api2name:
     app.register_blueprint(api, url_prefix=name)
@@ -108,7 +109,15 @@ def setup_course(courses):
 
 
 def setup_comment(comments):
-    pass
+    with open('env_data/comment/comment.json') as f:
+        COMMENT_DATA = json.load(f)
+    for comment in comments:
+        if comment in COMMENT_DATA:
+            pass
+        else:
+            logging.error(
+                f'Try to setup with comment that is not in comment.json: {comment}'
+            )
 
 
 def setup_problem(problems):
