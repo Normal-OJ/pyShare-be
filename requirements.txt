@@ -4,6 +4,6 @@ mongoengine
 PyJWT
 requests
 pre-commit
-yapf
+yapf==0.29.0
 redis
 fakeredis
