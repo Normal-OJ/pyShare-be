@@ -12,6 +12,7 @@ from . import engine
 from .base import MongoBase
 from .user import User
 from .problem import Problem
+from .comment import Comment
 from .utils import doc_required
 
 __all__ = [
@@ -163,8 +164,8 @@ class Submission(MongoBase, engine=engine.Submission):
             stderr=stderr,
             files=files,
         )
-        # notify user
-        user.add_submission(self.reload())
+        # notify comment
+        self.comment.finish_submission()
         return True
 
     @staticmethod
@@ -183,10 +184,12 @@ class Submission(MongoBase, engine=engine.Submission):
     @classmethod
     @doc_required('problem', Problem)
     @doc_required('user', User)
+    @doc_required('comment', Comment)
     def add(
             cls,
             problem: Problem,
             user: User,
+            comment: Comment,
             code: str,
     ) -> 'Submission':
         '''
@@ -198,6 +201,7 @@ class Submission(MongoBase, engine=engine.Submission):
         submission = engine.Submission(
             problem=problem.obj,
             user=user.obj,
+            comment=comment.obj,
             code=code,
         )
         submission.save()

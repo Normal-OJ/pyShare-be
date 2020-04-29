@@ -3,7 +3,7 @@ from .base import MongoBase
 from .problem import Problem
 from .user import User
 from .utils import doc_required
-from .submission import Submission
+from .submission import *
 
 __all__ = [
     'Comment',
@@ -67,6 +67,19 @@ class Comment(MongoBase, engine=engine.Comment):
             code=code,
         )
 
+    def finish_submission(self):
+        '''
+        called after a submission finish
+        '''
+        if self.depth != 0:
+            raise NotAComment
+        if not Submission(self.submission.id):
+            raise SubmissionNotFound
+        if self.submission.result.stderr:
+            self.update(fail__inc=1)
+        else:
+            self.update(success__inc=1)
+
     @classmethod
     def add_to_problem(
         cls,
@@ -93,6 +106,7 @@ class Comment(MongoBase, engine=engine.Comment):
         submission = Submission.add(
             problem=target,
             user=author,
+            comment=comment,
             code=code,
         )
         submission.submit()
