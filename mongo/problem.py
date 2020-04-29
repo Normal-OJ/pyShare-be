@@ -14,9 +14,6 @@ class Problem(MongoBase, engine=engine.Problem):
     def __init__(self, pid):
         self.pid = pid
 
-    def __str__(self):
-        return f'problem [{self.pid}]'
-
     @doc_required('user', 'user', User)
     def permission(self, user: User, req: set):
         '''
@@ -156,6 +153,6 @@ class Problem(MongoBase, engine=engine.Problem):
                 raise TagNotFoundError(
                     'Exist tag that is not allowed to use in this course')
         # insert a new problem into DB
-        p = engine.Problem(author=author, **ks)
+        p = engine.Problem(author=author.obj, **ks)
         p.save()
         return cls(p.pid)

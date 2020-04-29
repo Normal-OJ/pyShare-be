@@ -87,9 +87,6 @@ class Submission(MongoBase, engine=engine.Submission):
     def __init__(self, _id):
         self.id = str(_id)
 
-    def __str__(self):
-        return f'submission [{self.id}]'
-
     @property
     def problem_id(self):
         return self.problem.problem_id
