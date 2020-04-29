@@ -64,14 +64,14 @@ def get_single_problem(user, problem):
 @login_required
 def create_problem(
     user,
-    **p_ks, # problem args
+    **p_ks,  # problem args
 ):
     '''
     create a new problem
     '''
     try:
         # filter None
-        p_ks = {k:v for k, v in p_ks.items() if v is not None}
+        p_ks = {k: v for k, v in p_ks.items() if v is not None}
         problem = Problem.add(
             author=user.pk,
             **p_ks,
@@ -99,11 +99,8 @@ def create_problem(
 def modify_problem(
     user,
     problem,
-    title,
-    description,
     tags,
-    default_code,
-    status,
+    **p_ks,
 ):
     if not problem.permission(user, {'w'}):
         return HTTPError('Permission denied.', 403)
@@ -112,13 +109,8 @@ def modify_problem(
             return HTTPError(
                 'Exist tag that is not allowed to use in this course', 400)
     try:
-        problem.update(
-            title=title,
-            description=description,
-            tags=tags,
-            default_code=default_code,
-            status=status,
-        )
+        p_ks = {k: v for k, v in p_ks.items() if v is not None}
+        problem.update(**p_ks)
     except engine.ValidationError as ve:
         return HTTPError(
             'Invalid data',
