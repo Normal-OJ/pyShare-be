@@ -112,7 +112,34 @@ def setup_comment(comments):
 
 
 def setup_problem(problems):
-    pass
+    with open('env_data/problem/problem.json') as f:
+        PROBLEM_DATA = json.load(f)
+    for problem in problems:
+        if problem not in PROBLEM_DATA:
+            problem_data = PROBLEM_DATA[problem]
+            # insert problem
+            problem = Problem.add(
+                title=problem_data['title'],
+                description=problem_data['description'],
+                tags=problem_data.get('tags', []),
+                course=problem_data['course'],
+                author=problem_data['user'].username,
+                default_code=problem_data.get('default_code', ''),
+                status=problem_data['status'],
+            )
+            # add attachments
+            for att in problem_data.get('attachments', []):
+                problem.insert_attachment(
+                    filename=att,
+                    data=open(
+                        f'env_data/problem/attachment/{att}',
+                        'rb',
+                    ).read(),
+                )
+        else:
+            logging.error(
+                f'Try to setup with tag that is not in problem.json: {problem}'
+            )
 
 
 def setup_env(env):
