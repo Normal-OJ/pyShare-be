@@ -36,6 +36,9 @@ class MongoBase:
         except engine.ValidationError:
             return False
 
+    def __str__(self):
+        return f'{self.__class__.__name__.lower()} [{self.pk}]'
+
     def __repr__(self):
         return self.obj.to_json() if self else '{}'
 
