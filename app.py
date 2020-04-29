@@ -27,18 +27,18 @@ def setup_user(usernames):
     with open('env_data/user/user.json') as f:
         USER_DATA = json.load(f)
     for username in usernames:
-        # if we can find the pre defined user and it haven't sing up
-        if username in USER_DATA and not User(username):
-            user_data = USER_DATA[username]
-            u = User.signup(
-                email=user_data['email'],
-                username=user_data['username'],
-                password=user_data['password'],
-            )
-            # update user's role if specified
-            role = user_data.get('role')
-            if role is not None:
-                u.update(role=role)
+        # if we can find the pre defined user
+        if username in USER_DATA:
+            # if he/she haven't sing up
+            if not User(username):
+                user_data = USER_DATA[username]
+                u = User.signup(
+                    email=user_data['email'],
+                    username=user_data['username'],
+                    password=user_data['password'],
+                )
+                # update user's role if specified
+                u.update(role=user_data.get('role', u.role))
         else:
             logging.error(
                 f'Try to setup with user that is not in user.json: {username}')
@@ -48,10 +48,12 @@ def setup_tag(tags):
     with open('env_data/tag/tag.json') as f:
         TAG_DATA = json.load(f)
     for tag in tags:
-        # if we can find the pre defined user and it haven't sing up
-        if tag in TAG_DATA and not Tag(tag):
-            tag_data = TAG_DATA[tag]
-            Tag.add(value=tag_data['value'])
+        # if we can find the pre defined tag
+        if tag in TAG_DATA:
+            # the tag haven't add to DB
+            if not Tag(tag):
+                tag_data = TAG_DATA[tag]
+                Tag.add(value=tag_data['value'])
         else:
             logging.error(
                 f'Try to setup with tag that is not in tag.json: {tag}')
@@ -62,49 +64,43 @@ def setup_course(courses):
         COURSE_DATA = json.load(f)
     for course in courses:
         # if we can find the pre defined course and it is not exist
-        if course in COURSE_DATA and not Course(course):
-            course_data = COURSE_DATA[course]
-            c = Course.add(
-                name=course_data['name'],
-                teacher=course_data['teacher'],
-            )
-
-            # add tags if specified
-            tags = course_data.get('tags')
-            if tags is not None:
-                for t in tags:
-                    if not Tag(t):
-                        logging.error(
-                            f'No Such Tag: tag "{t}" in course "{course}"')
-                        tags.remove(t)
-                c.update(tags=tags)
-
-            # add students if specified
-            students = course_data.get('students')
-            if students is not None:
-                for s in students:
-                    u = User(s)
-                    if not u:
-                        logging.error(
-                            f'No Such User: student "{s}" in course "{course}"'
-                        )
-                        students.remove(s)
-                    else:
-                        s = u
-                        u.update(course=c.obj)
-                c.update(push_all__students=students)
-
-            # add problems if specified !!! NOT DONE YET !!!
-            problems = course_data.get('problems')
-            if problems is not None:
-                for p in problems:
-                    if not Problem(p):
-                        logging.error(
-                            f'No Such Problem: pid "{p}" in course "{course}"')
-                        problems.remove(p)
-                    else:
-                        p = Problem(p)
-                c.update(push_all__problems=problems)
+        if course in COURSE_DATA:
+            if not Course(course):
+                course_data = COURSE_DATA[course]
+                c = Course.add(
+                    name=course_data['name'],
+                    teacher=course_data['teacher'],
+                )
+                # add tags if specified
+                tags = course_data.get('tags')
+                if tags is not None:
+                    tags = [*map(Tag, tags)]
+                    for t in filter(lambda t: not t, tags):
+                        logging.error(f'No Such Tag: {t} in {c}')
+                    c.update(tags=[t.obj for t in filter(bool, tags)])
+                # add students if specified
+                students = course_data.get('students')
+                if students is not None:
+                    # convert to MongoBase
+                    students = [*map(User, students)]
+                    # log non-exist user
+                    for s in filter(lambda s: not s, students):
+                        logging.error(f'No Such User: {s} in {c}')
+                    # filter valid users
+                    students = [s.obj for s in filter(bool, students)]
+                    # update references
+                    for s in students:
+                        s.update(course=c.obj)
+                    c.update(push_all__students=students)
+                # add problems if specified !!! NOT DONE YET !!!
+                problems = course_data.get('problems')
+                if problems is not None:
+                    problems = [*map(Problem, problems)]
+                    for p in filter(lambda p: not p, problems):
+                        logging.error(f'No Such Problem: {p} in {c}')
+                    c.update(push_all__problems=[
+                        p.obj for p in filter(bool, problems)
+                    ])
         else:
             logging.error(
                 f'Try to setup with course that is not in course.json: {course}'
