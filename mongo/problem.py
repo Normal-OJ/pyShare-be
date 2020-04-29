@@ -140,7 +140,13 @@ class Problem(MongoBase, engine=engine.Problem):
     @classmethod
     @doc_required('author', 'author', User)
     @doc_required('course', 'course', Course)
-    def add(cls, author: User, **ks) -> 'Problem':
+    def add(
+            cls,
+            author: User,
+            course: Course,
+            tags: list,
+            **ks,
+    ) -> 'Problem':
         '''
         add a problem to db
         '''
@@ -155,4 +161,6 @@ class Problem(MongoBase, engine=engine.Problem):
         # insert a new problem into DB
         p = engine.Problem(author=author.obj, **ks)
         p.save()
+        # update reference
+        course.update(push__problems=p.obj)
         return cls(p.pid)
