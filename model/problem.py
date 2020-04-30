@@ -22,8 +22,9 @@ problem_api = Blueprint('problem_api', __name__)
 )
 @login_required
 def get_problem_list(user, tags, **ks):
-    ks = {k: v for k, v in ks.items() if v is not None}
-    tags = tags.split(',') if tags else []
+    # filter values user passed and decode
+    ks = {k: parse.unquote(v) for k, v in ks.items() if v is not None}
+    tags = parse.unquote(tags).split(',') if tags else []
     ps = Problem.filter(
         tags=tags,
         only=[
@@ -31,12 +32,16 @@ def get_problem_list(user, tags, **ks):
             'title',
             'timestamp',
             'author',
+            'attachments',
         ] + ['status'] if user > 'student' else [],
         **ks,
     )
+    att_names = [[att.filename for att in p.attachments] for p in ps]
     ps = [p.to_mongo() for p in ps]
-    for p in ps:
+    # post process
+    for p, att_name in zip(ps, att_names):
         p['author'] = User(p['author']).info
+        p['attachments'] = att_name
     return HTTPResponse('here you are, bro', data=ps)
 
 
