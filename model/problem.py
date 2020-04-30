@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, send_file
 from urllib import parse
 import threading
 
@@ -169,6 +169,21 @@ def patch_attachment(
         except FileNotFoundError as e:
             return HTTPError(str(e), 400)
     return HTTPResponse('success')
+
+
+@problem_api.route('/<int:pid>/attachment/<name>')
+@Request.doc('pid', 'problem', Problem)
+def get_attachment(problem, name):
+    name = parse.unquote(name)
+    for att in problem.attachments:
+        if att.filename == name:
+            return send_file(
+                att,
+                as_attachment=True,
+                cache_timeout=30,
+                attachment_filename=att.filename,
+            )
+    return HTTPError('file not found', 404)
 
 
 @problem_api.route('/<int:pid>/clone/<course_name>', methods=['GET'])
