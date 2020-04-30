@@ -77,7 +77,7 @@ class Comment(Document):
 
 
 class Problem(Document):
-    meta = {'indexes': [{'fields': ['$title']}, 'pid']}
+    meta = {'indexes': [{'fields': ['$title']}, 'timestamp']}
     pid = SequenceField(required=True, primary_key=True)
     height = IntField(default=0)
     title = StringField(max_length=64, required=True)
