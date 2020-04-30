@@ -24,7 +24,7 @@ def get_all_user():
 # TODO: statistic cause a lot of query, make a cache for better performance
 @user_api.route('/<student>/statistic', methods=['GET'])
 @identity_verify(0, 1)
-@Request.doc('student', User)
+@Request.doc('student', 'student', User)
 @login_required
 def statistic(user, student):
     return HTTPResponse('here you are.', data=student.statistic())
