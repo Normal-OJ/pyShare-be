@@ -1,0 +1,21 @@
+{
+    "template": {
+        "title": "",
+        "description": "",
+        "course": "",
+        "author": "",
+        "tags": [],
+        "default_code": "",
+        "status": 1
+    },
+    "p1": {
+        "title": "p1",
+        "description": "this is p1 da!",
+        "course": "course_108-1",
+        "author": "teacher1",
+        "tags": [],
+        "default_code": "",
+        "status": 1,
+        "attachments": ["att"]
+    }
+}
