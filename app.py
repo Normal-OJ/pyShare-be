@@ -130,12 +130,13 @@ def setup_problem(problems):
             problem = Problem.add(**ks)
             # add attachments
             for att in problem_data.get('attachments', []):
+                name = att.split('/')[-1]
                 problem.insert_attachment(
-                    filename=att,
-                    data=open(
+                    open(
                         f'env_data/problem/attachment/{att}',
                         'rb',
-                    ).read(),
+                    ),
+                    filename=name,
                 )
         else:
             logging.error(
