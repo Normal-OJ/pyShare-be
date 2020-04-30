@@ -78,7 +78,7 @@ def setup_course(courses):
                     tags = [*map(Tag, tags)]
                     for t in filter(lambda t: not t, tags):
                         logging.error(f'No Such Tag: {t} in {c}')
-                    c.update(tags=[t.obj for t in filter(bool, tags)])
+                    c.update(tags=[t.value for t in filter(bool, tags)])
                 # add students if specified
                 students = course_data.get('students')
                 if students is not None:
