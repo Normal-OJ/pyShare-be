@@ -91,7 +91,7 @@ class User(MongoBase, engine=engine.User):
     def info(self):
         return {
             'username': self.username,
-            'displayedName': self.profile.displayed_name,
+            'displayedName': self.display_name,
             'md5': self.md5
         }
 
