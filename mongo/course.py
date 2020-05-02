@@ -1,3 +1,4 @@
+import re
 from .base import MongoBase
 from .user import User
 from . import engine
@@ -15,15 +16,26 @@ class Course(MongoBase, engine=engine.Course):
 
     @classmethod
     @doc_required('teacher', User)
-    def add(cls, teacher, **ks):
+    def add(
+        cls,
+        teacher: User,
+        name: str,
+        **ks,
+    ):
         # convert username to user document
         if teacher < 'teacher':
             raise PermissionError(
                 'only those who has more permission'
                 ' than teacher can create course', )
+        # check course name
+        # it can only contain letters, numbers, underscore (_),
+        # dash (-) and dot (.), also, it can not be empty
+        if re.match(r'[\w\.\ ]+$', name):
+            raise ValueError('course name is invalid')
         # insert a new course into DB
         c = cls.engine(
             teacher=teacher.username,
+            name=name,
             **ks,
         )
         c.save()
