@@ -26,7 +26,12 @@ def course_list(user):
 @login_required
 @Request.doc('name', 'course', Course)
 def get_single_course(user, course):
-    return HTTPResponse('here you are', data=course)
+    ret = {
+        'teacher': User(course.teacher.username).info,
+        'students': [User(s.username).info for s in course.students],
+        'problems': [p.name for p in course.problems]
+    }
+    return HTTPResponse('here you are', data=ret)
 
 
 @course_api.route('/<name>/statistic', methods=['GET'])
