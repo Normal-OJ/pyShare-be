@@ -29,6 +29,13 @@ def get_single_course(user, course):
     return HTTPResponse('here you are', data=course)
 
 
+@course_api.route('/<name>/statistic', methods=['GET'])
+@Request.doc('name', 'course', Course)
+def statistic(course):
+    ret = [User(u.username).statistic() for u in course.students]
+    return HTTPResponse('666', data=ret)
+
+
 @course_api.route('/<name>', methods=['DELETE'])
 @login_required
 @identity_verify(0)  # only admin can call this route
