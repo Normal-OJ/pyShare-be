@@ -61,6 +61,22 @@ class Problem(MongoBase, engine=engine.Problem):
         )
         return p.reload()
 
+    @property
+    def online(self):
+        return self.status == 1
+
+    def to_dict(self):
+        '''
+        cast self to python dictionary for serialization
+        '''
+        ret = self.to_mongo().to_dict()
+        ret['pid'] = ret['_id']
+        ret['attachments'] = [att.filename for att in self.attachments]
+        ret['timestamp'] = ret['timestamp'].timestamp()
+        for k in ('_id', 'passed', 'height'):
+            del ret[k]
+        return ret
+
     def delete(self):
         '''
         delete the problem

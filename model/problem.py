@@ -44,11 +44,12 @@ def get_problem_list(user, tags, **ks):
 @login_required
 @Request.doc('pid', 'problem', Problem)
 def get_single_problem(user, problem):
-    p = problem.to_mongo()
-    p['author'] = User(p['author']).info
-    if not user > 'student':
-        del p['status']
-    return HTTPResponse('here you are, bro', data=p)
+    if not user > 'student' and not problem.online:
+        return HTTPError('not enough permission', 403)
+    return HTTPResponse(
+        'here you are, bro',
+        data=problem.to_dict(),
+    )
 
 
 @problem_api.route('/', methods=['POST'])
