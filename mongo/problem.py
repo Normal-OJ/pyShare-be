@@ -130,7 +130,7 @@ class Problem(MongoBase, engine=engine.Problem):
         '''
         qs = {'course': course, 'tags': tags}
         # filter None parameter
-        qs = {k: v for k, v in qs.items() if v is None}
+        qs = {k: v for k, v in qs.items() if v is not None}
         ps = cls.engine.objects(**qs)
         # search for title
         if name is not None:
