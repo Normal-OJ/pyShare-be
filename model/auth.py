@@ -126,7 +126,7 @@ def signup(username, password, email, course):
 @Request.json('csv_string: str', 'course: str')
 @Request.doc('course', Course)
 @identity_verify(0, 1)
-@login_reuired
+@login_required
 def batch_signup(user, csv_string, course):
     user_data = csv.DictReader(io.StringIO(csv_string))
     fails = []
