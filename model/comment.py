@@ -53,7 +53,7 @@ def get_comment(user, comment: Comment):
 
 @comment_api.route('/<_id>/file/<name>', methods=['GET'])
 @login_required
-@Request.doc('_id', 'comment'.Comment)
+@Request.doc('_id', 'comment', Comment)
 def get_comment_file(user, comment: Comment):
     try:
         f = comment.get_file(name)
