@@ -57,12 +57,17 @@ def get_comment(user, comment: Comment):
 
 @comment_api.route('/<_id>', methods=['PUT'])
 @login_required
-@Request.json('content: str', 'code: str')
+@Request.json(
+    'content: str',
+    'title: str',
+    'code: str',
+)
 @Request.doc('_id', 'comment', Comment)
 def modify_comment(
     user,
     comment: Comment,
     content,
+    title,
     code,
 ):
     if not comment.permission(user, {'w'}):
@@ -71,6 +76,7 @@ def modify_comment(
         # update content
         comment.update(
             content=content,
+            title=title,
             updated=datetime.now(),
         )
         # if it's a direct comment and need to rejudge
