@@ -29,7 +29,7 @@ def get_single_course(user, course):
     ret = {
         'teacher': User(course.teacher.username).info,
         'students': [User(s.username).info for s in course.students],
-        'problems': [p.name for p in course.problems]
+        'problems': [p.pid for p in course.problems]
     }
     return HTTPResponse('here you are', data=ret)
 
