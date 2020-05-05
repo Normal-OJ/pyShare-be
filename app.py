@@ -112,30 +112,35 @@ def setup_problem(problems):
     with open('env_data/problem/problem.json') as f:
         PROBLEM_DATA = json.load(f)
     for problem in problems:
-        if problem not in PROBLEM_DATA:
+        if problem in PROBLEM_DATA:
             problem_data = PROBLEM_DATA[problem]
+            # check existence
+            if Problem.filter(
+                    name=problem_data['title'],
+                    course=problem_data['course'],
+            ):
+                continue
+            keys = {'title', 'description', 'course', 'author'}
+            optional_keys = {'tags', 'default_code', 'status'}
+            ks = {
+                v: problem_data[v]
+                for v in (keys | (keys & set(problem_data.keys())))
+            }
             # insert problem
-            problem = Problem.add(
-                title=problem_data['title'],
-                description=problem_data['description'],
-                tags=problem_data.get('tags', []),
-                course=problem_data['course'],
-                author=problem_data['user'].username,
-                default_code=problem_data.get('default_code', ''),
-                status=problem_data['status'],
-            )
+            problem = Problem.add(**ks)
             # add attachments
             for att in problem_data.get('attachments', []):
+                name = att.split('/')[-1]
                 problem.insert_attachment(
-                    filename=att,
-                    data=open(
+                    open(
                         f'env_data/problem/attachment/{att}',
                         'rb',
-                    ).read(),
+                    ),
+                    filename=name,
                 )
         else:
             logging.error(
-                f'Try to setup with tag that is not in problem.json: {problem}'
+                f'Try to setup with problem that is not in problem.json: {problem}'
             )
 
 

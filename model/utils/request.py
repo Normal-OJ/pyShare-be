@@ -62,7 +62,7 @@ class _Request(type):
 
 class Request(metaclass=_Request):
     @staticmethod
-    def doc(src, des, cls):
+    def doc(src, des, cls=None):
         '''
         a warpper to `doc_required` for flask route
         '''

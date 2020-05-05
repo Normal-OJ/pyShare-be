@@ -50,8 +50,8 @@ class Problem(MongoBase, engine=engine.Problem):
         # copy files
         attachments = [
             self.new_attatchment(
+                a.data,
                 filename=a.filename,
-                data=a.data.read(),
             ) for a in self.attachments
         ]
         # update info
@@ -73,10 +73,9 @@ class Problem(MongoBase, engine=engine.Problem):
         # remove problem document
         self.obj.delete()
 
-    def insert_attachment(self, filename, **ks):
+    def insert_attachment(self, file_obj, filename):
         '''
         insert a attahment into this problem.
-        ks is the arguments for create a attachment document
         '''
         # check permission
         if any([att.filename == filename for att in self.attachments]):
@@ -84,9 +83,10 @@ class Problem(MongoBase, engine=engine.Problem):
                 f'A attachment named [{filename}] '
                 'already exists!', )
         # create a new attachment
-        att = self.new_attatchment(filename=filename, **ks)
+        att = self.new_attatchment(file_obj, filename=filename)
         # push into problem
-        problem.update(push__attachments=attachment)
+        self.attachments.append(att)
+        self.save()
 
     def remove_attachment(self, name):
         # search by name
@@ -123,18 +123,17 @@ class Problem(MongoBase, engine=engine.Problem):
         if only is not None:
             ps = ps.only(*only)
         ps = ps.order_by('pid')[offset:]
-        count = len(ps) if count != -1 else count
+        count = len(ps) if count == -1 else count
         return ps[:count]
 
     @classmethod
-    def new_attatchment(cls, **ks):
+    def new_attatchment(cls, file_obj, **ks):
         '''
         create a new attachment, ks will be passed
         to `GridFSProxy`
         '''
         att = GridFSProxy()
-        att.put(**ks)
-        att.save()
+        att.put(file_obj, **ks)
         return att
 
     @classmethod
@@ -144,7 +143,7 @@ class Problem(MongoBase, engine=engine.Problem):
             cls,
             author: User,
             course: Course,
-            tags: list,
+            tags: list = [],
             **ks,
     ) -> 'Problem':
         '''
@@ -152,16 +151,20 @@ class Problem(MongoBase, engine=engine.Problem):
         '''
         # student can create problem only in their course
         # but teacher and admin are not limited by this rule
-        if author.course != self.course and author < 'teacher':
+        if course != author.course and author < 'teacher':
             raise PermissionError('Not enough permission')
         for tag in tags:
             if not course.check_tag(tag):
                 raise TagNotFoundError(
                     'Exist tag that is not allowed to use in this course')
         # insert a new problem into DB
-        p = engine.Problem(author=author.obj, **ks)
+        p = engine.Problem(
+            author=author.obj,
+            tags=tags,
+            **ks,
+        )
         p.save()
         # update reference
-        course.update(push__problems=p.obj)
-        author.update(push__problems=p.obj)
+        course.update(push__problems=p)
+        author.update(push__problems=p)
         return cls(p.pid)
