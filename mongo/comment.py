@@ -36,6 +36,21 @@ class Comment(MongoBase, engine=engine.Comment):
             _permission |= {'d', 'j'}
         return bool(req & _permission)
 
+    def to_dict(self):
+        ret = self.to_mongo().to_dict()
+        ret['created'] = self.created.timestamp()
+        ret['updated'] = self.updated.timestamp()
+        ret['submission'] = Submission(ret['submission']).to_dict()
+        ret['author'] = User(ret['author']).info
+        ret['replies'] = [str(r) for r in ret['replies']]
+        ret['liked'] = [User(l).info for l in ret['liked']]
+        for k in ('problem', 'passed', 'success', 'fail'):
+            del ret[k]
+        return ret
+
+    def hidden(self):
+        return self.status == 0
+
     def delete(self):
         self.update(status=0)
         for reply in self.replies:

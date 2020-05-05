@@ -93,25 +93,12 @@ class Submission(MongoBase, engine=engine.Submission):
         return self.problem.problem_id
 
     def to_dict(self):
-        _ret = {
-            'problemId': self.problem.problem_id,
-            'user': User(self.user.username).info,
-            'submissionId': self.id,
-            'timestamp': self.timestamp.timestamp()
+        return {
+            'code': self.code,
+            'stdout': self.result.stdout,
+            'stderr': self.result.stderr,
+            'files': [f.filename for f in self.result.files]
         }
-        ret = json.loads(self.obj.to_json())
-
-        old = [
-            '_id',
-            'problem',
-        ]
-        for o in old:
-            del ret[o]
-
-        for n in _ret.keys():
-            ret[n] = _ret[n]
-
-        return ret
 
     def delete(self):
         if not self:

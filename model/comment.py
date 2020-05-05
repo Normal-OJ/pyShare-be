@@ -46,13 +46,9 @@ def create_comment(user, target, code, id_, **ks):
 @login_required
 @Request.doc('_id', 'comment', Comment)
 def get_comment(user, comment: Comment):
-    data = comment.to_mongo()
-    author = User(data['author'])
-    data['author'] = {
-        'username': author.username,
-        'displayName': author.displayName,
-    }
-    return HTTPResponse('success', data=data)
+    if not user > 'teacher' and comment.hidden:
+        return HTTPError('permission denied', 403)
+    return HTTPResponse('success', data=comment.to_dict())
 
 
 @comment_api.route('/<_id>', methods=['PUT'])
