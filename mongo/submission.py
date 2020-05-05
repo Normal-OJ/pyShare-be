@@ -118,6 +118,7 @@ class Submission(MongoBase, engine=engine.Submission):
         if not self:
             raise engine.DoesNotExist(f'{self}')
         token = Token(self.SANDBOX_TOKEN).assign(self.id)
+        self.update(status=-1)
         judge_url = f'{self.JUDGE_URL}/{self.id}'
         # send submission to snadbox for judgement
         resp = rq.post(
