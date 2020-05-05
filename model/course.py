@@ -94,10 +94,10 @@ def update_students(user, course, users, action):
     else:
         not_in_db = []
     if action == 'insert':
-        warning = [*({*course.students} & {*[u.obj for u in users]})]
+        warning = [*({*course.students} & {*[u.obj for u in u_users]})]
         course.update(push_all__students=users)
     elif action == 'remove':
-        warning = [*({*[u.obj for u in users]} - {*course.students})]
+        warning = [*({*[u.obj for u in u_users]} - {*course.students})]
         course.update(pull_all__students=users)
     # some users fail
     if len(warning) != 0:
