@@ -48,8 +48,17 @@ class Comment(MongoBase, engine=engine.Comment):
             del ret[k]
         return ret
 
+    @property
     def hidden(self):
         return self.status == 0
+
+    def get_file(self, filename):
+        if self.depth != 0:
+            raise NotAComment
+        for f in self.submission.result.files:
+            if f.filename == filename:
+                return f
+        raise FileNotFoundError
 
     def delete(self):
         self.update(status=0)
