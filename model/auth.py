@@ -11,6 +11,8 @@ from .utils import *
 import string
 import jwt
 import os
+import csv
+import io
 
 __all__ = ['auth_api', 'login_required', 'identity_verify']
 
@@ -101,19 +103,53 @@ def session():
 
 
 @auth_api.route('/signup', methods=['POST'])
-@Request.json('username: str', 'password: str', 'email: str')
+@Request.json(
+    'username: str',
+    'password: str',
+    'email: str',
+    'course: str',
+)
+@Request.doc('course', Course)
 def signup(username, password, email, course):
     try:
-        user = User.signup(username, password, email, course)
+        user = User.signup(username, password, email, course.obj)
     except ValidationError as ve:
         return HTTPError('Signup Failed', 400, data=ve.to_dict())
     except NotUniqueError as ne:
         return HTTPError('User Exists', 400)
-    except CourseNotFound as ce:
-        return HTTPError('Sign Up Course Not Found', 404)
-    verify_link = f'https://noj.tw/api/auth/active/{user.cookie}'
-    send_noreply([email], '[N-OJ] Varify Your Email', verify_link)
+    # verify_link = f'https://noj.tw/api/auth/active/{user.cookie}'
+    # send_noreply([email], '[N-OJ] Varify Your Email', verify_link)
     return HTTPResponse('Signup Success')
+
+
+@auth_api.route('/batch-signup', methods=['POST'])
+@Request.json('csv_string: str', 'course: str')
+@Request.doc('course', Course)
+@identity_verify(0, 1)
+@login_reuired
+def batch_signup(user, csv_string, course):
+    user_data = csv.DictReader(io.StringIO(csv_string))
+    fails = []
+    exists = []
+    for _u in user_data:
+        try:
+            new_user = User.signup(
+                username=_u['username'],
+                password=_u['password'],
+                email=_u['email'],
+                course=course.pk,
+            )
+        except ValidationError:
+            fails.append(_u['username'])
+        except NotUniqueError:
+            exists.append(_u['username'])
+    return HTTPReponse(
+        'sign up finish',
+        data={
+            'fails': fails,
+            'exists': exists,
+        },
+    )
 
 
 @auth_api.route('/change-password', methods=['POST'])
