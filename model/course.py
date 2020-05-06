@@ -37,7 +37,12 @@ def get_single_course(user, course):
 @course_api.route('/<name>/statistic', methods=['GET'])
 @Request.doc('name', 'course', Course)
 def statistic(course):
-    ret = [User(u.username).statistic() for u in course.students]
+    users = [User(u.username) for u in course.students]
+    ret = []
+    for u in users:
+        s = u.statistic()
+        s.update({'info': u.info})
+        ret.append(s)
     return HTTPResponse('666', data=ret)
 
 
