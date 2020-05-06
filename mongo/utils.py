@@ -1,5 +1,6 @@
 import hashlib
 from functools import wraps
+from . import engine
 
 __all__ = ['hash_id', 'doc_required']
 
@@ -41,7 +42,7 @@ def doc_required(src, des, cls=None):
             else:
                 doc = src_param
             if not doc:
-                raise engine.DoesNotExist(doc)
+                raise engine.DoesNotExist()
             # replace original paramters
             del ks[src]
             if des in ks:
