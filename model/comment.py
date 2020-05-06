@@ -33,6 +33,7 @@ def create_comment(user, target, code, id_, **ks):
             comment = Comment.add_to_problem(
                 target=id_,
                 code=code,
+                author=user.pk,
                 **ks,
             )
         except engine.DoesNotExist:
