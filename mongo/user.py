@@ -44,8 +44,10 @@ class User(MongoBase, engine=engine.User):
             email=email,
             md5=hashlib.md5(email.encode()).hexdigest(),
         ).save(force_insert=True)
+        # add user to course
         if course is not None:
             user.update(course=course)
+            course.update(add_to_set__students=user.pk)
         return user.reload()
 
     @classmethod
