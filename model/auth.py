@@ -130,24 +130,27 @@ def signup(username, password, email, course):
 def batch_signup(user, csv_string, course):
     user_data = csv.DictReader(io.StringIO(csv_string))
     fails = []
-    exists = []
     for _u in user_data:
-        try:
-            new_user = User.signup(
-                username=_u['username'],
-                password=_u['password'],
-                email=_u['email'],
-                course=course.pk,
-            )
-        except ValidationError:
-            fails.append(_u['username'])
-        except NotUniqueError:
-            exists.append(_u['username'])
+        new_user = User(_u['username'])
+        if not new_user:
+            # sign up a new user
+            try:
+                new_user = User.signup(
+                    username=_u['username'],
+                    password=_u['password'],
+                    email=_u['email'],
+                    course=course.pk,
+                )
+            except ValidationError:
+                fails.append(_u['username'])
+        else:
+            # add to course
+            new_user.update(course=course.pk)
+            course.update(add_to_set__students=new_user.pk)
     return HTTPReponse(
         'sign up finish',
         data={
             'fails': fails,
-            'exists': exists,
         },
     )
 
