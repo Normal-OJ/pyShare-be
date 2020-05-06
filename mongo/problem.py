@@ -175,7 +175,8 @@ class Problem(MongoBase, engine=engine.Problem):
                     'Exist tag that is not allowed to use in this course')
         # insert a new problem into DB
         p = engine.Problem(
-            author=author.obj,
+            author=author.pk,
+            course=course.pk,
             tags=tags,
             **ks,
         )
