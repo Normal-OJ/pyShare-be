@@ -7,7 +7,7 @@ from datetime import datetime
 __all__ = [*mongoengine.__all__]
 
 MONGO_HOST = os.getenv('MONGO_HOST', 'mongomock://localhost')
-connect('normal-oj', host=MONGO_HOST)
+connect('pyShare', host=MONGO_HOST)
 
 
 class User(Document):
