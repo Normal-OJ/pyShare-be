@@ -140,7 +140,7 @@ def batch_signup(user, csv_string, course):
                     username=_u['username'],
                     password=_u['password'],
                     email=_u['email'],
-                    course=course.pk,
+                    course=course.obj,
                 )
             except ValidationError as ve:
                 logging.error(
@@ -150,8 +150,8 @@ def batch_signup(user, csv_string, course):
                 fails.append(_u['username'])
         else:
             # add to course
-            new_user.update(course=course.pk)
-            course.update(add_to_set__students=new_user.pk)
+            new_user.update(course=course.obj)
+            course.update(add_to_set__students=new_user.obj)
     return HTTPResponse(
         'sign up finish',
         data={
