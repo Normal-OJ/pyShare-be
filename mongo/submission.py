@@ -94,12 +94,14 @@ class Submission(MongoBase, engine=engine.Submission):
         return self.problem.problem_id
 
     def to_dict(self):
-        return {
-            'code': self.code,
-            'stdout': self.result.stdout,
-            'stderr': self.result.stderr,
-            'files': [f.filename for f in self.result.files]
-        }
+        ret = {'code': self.code}
+        if self.result is not None:
+            ret.update({
+                'stdout': self.result.stdout,
+                'stderr': self.result.stderr,
+                'files': [f.filename for f in self.result.files],
+            })
+        return ret
 
     def delete(self):
         if not self:

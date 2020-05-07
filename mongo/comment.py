@@ -45,7 +45,13 @@ class Comment(MongoBase, engine=engine.Comment):
         ret['author'] = User(ret['author']).info
         ret['replies'] = [str(r) for r in ret['replies']]
         ret['liked'] = [User(l).info for l in ret['liked']]
-        for k in ('problem', 'passed', 'success', 'fail'):
+        for k in (
+                '_id',
+                'problem',
+                'passed',
+                'success',
+                'fail',
+        ):
             del ret[k]
         return ret
 
