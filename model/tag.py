@@ -13,11 +13,11 @@ tag_api = Blueprint('tag_api', __name__)
 
 
 @tag_api.route('/', methods=['GET'])
-@Request.json('course')
+@Request.args('course')
 @login_required
-def get_tag_list(course):
+def get_tag_list(user, course):
     c = Course(course)
-    if c is None:
+    if course is None or c is None:
         return HTTPResponse('get all tags',
                             data=[t.value for t in engine.Tag.objects])
     else:
@@ -28,7 +28,7 @@ def get_tag_list(course):
 @Request.json('tags')
 @login_required
 @identity_verify(0, 1)
-def manage_tag(tags):
+def manage_tag(user, tags):
     success = []
     fail = []
     for tag in tags:
@@ -36,7 +36,7 @@ def manage_tag(tags):
             if request.method == 'POST':
                 Tag.add(value=tag)
             else:
-                Tag.delete(value=tag)
+                Tag(tag).delete()
         except (engine.DoesNotExist, engine.ValidationError,
                 engine.NotUniqueError) as e:
             fail.append({
