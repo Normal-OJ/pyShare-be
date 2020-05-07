@@ -100,9 +100,9 @@ class Comment(MongoBase, engine=engine.Comment):
         if not Submission(self.submission.id):
             raise SubmissionNotFound
         if self.submission.result.stderr:
-            self.update(fail__inc=1)
+            self.update(inc__fail=1)
         else:
-            self.update(success__inc=1)
+            self.update(inc__success=1)
 
     @classmethod
     def add_to_problem(

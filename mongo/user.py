@@ -79,8 +79,8 @@ class User(MongoBase, engine=engine.User):
             'email',
             'displayName',
             'md5',
-            'active',
             'role',
+            'course',
         ]
         return self.jwt(*keys)
 
@@ -122,7 +122,7 @@ class User(MongoBase, engine=engine.User):
         check whether the user has a role super than `value` (string)
         e.g.
             if self is a admin
-            self < 'student' will be True
+            self > 'student' will be True
         '''
         # only support compare to string
         if not isinstance(value, str):
@@ -172,9 +172,9 @@ class User(MongoBase, engine=engine.User):
 
     def add_submission(self, submission: engine.Submission):
         if submission.result.stderr:
-            self.update(fail__inc=1)
+            self.update(inc__fail=1)
         else:
-            self.update(success__inc=1)
+            self.update(inc__success=1)
 
     def liked_amount(self):
         return sum(len(c.liked) for c in self.comments)
