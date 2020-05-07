@@ -97,13 +97,16 @@ class Comment(MongoBase, engine=engine.Comment):
         if not submission:
             raise SubmissionNotFound
         code = submission.code
-        submission.delete()
+        # TODO: need to delete old submission
+        # submission.delete()
         # create a new one
         submission = Submission.add(
-            problem=self.problem,
-            user=self.author,
+            problem=self.problem.pk,
+            user=self.author.pk,
+            comment=self.pk,
             code=code,
         )
+        self.update(submission=submission.obj)
 
     def finish_submission(self):
         '''
