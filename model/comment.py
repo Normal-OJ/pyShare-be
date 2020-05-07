@@ -71,13 +71,13 @@ def get_comment_file(user, comment: Comment):
 
 
 @comment_api.route('/<_id>', methods=['PUT'])
-@login_required
 @Request.json(
     'content: str',
     'title: str',
-    'code: str',
+    'code',
 )
 @Request.doc('_id', 'comment', Comment)
+@login_required
 def modify_comment(
     user,
     comment: Comment,
@@ -85,7 +85,7 @@ def modify_comment(
     title,
     code,
 ):
-    if not comment.permission(user, {'w'}):
+    if not comment.permission(user=user, req={'w'}):
         return HTTPError('Permission denied.', 403)
     try:
         # update content
@@ -95,7 +95,7 @@ def modify_comment(
             updated=datetime.now(),
         )
         # if it's a direct comment and need to rejudge
-        if comment.depth == 0 and code and code != comment.code:
+        if comment.depth == 0 and code and code != comment.submission.code:
             # update code & rejudge
             comment.submission.update(code=code)
             comment.submit()
@@ -115,7 +115,7 @@ def delete_comment(
     user,
     comment: Comment,
 ):
-    if not comment.permission(user, {'d'}):
+    if not comment.permission(user=user, req={'d'}):
         return HTTPError('Permission denied', 403)
     comment.delete()
     return HTTPResponse('success')
@@ -135,7 +135,7 @@ def like_comment(user, comment: Comment):
 def rejudge(user, comment: Comment):
     if comment.depth != 0:
         return HTTPError('Not a submission', 400)
-    if not comment.permission({'j'}):
+    if not comment.permission(user=user, req={'j'}):
         return HTTPError('Forbidden', 403)
     try:
         comment.submit()
