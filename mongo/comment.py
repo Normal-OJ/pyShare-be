@@ -37,6 +37,7 @@ class Comment(MongoBase, engine=engine.Comment):
         return bool(req & _permission)
 
     def to_dict(self):
+        from .submission import Submission
         ret = self.to_mongo().to_dict()
         ret['created'] = self.created.timestamp()
         ret['updated'] = self.updated.timestamp()
@@ -82,6 +83,7 @@ class Comment(MongoBase, engine=engine.Comment):
                                               for u in self.liked))
 
     def submit(self):
+        from .submission import Submission
         if self.depth != 0:
             raise NotAComment
         submission = Submission(self.submission.id)
@@ -101,6 +103,7 @@ class Comment(MongoBase, engine=engine.Comment):
         '''
         called after a submission finish
         '''
+        from .submission import Submission
         if self.depth != 0:
             raise NotAComment
         if not Submission(self.submission.id):
