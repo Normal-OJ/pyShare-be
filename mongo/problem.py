@@ -12,7 +12,7 @@ __all__ = ['Problem']
 
 class Problem(MongoBase, engine=engine.Problem):
     def __init__(self, pid):
-        self.pid = pid
+        self.pid = int(pid)
 
     @doc_required('user', 'user', User)
     def permission(self, user: User, req: set):

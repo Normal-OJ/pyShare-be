@@ -22,7 +22,7 @@ class SubmissionNotFound(Exception):
 
 class Comment(MongoBase, engine=engine.Comment):
     def __init__(self, _id):
-        self.id = _id
+        self.id = str(_id)
 
     @doc_required('user', 'user', User)
     def permission(self, user: User, req):
@@ -86,8 +86,8 @@ class Comment(MongoBase, engine=engine.Comment):
         submission.delete()
         # create a new one
         submission = Submission.add(
-            problem=self.problem.obj,
-            user=self.author.obj,
+            problem=self.problem,
+            user=self.author,
             code=code,
         )
 
@@ -112,15 +112,15 @@ class Comment(MongoBase, engine=engine.Comment):
         author,
         **ks,
     ):
+        # TODO: solve circular import between submission and comment
+        from .submission import Submission
         # directly submit
         if not isinstance(target, (Problem, engine.Problem)):
             # try convert to document
             target = Problem(target)
-        if isinstance(target, Problem):
-            target = target.obj
         # create new commment
         comment = cls.add(
-            floor=problem.height + 1,
+            floor=target.height + 1,
             depth=0,
             author=author,
             problem=target,
@@ -128,17 +128,17 @@ class Comment(MongoBase, engine=engine.Comment):
         )
         # try create a submission
         submission = Submission.add(
-            problem=target,
+            problem=target.pk,
             user=author,
             comment=comment,
             code=code,
         )
         submission.submit()
-        comment.update(submission=submission)
+        comment.update(submission=submission.obj)
         # append to problem
         target.update(
-            push__comments=comment,
-            height__inc=1,
+            push__comments=comment.obj,
+            inc__height=1,
         )
         return comment.reload()
 
@@ -161,7 +161,7 @@ class Comment(MongoBase, engine=engine.Comment):
         return comment
 
     @classmethod
-    @doc_required('author', 'author', User)
+    @doc_required('author', User)
     def add(
         cls,
         title: str,
@@ -175,10 +175,10 @@ class Comment(MongoBase, engine=engine.Comment):
         comment = engine.Comment(
             title=title,
             content=content,
-            author=author.obj,
+            author=author.pk,
             floor=floor,
             depth=depth,
-            problem=problem,
+            problem=problem.pk if problem is not None else None,
         )
         comment.save()
         # append to author's
