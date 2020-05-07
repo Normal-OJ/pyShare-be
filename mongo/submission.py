@@ -68,7 +68,9 @@ class Token:
         if not self._client.exists(submission_id):
             return False
         # get submission token
-        s_token = self._client.get(submission_id)
+        s_token = self._client.get(submission_id).decode('ascii')
+        current_app.logger.debug(f's_token type: {type(s_token)}')
+        current_app.logger.debug(f'val type: {type(self.val)}')
         result = secrets.compare_digest(s_token, self.val)
         # delete if success
         if result is True:
@@ -152,13 +154,14 @@ class Submission(MongoBase, engine=engine.Submission):
         # update status
         self.update(status=0)
         # update result
-        self.result.update(
+        result = engine.SubmissionResult(
             stdout=stdout,
             stderr=stderr,
             files=files,
         )
+        self.update(result=result)
         # notify comment
-        self.comment.finish_submission()
+        Comment(self.comment.id).finish_submission()
         return True
 
     @staticmethod
