@@ -50,7 +50,7 @@ class Tag(Document):
 
 
 class Comment(Document):
-    meta = {'indexes': ['floor', 'id']}
+    meta = {'indexes': ['floor', 'created', 'updated']}
     title = StringField(required=True, max_length=128)
     floor = IntField(required=True)
     content = StringField(required=True, max_length=100000)

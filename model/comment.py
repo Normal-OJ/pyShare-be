@@ -14,7 +14,7 @@ comment_api = Blueprint('comment_api', __name__)
 @login_required
 @Request.json(
     'target: str',
-    'id_: str',
+    'id_',
     'title: str',
     'content: str',
     'code: str',
@@ -40,7 +40,7 @@ def create_comment(user, target, code, id_, **ks):
             return HTTPError('Can not find some docuemnt', 404)
     else:
         return HTTPError('Unknown target', 400)
-    return HTTPResponse('success', data={'id': comment.id})
+    return HTTPResponse('success', data={'id': str(comment.id)})
 
 
 @comment_api.route('/<_id>', methods=['GET'])

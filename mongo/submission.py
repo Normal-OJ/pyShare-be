@@ -1,6 +1,7 @@
 import json
 import os
 import pathlib
+import logging
 import secrets
 import requests as rq
 from flask import current_app
@@ -12,7 +13,7 @@ from . import engine
 from .base import MongoBase
 from .user import User
 from .problem import Problem
-from .comment import Comment
+from .comment import *
 from .utils import doc_required
 
 __all__ = [
@@ -82,7 +83,7 @@ class Submission(MongoBase, engine=engine.Submission):
     )
     SANDBOX_TOKEN = os.getenv(
         'SANDBOX_TOKEN',
-        '14508888',
+        'KoNoSandboxDa',
     )
 
     def __init__(self, _id):
@@ -135,14 +136,16 @@ class Submission(MongoBase, engine=engine.Submission):
         # send submission to snadbox for judgement
         resp = rq.post(
             f'{judge_url}?token={token}',
-            files={
-                'attachments':
-                [(a.filename, a, None) for a in self.problem.attachments]
-            },
+            files=[(
+                'attachments',
+                (a.filename, a, None),
+            ) for a in self.problem.attachments],
             data={
                 'src': self.code,
             },
         )
+        if not resp.ok:
+            logging.warning(f'got sandbox resp: {resp.text}')
         return True
 
     def complete(
