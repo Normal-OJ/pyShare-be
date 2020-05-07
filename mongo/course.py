@@ -30,7 +30,7 @@ class Course(MongoBase, engine=engine.Course):
         # check course name
         # it can only contain letters, numbers, underscore (_),
         # dash (-) and dot (.), also, it can not be empty
-        if not re.match(r'[\w\.\ ]+$', name):
+        if not re.match(r'[\w\.\ _\-]+$', name):
             raise ValueError('course name is invalid')
         # insert a new course into DB
         c = cls.engine(
