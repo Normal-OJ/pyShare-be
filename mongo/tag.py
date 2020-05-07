@@ -12,7 +12,9 @@ class Tag(MongoBase, engine=engine.Tag):
         '''
         remove tag from problem if it have
         '''
-        # remove tag from problem if it have
+        # remove tag from course if it has
+        engine.Course.objects(tags=self.value).update(pull__tags=self.value)
+        # remove tag from problem if it has
         engine.Problem.objects(tags=self.value).update(pull__tags=self.value)
         self.obj.delete()
 

@@ -122,7 +122,7 @@ def update_students(user, course, users, action):
 @Request.json('push: list', 'pop: list')
 @Request.doc('name', 'course', Course)
 @identity_verify(0, 1)  # only admin and teacher can call this route
-def update_tags(course, push, pop):
+def update_tags(user, course, push, pop):
     '''
     push/pop tags to/from course
     '''
@@ -132,7 +132,7 @@ def update_tags(course, push, pop):
         if t in pop:
             return HTTPError('Tag appears in both list', 400)
     for t in pop:
-        if t not in Course.tags:
+        if t not in course.tags:
             return HTTPError('Pop: Tag not found', 404)
     try:
         course.tags += push
