@@ -21,11 +21,23 @@ problem_api = Blueprint('problem_api', __name__)
     'course',
 )
 @login_required
-def get_problem_list(user, tags, **ks):
+def get_problem_list(
+    user,
+    tags,
+    offset,
+    count,
+    **ks,
+):
     # filter values user passed and decode
     ks = {k: parse.unquote(v) for k, v in ks.items() if v is not None}
     tags = parse.unquote(tags).split(',') if tags else []
+    try:
+        offset, count = map(int, (offset, count))
+    except ValueError:
+        return HTTPError('count and offset only accept integer', 400)
     ps = Problem.filter(
+        offset=offset,
+        count=count,
         tags=tags,
         only=[
             'pid',
