@@ -140,6 +140,7 @@ def batch_signup(user, csv_string, course):
                     username=_u['username'],
                     password=_u['password'],
                     email=_u['email'],
+                    display_name=_u['displayName'],
                     course=course.obj,
                 )
             except ValidationError as ve:
