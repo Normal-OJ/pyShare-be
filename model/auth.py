@@ -9,6 +9,7 @@ from mongo.utils import hash_id
 from .utils import *
 
 import string
+import logging
 import jwt
 import os
 import csv
@@ -141,7 +142,11 @@ def batch_signup(user, csv_string, course):
                     email=_u['email'],
                     course=course.pk,
                 )
-            except ValidationError:
+            except ValidationError as ve:
+                logging.error(
+                    'fail to sign up for user\n'
+                    f'error: {ve}\n'
+                    f'data: {ve.to_dict()}', )
                 fails.append(_u['username'])
         else:
             # add to course
