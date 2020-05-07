@@ -201,6 +201,7 @@ class User(MongoBase, engine=engine.User):
             'course': c.problem.course.name,
             'pid': c.problem.pid,
             'floor': c.floor,
+            'passed': c.submission.passed,
         } for c in self.comments if c.depth == 0]
         ret['replies'] = [{
             'course': c.problem.course.name,

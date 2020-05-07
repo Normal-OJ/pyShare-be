@@ -71,9 +71,15 @@ class Comment(MongoBase, engine=engine.Comment):
         if user.obj in self.liked:
             action = 'pull'
         else:
-            action = 'push'
+            action = 'add_to_set'
         self.update(**{f'{action}__liked': user.obj})
         user.update(**{f'{action}__likes': self.obj})
+        # reload
+        self.reload()
+        # check pass
+        if self.depth == 0 and user > 'student':
+            self.submission.update(passed=any(u > 'student'
+                                              for u in self.liked))
 
     def submit(self):
         if self.depth != 0:
