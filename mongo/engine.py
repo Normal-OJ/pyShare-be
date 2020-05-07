@@ -106,9 +106,9 @@ class SubmissionResult(EmbeddedDocument):
 
 
 class Submission(Document):
-    problem = ReferenceField(Problem, required=True)
-    comment = ReferenceField(Comment, required=True)
-    user = ReferenceField(User, required=True)
+    problem = ReferenceField(Problem, null=True, required=True)
+    comment = ReferenceField(Comment, null=True, required=True)
+    user = ReferenceField(User, null=True, required=True)
     code = StringField(max_length=10**6, default='')
     timestamp = DateTimeField(default=datetime.now)
     result = EmbeddedDocumentField(SubmissionResult, default=None)
@@ -133,4 +133,5 @@ Comment.register_delete_rule(Comment, 'replies', NULLIFY)
 Problem.register_delete_rule(Course, 'course', NULLIFY)
 Problem.register_delete_rule(User, 'author', NULLIFY)
 Submission.register_delete_rule(Problem, 'problem', NULLIFY)
+Submission.register_delete_rule(Comment, 'comment', NULLIFY)
 Submission.register_delete_rule(User, 'user', NULLIFY)
