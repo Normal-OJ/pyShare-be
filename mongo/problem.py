@@ -74,6 +74,7 @@ class Problem(MongoBase, engine=engine.Problem):
         ret['attachments'] = [att.filename for att in self.attachments]
         ret['timestamp'] = ret['timestamp'].timestamp()
         ret['author'] = User(ret['author']).info
+        ret['comments'] = [str(c) for c in ret['comments']]
         for k in ('_id', 'passed', 'height'):
             del ret[k]
         return ret
