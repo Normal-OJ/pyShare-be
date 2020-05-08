@@ -58,6 +58,7 @@ class Problem(MongoBase, engine=engine.Problem):
         p = Problem.add(**p)
         # update info
         p.update(course=target_course.obj)
+        target_course.update(push__problems=p.obj)
         # update attachments
         for att in self.attachments:
             att = self.new_attatchment(
