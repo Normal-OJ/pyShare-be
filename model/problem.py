@@ -41,19 +41,14 @@ def get_problem_list(
         tags=tags,
         only=[
             'pid',
-            'title',
-            'timestamp',
-            'author',
-            'attachments',
         ] + ['status'] if user > 'student' else [],
         **ks,
     )
-    att_names = [[att.filename for att in p.attachments] for p in ps]
-    ps = [p.to_mongo() for p in ps]
+    ps = [Problem(p.pid).to_dict() for p in ps]
     # post process
-    for p, att_name in zip(ps, att_names):
-        p['author'] = User(p['author']).info
-        p['attachments'] = att_name
+    if user <= 'student':
+        for p in ps:
+            del p['status']
     return HTTPResponse('here you are, bro', data=ps)
 
 
