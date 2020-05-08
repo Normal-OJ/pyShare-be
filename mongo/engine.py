@@ -63,7 +63,6 @@ class Comment(Document):
     liked = ListField(ReferenceField('User'), default=[])
     # 0: hidden / 1: show
     status = IntField(default=1)
-    # is this submission accepted?
     passed = BooleanField(default=False)
     created = DateTimeField(default=datetime.now)
     updated = DateTimeField(default=datetime.now)
@@ -113,6 +112,8 @@ class Submission(Document):
     timestamp = DateTimeField(default=datetime.now)
     result = EmbeddedDocumentField(SubmissionResult, default=None)
     status = IntField(default=-1)
+    # is this submission accepted?
+    passed = BooleanField(default=False)
 
 
 # register delete rule. execute here to resolve `NotRegistered`
