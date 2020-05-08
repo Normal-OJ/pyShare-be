@@ -24,6 +24,7 @@ def create_comment(user, target, code, id_, **ks):
         try:
             comment = Comment.add_to_comment(
                 target=id_,
+                author=user.pk,
                 **ks,
             )
         except engine.DoesNotExist:

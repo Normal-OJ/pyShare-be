@@ -178,7 +178,7 @@ class Comment(MongoBase, engine=engine.Comment):
             depth=1,
             **ks,
         )
-        target.update(push__replies=comment)
+        target.update(push__replies=comment.obj)
         return comment
 
     @classmethod
