@@ -42,23 +42,30 @@ class Problem(MongoBase, engine=engine.Problem):
         '''
         # serialize
         p = self.to_mongo()
-        # delete comments & attachments
-        del p['comments']
-        del p['attachments']
+        # delete non-shared datas
+        for field in (
+                'comments',
+                'attachments',
+                'height',
+                'passed',
+        ):
+            del p[field]
+        # field conversion
+        p['default_code'] = p['defaultCode']
+        del p['defaultCode']
+        del p['_id']
         # add it to DB
         p = Problem.add(**p)
-        # copy files
-        attachments = [
-            self.new_attatchment(
-                a.data,
-                filename=a.filename,
-            ) for a in self.attachments
-        ]
         # update info
-        p.update(
-            attachments=attachments,
-            course=target_course.obj,
-        )
+        p.update(course=target_course.obj)
+        # update attachments
+        for att in self.attachments:
+            att = self.new_attatchment(
+                att,
+                filename=att.filename,
+            )
+            p.attachments.append(att)
+            p.save()
         return p.reload()
 
     @property

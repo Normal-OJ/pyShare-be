@@ -204,7 +204,7 @@ def clone_problem(user, problem, course):
     clone a problem to another course
     '''
     try:
-        problem.copy(course)
+        problem.copy(target_course=course)
     except engine.ValidationError as ve:
         return HTTPError(str(ve), 400, data=ve.to_dict())
     except PermissionError as e:
