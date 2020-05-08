@@ -121,7 +121,7 @@ def modify_problem(
     tags,
     **p_ks,
 ):
-    if not problem.permission(user, {'w'}):
+    if not problem.permission(user=user, req={'w'}):
         return HTTPError('Permission denied.', 403)
     for tag in tags:
         if not course.check_tag(tag):
@@ -147,7 +147,7 @@ def delete_problem(user, problem):
     delete a problem
     '''
     # student can delete only self problem
-    if not problem.permission(user, {'w'}):
+    if not problem.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
     problem.delete()
     return HTTPResponse(f'{problem} deleted.')
@@ -167,13 +167,13 @@ def patch_attachment(
     '''
     update the problem's attachment
     '''
-    if not problem.permission(user, {'w'}):
+    if not problem.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
     if request.method == 'POST':
         try:
             problem.insert_attachment(
+                attachment,
                 filename=attachment.filename,
-                data=attachment.read(),
             )
         except FileExistsError as e:
             return HTTPError(str(e), 400)
