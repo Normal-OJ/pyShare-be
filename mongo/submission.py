@@ -149,32 +149,35 @@ class Submission(MongoBase, engine=engine.Submission):
         '''
         judgement complete
         '''
-        # create files
-        files = [self.new_file(f.filename, f.read()) for f in files]
         # update status
         self.update(status=0)
         # update result
         result = engine.SubmissionResult(
             stdout=stdout,
             stderr=stderr,
-            files=files,
+            # files=[self.new_file(f, filename=f.filename) for f in files],
         )
         self.update(result=result)
+        self.reload()
+        for f in files:
+            f = self.new_file(f, filename=f.filename)
+            self.result.files.append(f)
+            self.save()
         # notify comment
         Comment(self.comment.id).finish_submission()
         return True
 
     @staticmethod
-    def new_file(filename, data):
+    def new_file(file_obj, filename):
         '''
         create a new file
         '''
         f = engine.GridFSProxy()
         f.put(
+            file_obj,
             filename=filename,
-            data=data,
         )
-        f.save()
+        # f.save()
         return f
 
     @classmethod
