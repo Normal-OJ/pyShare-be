@@ -30,10 +30,15 @@ class Comment(MongoBase, engine=engine.Comment):
         require 'j' for rejudge
         '''
         _permission = {'r'}
+        # author have all permissions
         if user == self.author:
             _permission |= {'w', 'j', 'd'}
+        # teacher can not edit comment
         elif user > 'student':
             _permission |= {'d', 'j'}
+        # other students can not view hidden comment
+        elif self.hidden:
+            _permission.remove('r')
         return bool(req & _permission)
 
     def to_dict(self):
