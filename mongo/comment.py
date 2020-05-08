@@ -85,8 +85,11 @@ class Comment(MongoBase, engine=engine.Comment):
         self.reload()
         # check pass
         if self.depth == 0 and user > 'student':
-            self.submission.update(passed=any(u > 'student'
-                                              for u in self.liked))
+            for u in self.liked:
+                if User(u.username) > 'student':
+                    self.submission.update(passed=True)
+                    return
+            self.submission.update(passed=False)
 
     def submit(self):
         from .submission import Submission
