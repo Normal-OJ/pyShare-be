@@ -125,7 +125,7 @@ def delete_comment(
 @login_required
 @Request.doc('_id', 'comment', Comment)
 def like_comment(user, comment: Comment):
-    comment.like(user)
+    comment.like(user=user)
     return HTTPResponse('success')
 
 
