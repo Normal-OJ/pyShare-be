@@ -48,7 +48,7 @@ def create_comment(user, target, code, id_, **ks):
 @login_required
 @Request.doc('_id', 'comment', Comment)
 def get_comment(user, comment: Comment):
-    if comment.permission(user=user, req={'r'}):
+    if not comment.permission(user=user, req={'r'}):
         return HTTPError('permission denied', 403)
     return HTTPResponse('success', data=comment.to_dict())
 
