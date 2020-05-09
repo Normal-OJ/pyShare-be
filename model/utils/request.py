@@ -67,11 +67,14 @@ class Request(metaclass=_Request):
         a warpper to `doc_required` for flask route
         '''
         def deco(func):
-            @wraps(func)
             @doc_required(src, des, cls)
-            def wrapper(*args, **ks):
+            def inner_wrapper(*args, **ks):
+                return func(*args, **ks)
+
+            @wraps(func)
+            def real_wrapper(*args, **ks):
                 try:
-                    return func(*args, **ks)
+                    inner_wrapper(*args, **ks)
                 # if document not exists in db
                 except engine.DoesNotExist as e:
                     return HTTPError(str(e), 404)
@@ -79,7 +82,7 @@ class Request(metaclass=_Request):
                 except TypeError as e:
                     return HTTPError(str(e), 500)
 
-            return wrapper
+            return real_wrapper
 
         return deco
 
