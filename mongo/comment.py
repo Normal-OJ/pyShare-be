@@ -46,7 +46,8 @@ class Comment(MongoBase, engine=engine.Comment):
         ret = self.to_mongo().to_dict()
         ret['created'] = self.created.timestamp()
         ret['updated'] = self.updated.timestamp()
-        ret['submission'] = Submission(ret['submission']).to_dict()
+        if 'submission' in ret:
+            ret['submission'] = Submission(ret['submission']).to_dict()
         ret['author'] = User(ret['author']).info
         ret['replies'] = [str(r) for r in ret['replies']]
         ret['liked'] = [User(l).info for l in ret['liked']]
@@ -57,7 +58,8 @@ class Comment(MongoBase, engine=engine.Comment):
                 'success',
                 'fail',
         ):
-            del ret[k]
+            if k in ret:
+                del ret[k]
         return ret
 
     @property
