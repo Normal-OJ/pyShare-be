@@ -74,7 +74,7 @@ class Request(metaclass=_Request):
             @wraps(func)
             def real_wrapper(*args, **ks):
                 try:
-                    inner_wrapper(*args, **ks)
+                    return inner_wrapper(*args, **ks)
                 # if document not exists in db
                 except engine.DoesNotExist as e:
                     return HTTPError(str(e), 404)

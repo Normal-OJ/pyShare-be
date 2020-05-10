@@ -10,7 +10,7 @@
     },
     "p1": {
         "title": "p1",
-        "description": "this is p1 da!",
+        "description": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"this is p1 da!\"}]}]}",
         "course": "course_108-1",
         "author": "teacher1",
         "tags": [],
