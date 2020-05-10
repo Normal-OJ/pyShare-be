@@ -207,14 +207,14 @@ class User(MongoBase, engine=engine.User):
             'course': c.problem.course.name,
             'pid': c.problem.pid,
             'floor': c.floor,
-        } for c in self.comments if c.depth != 0]
+        } for c in self.comments if c.depth == 0]
         # comments be liked
         ret['liked'] = [{
             'course': c.problem.course.name,
             'pid': c.problem.pid,
             'floor': c.floor,
             'starers': [u.username for u in c.liked],
-        } for c in self.comments]
+        } for c in self.comments if c.depth == 0]
         # success & fail
         ret['execInfo'] = [{
             'course': c.problem.course.name,
