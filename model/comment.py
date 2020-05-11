@@ -1,4 +1,4 @@
-from flask import Blueprint
+from flask import Blueprint, send_file
 from .utils import *
 from .auth import *
 from mongo import *
@@ -56,7 +56,11 @@ def get_comment(user, comment: Comment):
 @comment_api.route('/<_id>/file/<name>', methods=['GET'])
 @login_required
 @Request.doc('_id', 'comment', Comment)
-def get_comment_file(user, comment: Comment):
+def get_comment_file(
+    user,
+    comment: Comment,
+    name,
+):
     try:
         f = comment.get_file(name)
         return send_file(
