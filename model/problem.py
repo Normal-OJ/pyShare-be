@@ -179,7 +179,7 @@ def patch_attachment(
     return HTTPResponse('success')
 
 
-@problem_api.route('/<int:pid>/attachment/<name>')
+@problem_api.route('/<int:pid>/attachment/<name>', methods=['GET'])
 @Request.doc('pid', 'problem', Problem)
 def get_attachment(problem, name):
     name = parse.unquote(name)
