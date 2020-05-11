@@ -56,9 +56,8 @@ def get_problem_list(
 @login_required
 @Request.doc('pid', 'problem', Problem)
 def get_single_problem(user, problem):
-    # if problem is offline, and this user is not author or teacher
-    if not problem.online and (not user > 'student' or user != problem.author):
-        return HTTPError('not enough permission', 403)
+    if not problem.permission(user=user, req={'r'}):
+        return HTTPError('Not enough permission', 403)
     return HTTPResponse(
         'here you are, bro',
         data=problem.to_dict(),
