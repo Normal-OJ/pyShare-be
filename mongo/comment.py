@@ -116,6 +116,7 @@ class Comment(MongoBase, engine=engine.Comment):
             comment=self.pk,
             code=code,
         )
+        submission.submit()
         self.update(submission=submission.obj)
 
     def finish_submission(self):
