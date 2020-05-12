@@ -30,6 +30,9 @@ def get_problem_list(
 ):
     # filter values user passed and decode
     ks = {k: parse.unquote(v) for k, v in ks.items() if v is not None}
+    # change key name from 'title' to 'name'
+    if 'title' in ks:
+        ks['name'] = ks.pop('title')
     tags = parse.unquote(tags).split(',') if tags else []
     try:
         offset, count = map(int, (offset, count))
