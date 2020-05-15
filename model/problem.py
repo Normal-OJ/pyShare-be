@@ -121,12 +121,13 @@ def modify_problem(
     if not problem.permission(user=user, req={'w'}):
         return HTTPError('Permission denied.', 403)
     for tag in tags:
-        if not course.check_tag(tag):
+        c = Course(problem.course.name)
+        if not c.check_tag(tag):
             return HTTPError(
                 'Exist tag that is not allowed to use in this course', 400)
     try:
         p_ks = {k: v for k, v in p_ks.items() if v is not None}
-        problem.update(**p_ks)
+        problem.update(**p_ks, tags=tags)
     except engine.ValidationError as ve:
         return HTTPError(
             'Invalid data',
