@@ -32,6 +32,7 @@ class Problem(MongoBase, engine=engine.Problem):
             _permission.add('d')
         # teacher and admin can, too
         elif user > 'student':
+            _permission.add('w')
             _permission.add('d')
         return bool(req & _permission)
 

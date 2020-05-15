@@ -33,7 +33,7 @@ def get_problem_list(
     # change key name from 'title' to 'name'
     if 'title' in ks:
         ks['name'] = ks.pop('title')
-    tags = parse.unquote(tags).split(',') if tags else []
+    tags = parse.unquote(tags).split(',') if tags else None
     try:
         offset, count = map(int, (offset, count))
     except ValueError:
