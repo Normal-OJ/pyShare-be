@@ -66,7 +66,7 @@ def get_comment_file(
         return send_file(
             f,
             as_attachment=True,
-            cache_timeout=30,
+            cache_timeout=1,
             attachment_filename=f.filename,
         )
     except FileNotFoundError:
