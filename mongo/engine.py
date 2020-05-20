@@ -55,7 +55,6 @@ class CommentStatus(Enum):
 
 
 class Comment(Document):
-
     meta = {'indexes': ['floor', 'created', 'updated']}
     title = StringField(required=True, max_length=128)
     floor = IntField(required=True)
@@ -81,6 +80,14 @@ class Comment(Document):
     # successed / failed execution counter
     success = IntField(default=0)
     fail = IntField(default=0)
+
+    @property
+    def is_comment(self):
+        return self.depth == 0
+
+    @property
+    def show(self):
+        return self.status == CommentStatus.SHOW
 
 
 class ProblemStatus(Enum):
@@ -111,6 +118,10 @@ class Problem(Document):
     )
     # whether a user passed this problem
     passed = MapField(BooleanField(default=False), default={})
+
+    @property
+    def online(self):
+        return self.status == ProblemStatus.ONLINE
 
 
 class SubmissionResult(EmbeddedDocument):

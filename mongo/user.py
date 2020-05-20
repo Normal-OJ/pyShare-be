@@ -188,33 +188,33 @@ class User(MongoBase, engine=engine.User):
         ret['problems'] = [{
             'course': p.course.name,
             'pid': p.pid,
-        } for p in self.problems]
+        } for p in self.problems if p.online]
         # liked comments
         ret['likes'] = [{
             'course': c.problem.course.name,
             'pid': c.problem.pid,
             'floor': c.floor,
             'staree': c.author.username,
-        } for c in self.likes]
+        } for c in self.likes if c.show]
         # comments
         ret['comments'] = [{
             'course': c.problem.course.name,
             'pid': c.problem.pid,
             'floor': c.floor,
             'passed': c.submission.passed,
-        } for c in self.comments if c.depth == 0]
+        } for c in self.comments if c.is_comment and c.show]
         ret['replies'] = [{
             'course': c.problem.course.name,
             'pid': c.problem.pid,
             'floor': c.floor,
-        } for c in self.comments if c.depth == 0]
+        } for c in self.comments if c.is_comment and c.show]
         # comments be liked
         ret['liked'] = [{
             'course': c.problem.course.name,
             'pid': c.problem.pid,
             'floor': c.floor,
             'starers': [u.username for u in c.liked],
-        } for c in self.comments if c.depth == 0]
+        } for c in self.comments if c.is_comment and c.show]
         # success & fail
         ret['execInfo'] = [{
             'course': c.problem.course.name,
@@ -222,7 +222,7 @@ class User(MongoBase, engine=engine.User):
             'floor': c.floor,
             'success': c.success,
             'fail': c.fail,
-        } for c in self.comments if c.depth == 0]
+        } for c in self.comments if c.is_comment and c.show]
         return ret
 
 
