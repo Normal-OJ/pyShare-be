@@ -1,6 +1,6 @@
 {
-    "user": ["madoka", "teacher1", "teacher2", "student1", "student2"],
-    "course": ["course_108-1", "course_108-2", "course_107-2"],
-    "tag": ["tag1", "tag2", "tag3", "tag4", "tag5"],
-    "problem": ["p1"]
+    "user": ["madoka", "tcc"],
+    "course": [],
+    "tags": [],
+    "problem": []
 }

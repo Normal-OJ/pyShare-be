@@ -44,6 +44,12 @@
         "password": "admin",
         "role": 1
     },
+    "tcc": {
+        "email": "tcchiang@ntnu.edu.tw",
+        "username": "tcchiang",
+        "password": "tcchiang",
+        "role": 1
+    },
     "madoka": {
         "email": "admin@pyshare.io",
         "username": "madoka",
