@@ -1,5 +1,7 @@
 import os
 import io
+from functools import reduce
+from mongoengine.queryset.visitor import Q
 from . import engine
 from .engine import GridFSProxy
 from .base import MongoBase
@@ -141,10 +143,17 @@ class Problem(MongoBase, engine=engine.Problem):
         '''
         read a list of problem filtered by given paramter
         '''
-        qs = {'course': course, 'tags': tags}
+        qs = {'course': course}
         # filter None parameter
         qs = {k: v for k, v in qs.items() if v is not None}
         ps = cls.engine.objects(**qs)
+        # filter tags
+        if tags is not None:
+            ps = ps.filter(
+                reduce(
+                    lambda x, y: x & y,
+                    (Q(tags=t) for t in tags),
+                ))
         # search for title
         if name is not None:
             ps = ps.filter(title__icontains=name)
