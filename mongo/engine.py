@@ -1,8 +1,8 @@
 from mongoengine import *
-
 import mongoengine
 import os
 from datetime import datetime
+from .utils import Enum
 
 __all__ = [*mongoengine.__all__]
 
@@ -49,7 +49,13 @@ class Tag(Document):
     value = StringField(primary_key=True, required=True, max_length=16)
 
 
+class CommentStatus(Enum):
+    HIDDEN = 0
+    SHOW = 1
+
+
 class Comment(Document):
+
     meta = {'indexes': ['floor', 'created', 'updated']}
     title = StringField(required=True, max_length=128)
     floor = IntField(required=True)
@@ -61,8 +67,10 @@ class Comment(Document):
     depth = IntField(default=0, choice=[0, 1])
     # those who like this comment
     liked = ListField(ReferenceField('User'), default=[])
-    # 0: hidden / 1: show
-    status = IntField(default=1)
+    status = IntField(
+        default=CommentStatus.SHOW,
+        choices=CommentStatus.choices(),
+    )
     passed = BooleanField(default=False)
     created = DateTimeField(default=datetime.now)
     updated = DateTimeField(default=datetime.now)
@@ -73,6 +81,11 @@ class Comment(Document):
     # successed / failed execution counter
     success = IntField(default=0)
     fail = IntField(default=0)
+
+
+class ProblemStatus(Enum):
+    ONLINE = 1
+    OFFLINE = 0
 
 
 class Problem(Document):
@@ -87,8 +100,10 @@ class Problem(Document):
     attachments = ListField(FileField(), default=[])
     comments = ListField(ReferenceField('Comment'), default=[])
     timestamp = DateTimeField(default=datetime.now)
-    # 1: online / 0: offline
-    status = IntField(default=1)
+    status = IntField(
+        default=ProblemStatus.ONLINE,
+        choices=ProblemStatus.choices(),
+    )
     default_code = StringField(
         default='',
         max_length=100000,
