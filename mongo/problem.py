@@ -94,8 +94,6 @@ class Problem(MongoBase, engine=engine.Problem):
         '''
         delete the problem
         '''
-        # remove self from course
-        self.course.update(pull__problems=self.obj)
         # delete attachments
         for a in self.attachments:
             a.delete()
