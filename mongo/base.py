@@ -28,7 +28,7 @@ class MongoBase:
             super().__setattr__(name, value)
 
     def __eq__(self, other):
-        return self and self.pk == other.pk
+        return self and other is not None and self.pk == other.pk
 
     def __bool__(self):
         try:
