@@ -2,7 +2,26 @@ import hashlib
 from functools import wraps
 from . import engine
 
-__all__ = ['hash_id', 'doc_required']
+__all__ = [
+    'hash_id',
+    'doc_required',
+    'Enum',
+]
+
+
+class Enum:
+    @staticmethod
+    def is_private(property_name: str):
+        return property_name.startswith('__')
+
+    @classmethod
+    def items(cls):
+        return [(key, val) for key, val in cls.__dict__.items()
+                if not cls.is_private(key)]
+
+    @classmethod
+    def choices(cls):
+        return [val for key, val in cls.items()]
 
 
 def hash_id(salt, text):
