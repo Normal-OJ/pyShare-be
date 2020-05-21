@@ -182,8 +182,9 @@ class Comment(MongoBase, engine=engine.Comment):
             target = Comment(target)
         # create new comment
         comment = cls.add(
-            floor=-1,
+            floor=target.floor,
             depth=1,
+            problem=target.problem,
             **ks,
         )
         target.update(push__replies=comment.obj)
