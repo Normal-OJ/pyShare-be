@@ -123,7 +123,7 @@ class Submission(MongoBase, engine=engine.Submission):
         if not self:
             raise engine.DoesNotExist(f'{self}')
         token = Token(self.SANDBOX_TOKEN).assign(self.id)
-        self.update(status=-1)
+        self.update(status=engine.SubmissionStatus.PENDING)
         judge_url = f'{self.JUDGE_URL}/{self.id}'
         # send submission to snadbox for judgement
         resp = rq.post(
@@ -150,12 +150,11 @@ class Submission(MongoBase, engine=engine.Submission):
         judgement complete
         '''
         # update status
-        self.update(status=0)
+        self.update(status=engine.SubmissionStatus.COMPLETE)
         # update result
         result = engine.SubmissionResult(
             stdout=stdout,
             stderr=stderr,
-            # files=[self.new_file(f, filename=f.filename) for f in files],
         )
         self.update(result=result)
         self.reload()
