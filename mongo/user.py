@@ -207,7 +207,7 @@ class User(MongoBase, engine=engine.User):
             'course': c.problem.course.name,
             'pid': c.problem.pid,
             'floor': c.floor,
-        } for c in self.comments if c.is_comment and c.show]
+        } for c in self.comments if not c.is_comment and c.show]
         # comments be liked
         ret['liked'] = [{
             'course': c.problem.course.name,
