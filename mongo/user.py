@@ -201,7 +201,7 @@ class User(MongoBase, engine=engine.User):
             'course': c.problem.course.name,
             'pid': c.problem.pid,
             'floor': c.floor,
-            'passed': c.submission.passed if c.submission or False,
+            'passed': c.submission.passed if c.submission else False,
         } for c in self.comments if c.is_comment and c.show]
         ret['replies'] = [{
             'course': c.problem.course.name,
