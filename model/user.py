@@ -23,8 +23,10 @@ def get_all_user():
 
 # TODO: statistic cause a lot of query, make a cache for better performance
 @user_api.route('/<student>/statistic', methods=['GET'])
-@identity_verify(0, 1)
 @Request.doc('student', 'student', User)
 @login_required
 def statistic(user, student):
+    if user.role == 2 and user.username != student.username:
+        return HTTPError('Not enough permission', 403)
+
     return HTTPResponse('here you are.', data=student.statistic())
