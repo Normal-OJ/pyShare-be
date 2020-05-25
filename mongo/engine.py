@@ -124,6 +124,12 @@ class Problem(Document):
         return self.status == ProblemStatus.ONLINE
 
 
+class SubmissionStatus(Enum):
+    PENDING = 0
+    COMPLETE = 1
+    OUTPUT_LIMIT_EXCEED = 2
+
+
 class SubmissionResult(EmbeddedDocument):
     files = ListField(FileField(), default=[])
     stdout = StringField(max_length=10**6, default='')
@@ -137,7 +143,10 @@ class Submission(Document):
     code = StringField(max_length=10**6, default='')
     timestamp = DateTimeField(default=datetime.now)
     result = EmbeddedDocumentField(SubmissionResult, default=None)
-    status = IntField(default=-1)
+    status = IntField(
+        default=SubmissionStatus.PENDING,
+        choices=SubmissionStatus.choices(),
+    )
     # is this submission accepted?
     passed = BooleanField(default=False)
 

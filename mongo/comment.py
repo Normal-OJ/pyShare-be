@@ -107,8 +107,7 @@ class Comment(MongoBase, engine=engine.Comment):
         if not submission:
             raise SubmissionNotFound
         code = submission.code
-        # TODO: need to delete old submission
-        # submission.delete()
+        submission.delete()
         # create a new one
         submission = Submission.add(
             problem=self.problem.pk,

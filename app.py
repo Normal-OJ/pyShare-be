@@ -31,9 +31,9 @@ def setup_user(usernames):
     for username in usernames:
         # if we can find the pre defined user
         if username in USER_DATA:
+            user_data = USER_DATA[username]
             # if he/she haven't sing up
-            if not User(username):
-                user_data = USER_DATA[username]
+            try:
                 u = User.signup(
                     email=user_data['email'],
                     username=user_data['username'],
@@ -41,6 +41,12 @@ def setup_user(usernames):
                 )
                 # update user's role if specified
                 u.update(role=user_data.get('role', u.role))
+            except engine.ValidationError:
+                logging.error(f'fail to sign up for {user_data["username"]}')
+            except engine.NotUniqueError:
+                logging.info(
+                    f'{user_data["username"]} (or it\'s email) already exists in pyShare'
+                )
         else:
             logging.error(
                 f'Try to setup with user that is not in user.json: {username}')
