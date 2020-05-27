@@ -79,8 +79,8 @@ def get_single_problem(user, problem):
 @Request.doc('course', 'course', Course)
 @login_required
 def create_problem(
-    user,
-    **p_ks,  # problem args
+        user,
+        **p_ks,  # problem args
 ):
     '''
     create a new problem

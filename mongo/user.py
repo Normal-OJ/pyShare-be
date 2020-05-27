@@ -190,10 +190,14 @@ class User(MongoBase, engine=engine.User):
         } for c in self.likes if c.show]
         # comments
         ret['comments'] = [{
-            'course': c.problem.course.name,
-            'pid': c.problem.pid,
-            'floor': c.floor,
-            'passed': c.submission.passed if c.submission else False,
+            'course':
+            c.problem.course.name,
+            'pid':
+            c.problem.pid,
+            'floor':
+            c.floor,
+            'passed':
+            c.submission.passed if c.submission else False,
         } for c in self.comments if c.is_comment and c.show]
         ret['replies'] = [{
             'course': c.problem.course.name,

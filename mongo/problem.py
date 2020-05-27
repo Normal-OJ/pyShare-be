@@ -130,13 +130,13 @@ class Problem(MongoBase, engine=engine.Problem):
 
     @classmethod
     def filter(
-            cls,
-            offset=0,
-            count=-1,
-            name: str = None,
-            course: str = None,
-            tags: list = None,
-            only: list = None,
+        cls,
+        offset=0,
+        count=-1,
+        name: str = None,
+        course: str = None,
+        tags: list = None,
+        only: list = None,
     ) -> 'List[engine.Problem]':
         '''
         read a list of problem filtered by given paramter
@@ -176,11 +176,11 @@ class Problem(MongoBase, engine=engine.Problem):
     @doc_required('author', 'author', User)
     @doc_required('course', 'course', Course)
     def add(
-            cls,
-            author: User,
-            course: Course,
-            tags: list = [],
-            **ks,
+        cls,
+        author: User,
+        course: Course,
+        tags: list = [],
+        **ks,
     ) -> 'Problem':
         '''
         add a problem to db
