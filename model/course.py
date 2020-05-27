@@ -17,7 +17,7 @@ def course_list(user):
     '''
     cs = list({
         'name': data.name,
-        'teacher': User(data.teacher.username).info
+        'teacher': data.teacher.info
     } for data in engine.Course.objects.only('name', 'teacher'))
     return HTTPResponse('here you are', data=cs)
 
@@ -27,8 +27,8 @@ def course_list(user):
 @Request.doc('name', 'course', Course)
 def get_single_course(user, course):
     ret = {
-        'teacher': User(course.teacher.username).info,
-        'students': [User(s.username).info for s in course.students],
+        'teacher': course.teacher.info,
+        'students': [s.info for s in course.students],
         'problems': [p.pid for p in course.problems]
     }
     return HTTPResponse('here you are', data=ret)

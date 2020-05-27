@@ -48,9 +48,9 @@ class Comment(MongoBase, engine=engine.Comment):
         ret['updated'] = self.updated.timestamp()
         if 'submission' in ret:
             ret['submission'] = Submission(ret['submission']).to_dict()
-        ret['author'] = User(ret['author']).info
+        ret['author'] = self.author.info
         ret['replies'] = [str(r) for r in ret['replies']]
-        ret['liked'] = [User(l).info for l in ret['liked']]
+        ret['liked'] = [l.info for l in self.liked]
         for k in (
                 '_id',
                 'problem',

@@ -36,6 +36,14 @@ class User(Document):
         de_field='likedComments',
     )
 
+    @property
+    def info(self):
+        return {
+            'username': self.username,
+            'displayedName': self.display_name,
+            'md5': self.md5
+        }
+
 
 class Course(Document):
     name = StringField(primary_key=True, required=True, max_length=64)
