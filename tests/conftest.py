@@ -25,6 +25,7 @@ def config_app():
 
     yield config_app
     # clean db
+    disconnect()
     conn = connect(DB, host=MONGO_MOCK_HOST)
     conn.drop_database(DB)
 

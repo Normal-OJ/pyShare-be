@@ -90,14 +90,6 @@ class User(MongoBase, engine=engine.User):
         return self.jwt(*keys, secret=True)
 
     @property
-    def info(self):
-        return {
-            'username': self.username,
-            'displayedName': self.display_name,
-            'md5': self.md5
-        }
-
-    @property
     def role_ids(self):
         return {
             'admin': 0,

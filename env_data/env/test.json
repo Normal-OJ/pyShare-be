@@ -1,0 +1,6 @@
+{
+    "user": ["admin", "teacher1", "student1", "student2"],
+    "course": ["course_108-1"],
+    "tags": ["tag2"],
+    "problem": ["p1"]
+}
