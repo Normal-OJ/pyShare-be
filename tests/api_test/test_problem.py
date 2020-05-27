@@ -14,24 +14,24 @@ def get_file(file):
 
 class ProblemData:
     def __init__(
-            self,
-            name,
-            status=1,
-            type=0,
-            description='',
-            tags=[],
-            test_case_info={
-                'language':
-                1,
-                'fillInTemplate':
-                '',
-                'cases': [{
-                    'caseCount': 1,
-                    'caseScore': 100,
-                    'memoryLimit': 1000,
-                    'timeLimit': 1000
-                }]
-            }):
+        self,
+        name,
+        status=1,
+        type=0,
+        description='',
+        tags=[],
+        test_case_info={
+            'language':
+            1,
+            'fillInTemplate':
+            '',
+            'cases': [{
+                'caseCount': 1,
+                'caseScore': 100,
+                'memoryLimit': 1000,
+                'timeLimit': 1000
+            }]
+        }):
         self.name = name
         self.status = status
         self.type = type
@@ -75,13 +75,15 @@ class TestProblem(BaseTester):
         config_app(None, 'Test')
         client = forge_client('teacher1')
 
-        rv = client.post('/problem', json={
-            'title': 'test',
-            'description': '',
-            'tags': [],
-            'course': 'course_108-1',
-            'defaultCode': '',
-            'status': 1})
+        rv = client.post('/problem',
+                         json={
+                             'title': 'test',
+                             'description': '',
+                             'tags': [],
+                             'course': 'course_108-1',
+                             'defaultCode': '',
+                             'status': 1
+                         })
         json = rv.get_json()
         assert rv.status_code == 200
 
@@ -95,28 +97,32 @@ class TestProblem(BaseTester):
         config_app(None, 'Test')
         client = forge_client('teacher1')
 
-        rv = client.post('/comment', json={
-            'target': 'problem',
-            'id': 1,
-            'title': 'comment',
-            'content': '',
-            'code': ''})
+        rv = client.post('/comment',
+                         json={
+                             'target': 'problem',
+                             'id': 1,
+                             'title': 'comment',
+                             'content': '',
+                             'code': ''
+                         })
         json = rv.get_json()
         assert rv.status_code == 200
         id = json['data']['id']
 
         for j in range(3):
-            rv = client.post('/comment', json={
-            'target': 'comment',
-            'id': id,
-            'title': f'r{j}',
-            'content': '',
-            'code': '', })
+            rv = client.post('/comment',
+                             json={
+                                 'target': 'comment',
+                                 'id': id,
+                                 'title': f'r{j}',
+                                 'content': '',
+                                 'code': '',
+                             })
             json = rv.get_json()
             assert rv.status_code == 200
 
         rv = client.get(f'/comment/{id}')
         json = rv.get_json()
         print(json)
-        assert len(json['data']['replies'])==3
+        assert len(json['data']['replies']) == 3
         assert rv.status_code == 200

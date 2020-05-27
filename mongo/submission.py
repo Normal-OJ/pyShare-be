@@ -139,7 +139,7 @@ class Submission(MongoBase, engine=engine.Submission):
             )
             if not resp.ok:
                 logging.warning(f'got sandbox resp: {resp.text}')
-                
+
         return True
 
     def complete(
@@ -186,11 +186,11 @@ class Submission(MongoBase, engine=engine.Submission):
     @doc_required('user', User)
     @doc_required('comment', Comment)
     def add(
-            cls,
-            problem: Problem,
-            user: User,
-            comment: Comment,
-            code: str,
+        cls,
+        problem: Problem,
+        user: User,
+        comment: Comment,
+        code: str,
     ) -> 'Submission':
         '''
         Insert a new submission into db
