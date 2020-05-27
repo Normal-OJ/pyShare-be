@@ -3,8 +3,6 @@ from tests.base_tester import BaseTester
 from mongo import *
 import io
 import mongomock.gridfs
-from pycallgraph import PyCallGraph
-from pycallgraph.output import GraphvizOutput
 
 mongomock.gridfs.enable_gridfs_integration()
 
@@ -107,7 +105,7 @@ class TestProblem(BaseTester):
         assert rv.status_code == 200
         id = json['data']['id']
 
-        for j in range(500):
+        for j in range(3):
             rv = client.post('/comment', json={
             'target': 'comment',
             'id': id,
@@ -117,8 +115,8 @@ class TestProblem(BaseTester):
             json = rv.get_json()
             assert rv.status_code == 200
 
-        with PyCallGraph(output=GraphvizOutput()):
-            rv = client.get(f'/comment/{id}')
-            json = rv.get_json()
-            print(json)
-            assert rv.status_code == 200
+        rv = client.get(f'/comment/{id}')
+        json = rv.get_json()
+        print(json)
+        assert len(json['data']['replies'])==3
+        assert rv.status_code == 200
