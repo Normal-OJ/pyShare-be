@@ -72,7 +72,7 @@ def another_problem(request, problem_data):
 class TestProblem(BaseTester):
     def test_get_problems(self, forge_client, problem_ids, config_app):
         # Get problems
-        config_app(None, 'Test')
+        config_app(None, 'test')
         client = forge_client('teacher1')
 
         rv = client.post('/problem',
@@ -94,7 +94,7 @@ class TestProblem(BaseTester):
 
     def test_get_commentss(self, forge_client, problem_ids, config_app):
         # Get comments
-        config_app(None, 'Test')
+        config_app(None, 'test')
         client = forge_client('teacher1')
 
         rv = client.post('/comment',
