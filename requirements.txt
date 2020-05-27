@@ -1,6 +1,6 @@
 flask
 gunicorn
-mongoengine
+mongoengine==0.19.1
 PyJWT
 requests
 pre-commit
