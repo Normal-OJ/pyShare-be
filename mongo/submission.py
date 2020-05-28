@@ -2,12 +2,9 @@ import json
 import os
 import pathlib
 import logging
-import secrets
 import requests as rq
 from flask import current_app
 from typing import List
-import redis
-import fakeredis
 
 from . import engine
 from .base import MongoBase
@@ -15,67 +12,17 @@ from .user import User
 from .problem import Problem
 from .comment import *
 from .utils import doc_required
+from .token import *
 
 __all__ = [
     'Submission',
-    'Token',
     'SubmissionPending',
 ]
-
-REDIS_POOL = redis.ConnectionPool(
-    host=os.getenv('REDIS_HOST'),
-    port=os.getenv('REDIS_PORT'),
-    db=0,
-)
-
-
-def get_redis_client():
-    if current_app.config['TESTING']:
-        return fakeredis.FakeStrictRedis()
-    else:
-        return redis.Redis(connection_pool=REDIS_POOL)
 
 
 class SubmissionPending(Exception):
     def __init__(self, _id):
         super().__init__(f'{_id} still pending.')
-
-
-class Token:
-    def __init__(self, val=None):
-        self._client = get_redis_client()
-        if val is None:
-            val = self.gen()
-        self.val = val
-
-    @staticmethod
-    def gen():
-        return secrets.token_urlsafe()
-
-    def assign(self, submission_id):
-        '''
-        assign a token to submission, if no token provided
-        generate a random one
-        '''
-        # only accept one pending submission
-        if self._client.exists(submission_id):
-            raise SubmissionPending(submission_id)
-        self._client.set(submission_id, self.val, ex=600)
-        return self.val
-
-    def verify(self, submission_id):
-        # no token found
-        if not self._client.exists(submission_id):
-            return False
-        # get submission token
-        s_token = self._client.get(submission_id).decode('ascii')
-        current_app.logger.debug(f's_token type: {type(s_token)}')
-        current_app.logger.debug(f'val type: {type(self.val)}')
-        result = secrets.compare_digest(s_token, self.val)
-        # delete if success
-        if result is True:
-            self._client.delete(submission_id)
-        return result
 
 
 class Submission(MongoBase, engine=engine.Submission):
@@ -87,6 +34,7 @@ class Submission(MongoBase, engine=engine.Submission):
         'SANDBOX_TOKEN',
         'KoNoSandboxDa',
     )
+    token_cls = DictToken
 
     def __init__(self, _id):
         self.id = str(_id)
@@ -115,6 +63,9 @@ class Submission(MongoBase, engine=engine.Submission):
         # delete document
         self.obj.delete()
 
+    def verify(self, token) -> bool:
+        return self.token_cls(token).verify(self.id)
+
     def submit(self) -> bool:
         '''
         prepara data for submit code to sandbox and then send it
@@ -122,7 +73,7 @@ class Submission(MongoBase, engine=engine.Submission):
         # unexisted id
         if not self:
             raise engine.DoesNotExist(f'{self}')
-        token = Token(self.SANDBOX_TOKEN).assign(self.id)
+        token = self.token_cls(self.SANDBOX_TOKEN).assign(self.id)
         self.update(status=engine.SubmissionStatus.PENDING)
         judge_url = f'{self.JUDGE_URL}/{self.id}'
         # send submission to snadbox for judgement
@@ -186,11 +137,11 @@ class Submission(MongoBase, engine=engine.Submission):
     @doc_required('user', User)
     @doc_required('comment', Comment)
     def add(
-        cls,
-        problem: Problem,
-        user: User,
-        comment: Comment,
-        code: str,
+            cls,
+            problem: Problem,
+            user: User,
+            comment: Comment,
+            code: str,
     ) -> 'Submission':
         '''
         Insert a new submission into db
