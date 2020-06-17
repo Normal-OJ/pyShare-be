@@ -36,6 +36,8 @@ class Problem(MongoBase, engine=engine.Problem):
         elif user > 'student':
             _permission.add('w')
             _permission.add('d')
+        elif not self.online:
+            _permission.remove('r')
         return bool(req & _permission)
 
     @doc_required('target_course', 'target_course', Course)
@@ -72,9 +74,9 @@ class Problem(MongoBase, engine=engine.Problem):
             p.save()
         return p.reload()
 
-    @property
-    def online(self):
-        return self.status == 1
+    # @property
+    # def online(self):
+    #     return self.status == 1
 
     def to_dict(self):
         '''
@@ -130,13 +132,13 @@ class Problem(MongoBase, engine=engine.Problem):
 
     @classmethod
     def filter(
-        cls,
-        offset=0,
-        count=-1,
-        name: str = None,
-        course: str = None,
-        tags: list = None,
-        only: list = None,
+            cls,
+            offset=0,
+            count=-1,
+            name: str = None,
+            course: str = None,
+            tags: list = None,
+            only: list = None,
     ) -> 'List[engine.Problem]':
         '''
         read a list of problem filtered by given paramter
@@ -176,11 +178,11 @@ class Problem(MongoBase, engine=engine.Problem):
     @doc_required('author', 'author', User)
     @doc_required('course', 'course', Course)
     def add(
-        cls,
-        author: User,
-        course: Course,
-        tags: list = [],
-        **ks,
+            cls,
+            author: User,
+            course: Course,
+            tags: list = [],
+            **ks,
     ) -> 'Problem':
         '''
         add a problem to db

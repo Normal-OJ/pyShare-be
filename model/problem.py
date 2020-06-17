@@ -47,7 +47,8 @@ def get_problem_list(
         ] + ['status'] if user > 'student' else [],
         **ks,
     )
-    ps = [Problem(p.pid).to_dict() for p in ps]
+    ps = [Problem(p.pid) for p in ps]
+    ps = [p.to_dict() for p in ps if p.permission(user=user, req={'r'})]
     # post process
     if user <= 'student':
         for p in ps:
@@ -79,8 +80,8 @@ def get_single_problem(user, problem):
 @Request.doc('course', 'course', Course)
 @login_required
 def create_problem(
-        user,
-        **p_ks,  # problem args
+    user,
+    **p_ks,  # problem args
 ):
     '''
     create a new problem
