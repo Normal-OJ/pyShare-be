@@ -187,7 +187,7 @@ class Problem(MongoBase, engine=engine.Problem):
         '''
         # student can create problem only in their course
         # but teacher and admin are not limited by this rule
-        if !(course in author.courses) and author < 'teacher':
+        if not (course in author.courses) and author < 'teacher':
             raise PermissionError('Not enough permission')
         for tag in tags:
             if not course.check_tag(tag):

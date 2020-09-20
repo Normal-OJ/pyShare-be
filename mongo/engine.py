@@ -162,7 +162,7 @@ class Submission(Document):
 # register delete rule. execute here to resolve `NotRegistered`
 # exception caused by two-way reference
 # see detailed info at https://github.com/MongoEngine/mongoengine/issues/1707
-Course.register_delete_rule(User, 'course', NULLIFY)
+Course.register_delete_rule(User, 'courses', PULL)
 User.register_delete_rule(Course, 'teacher', CASCADE)
 User.register_delete_rule(Course, 'students', PULL)
 User.register_delete_rule(Comment, 'author', CASCADE)
