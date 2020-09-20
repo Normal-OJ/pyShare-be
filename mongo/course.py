@@ -40,5 +40,5 @@ class Course(MongoBase, engine=engine.Course):
         )
         c.save()
         # update teacher course
-        teacher.update(add_to_set_courses=c)
+        teacher.update(add_to_set__courses=c)
         return cls(c.name)
