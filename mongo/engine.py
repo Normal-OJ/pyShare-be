@@ -24,7 +24,7 @@ class User(Document):
     active = BooleanField(default=True)
     # role: 0 -> admin / 1 -> teacher / 2 -> student
     role = IntField(default=2, choices=[0, 1, 2])
-    course = ReferenceField('Course', default=None, null=True)
+    courses = ListField(ReferenceField('Course'), default=[])
     # problems this user created
     problems = ListField(ReferenceField('Problem'), default=[])
     # comments this user wrote

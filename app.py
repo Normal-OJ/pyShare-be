@@ -98,7 +98,7 @@ def setup_course(courses):
                     students = [s.obj for s in filter(bool, students)]
                     # update references
                     for s in students:
-                        s.update(course=c.obj)
+                        s.update(add_to_set__courses=c.obj)
                     c.update(push_all__students=students)
                 # add problems if specified !!! NOT DONE YET !!!
                 problems = course_data.get('problems')
