@@ -100,7 +100,7 @@ def setup_course(courses):
                     for s in students:
                         s.update(add_to_set__courses=c.obj)
                     c.update(push_all__students=students)
-                # add problems if specified !!! NOT DONE YET !!!
+                # add problems if specified !!! TODO !!!
                 problems = course_data.get('problems')
                 if problems is not None:
                     problems = [*map(Problem, problems)]
