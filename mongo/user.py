@@ -46,7 +46,7 @@ class User(MongoBase, engine=engine.User):
         user = cls(username)
         # add user to course
         if course is not None:
-            user.update(course=course)
+            user.update(add_to_set__courses=course)
             course.update(add_to_set__students=user.obj)
         return user.reload()
 

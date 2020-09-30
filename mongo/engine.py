@@ -24,7 +24,7 @@ class User(Document):
     active = BooleanField(default=True)
     # role: 0 -> admin / 1 -> teacher / 2 -> student
     role = IntField(default=2, choices=[0, 1, 2])
-    course = ReferenceField('Course', default=None, null=True)
+    courses = ListField(ReferenceField('Course'), default=[])
     # problems this user created
     problems = ListField(ReferenceField('Problem'), default=[])
     # comments this user wrote
@@ -162,7 +162,7 @@ class Submission(Document):
 # register delete rule. execute here to resolve `NotRegistered`
 # exception caused by two-way reference
 # see detailed info at https://github.com/MongoEngine/mongoengine/issues/1707
-Course.register_delete_rule(User, 'course', NULLIFY)
+Course.register_delete_rule(User, 'courses', PULL)
 User.register_delete_rule(Course, 'teacher', CASCADE)
 User.register_delete_rule(Course, 'students', PULL)
 User.register_delete_rule(Comment, 'author', CASCADE)

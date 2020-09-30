@@ -151,7 +151,7 @@ def batch_signup(user, csv_string, course):
                 fails.append(_u['username'])
         else:
             # add to course
-            new_user.update(course=course.obj)
+            new_user.update(add_to_set__courses=course.obj)
             course.update(add_to_set__students=new_user.obj)
     return HTTPResponse(
         'sign up finish',
