@@ -19,7 +19,7 @@ problem_api = Blueprint('problem_api', __name__)
     'title',
     'tags',
     'course',
-    'is_template: bool'
+    'is_template'
 )
 @login_required
 def get_problem_list(

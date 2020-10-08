@@ -157,7 +157,7 @@ class Problem(MongoBase, engine=engine.Problem):
         if name is not None:
             ps = ps.filter(title__icontains=name)
         # check if they are templates
-        ps.filter(is_template=is_template)
+        ps = ps.filter(is_template=is_template)
         # retrive fields
         if only is not None:
             ps = ps.only(*only)
