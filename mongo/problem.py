@@ -137,6 +137,7 @@ class Problem(MongoBase, engine=engine.Problem):
         course: str = None,
         tags: list = None,
         only: list = None,
+        is_template: bool = False
     ) -> 'List[engine.Problem]':
         '''
         read a list of problem filtered by given paramter
@@ -155,6 +156,8 @@ class Problem(MongoBase, engine=engine.Problem):
         # search for title
         if name is not None:
             ps = ps.filter(title__icontains=name)
+        # check if they are templates
+        ps = ps.filter(is_template=is_template)
         # retrive fields
         if only is not None:
             ps = ps.only(*only)
