@@ -64,7 +64,7 @@ class Comment(MongoBase, engine=engine.Comment):
 
     @property
     def hidden(self):
-        return self.status == 0
+        return self.status <= 1
 
     def get_file(self, filename):
         if self.depth != 0:
@@ -78,6 +78,9 @@ class Comment(MongoBase, engine=engine.Comment):
         self.update(status=0)
         for reply in self.replies:
             reply.update(status=0)
+
+    def pending(self):
+        self.update(status=1)
 
     @doc_required('user', 'user', User)
     def like(self, user):

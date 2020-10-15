@@ -59,7 +59,10 @@ class Tag(Document):
 
 class CommentStatus(Enum):
     HIDDEN = 0
-    SHOW = 1
+    DRAFT = 1
+    PENDING = 2
+    ACCEPTED = 3
+    DENIED = 4
 
 
 class Comment(Document):
@@ -75,7 +78,7 @@ class Comment(Document):
     # those who like this comment
     liked = ListField(ReferenceField('User'), default=[])
     status = IntField(
-        default=CommentStatus.SHOW,
+        default=CommentStatus.DRAFT,
         choices=CommentStatus.choices(),
     )
     passed = BooleanField(default=False)
@@ -95,7 +98,7 @@ class Comment(Document):
 
     @property
     def show(self):
-        return self.status == CommentStatus.SHOW
+        return self.status != CommentStatus.HIDDEN
 
 
 class ProblemStatus(Enum):

@@ -53,6 +53,18 @@ def get_comment(user, comment: Comment):
     return HTTPResponse('success', data=comment.to_dict())
 
 
+@comment_api.route('/<_id>', methods=['PUT'])
+@login_required
+@Request.doc('_id', 'comment', Comment)
+def get_comment(user, comment: Comment):
+    if not comment.permission(user=user, req={'w'}):
+        return HTTPError('permission denied', 403)
+    if comment.status != 1:
+        return HTTPError('not a draft comment', 400)
+    comment.pending()
+    return HTTPResponse('success')
+
+
 @comment_api.route('/<_id>/file/<name>', methods=['GET'])
 @login_required
 @Request.doc('_id', 'comment', Comment)
