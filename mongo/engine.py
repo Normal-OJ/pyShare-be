@@ -1,3 +1,4 @@
+from os import sendfile
 from mongoengine import *
 import mongoengine
 import os
@@ -69,7 +70,7 @@ class Comment(Document):
     content = StringField(required=True, max_length=100000)
     author = ReferenceField('User', required=True)
     problem = ReferenceField('Problem', default=None)
-    submission = ReferenceField('Submission', default=None)
+    submissions = ListField(ReferenceField('Submission', default=[]))
     # 0 is direct comment, 1 is reply of comments
     depth = IntField(default=0, choice=[0, 1])
     # those who like this comment
@@ -96,6 +97,14 @@ class Comment(Document):
     @property
     def show(self):
         return self.status == CommentStatus.SHOW
+
+    @property
+    def hidden(self):
+        return not self.show
+
+    @property
+    def submission(self):
+        return self.submissions[0] if len(self.submissions) else None
 
 
 class ProblemStatus(Enum):
@@ -173,7 +182,7 @@ Problem.register_delete_rule(Course, 'problems', PULL)
 Problem.register_delete_rule(User, 'problems', PULL)
 Problem.register_delete_rule(Comment, 'problem', CASCADE)
 Problem.register_delete_rule(Submission, 'problem', NULLIFY)
-Submission.register_delete_rule(Comment, 'submission', NULLIFY)
+Submission.register_delete_rule(Comment, 'submissions', PULL)
 Comment.register_delete_rule(Comment, 'replies', PULL)
 Comment.register_delete_rule(Submission, 'comment', CASCADE)
 Comment.register_delete_rule(User, 'comments', PULL)
