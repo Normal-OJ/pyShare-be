@@ -102,8 +102,7 @@ def modify_comment(
         # if it's a direct comment and need to rejudge
         if comment.depth == 0 and code and code != comment.submission.code:
             # update code & rejudge
-            comment.submission.update(code=code)
-            comment.submit()
+            comment.submit(code)
     except engine.ValidationError as ve:
         return HTTPError(
             'Invalid data',
