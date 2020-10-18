@@ -72,6 +72,8 @@ def create_course(user, name, teacher):
             400,
             data=ve.to_dict(),
         )
+    except ValueError as e:
+        return HTTPError(str(e), 400)
     except (engine.NotUniqueError, PermissionError) as e:
         return HTTPError(str(e), 403)
     return HTTPResponse('success')
