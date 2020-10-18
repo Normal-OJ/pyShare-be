@@ -1,11 +1,8 @@
-import json
 import os
-import pathlib
 import logging
 import secrets
 import requests as rq
 from flask import current_app
-from typing import List
 import redis
 import fakeredis
 
@@ -105,14 +102,17 @@ class Submission(MongoBase, engine=engine.Submission):
             })
         return ret
 
-    def delete(self):
-        if not self:
-            raise engine.DoesNotExist(f'{self}')
+    def clear(self):
         # delete files
         if self.result is not None:
             for f in self.result.files:
                 f.delete()
+
+    def delete(self):
+        if not self:
+            raise engine.DoesNotExist(f'{self}')
         # delete document
+        self.clear()
         self.obj.delete()
 
     def submit(self) -> bool:

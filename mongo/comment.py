@@ -46,8 +46,8 @@ class Comment(MongoBase, engine=engine.Comment):
         ret = self.to_mongo().to_dict()
         ret['created'] = self.created.timestamp()
         ret['updated'] = self.updated.timestamp()
-        if 'submission' in ret:
-            ret['submission'] = Submission(ret['submission']).to_dict()
+        ret['submission'] = Submission(self.submission.id).to_dict()
+        ret['submissions'] = [str(s.id) for s in self.submissions]
         ret['author'] = self.author.info
         ret['replies'] = [str(r) for r in ret['replies']]
         ret['liked'] = [l.info for l in self.liked]
@@ -61,10 +61,6 @@ class Comment(MongoBase, engine=engine.Comment):
             if k in ret:
                 del ret[k]
         return ret
-
-    @property
-    def hidden(self):
-        return self.status == 0
 
     def get_file(self, filename):
         if self.depth != 0:
@@ -98,25 +94,21 @@ class Comment(MongoBase, engine=engine.Comment):
                     return
             self.submission.update(passed=False)
 
-    def submit(self):
+    def submit(self, code=None):
+        '''
+        rejudge current submission
+        '''
         from .submission import Submission
         if self.depth != 0:
             raise NotAComment
         submission = Submission(self.submission.id)
-        # delete old submission
         if not submission:
             raise SubmissionNotFound
-        code = submission.code
-        submission.delete()
-        # create a new one
-        submission = Submission.add(
-            problem=self.problem.pk,
-            user=self.author.pk,
-            comment=self.pk,
-            code=code,
-        )
+        # delete old submission
+        submission.clear()
+        if code is not None:
+            submission.update(code=code)
         submission.submit()
-        self.update(submission=submission.obj)
 
     def finish_submission(self):
         '''
@@ -162,7 +154,7 @@ class Comment(MongoBase, engine=engine.Comment):
             code=code,
         )
         submission.submit()
-        comment.update(submission=submission.obj)
+        comment.update(push__submissions=submission.obj)
         # append to problem
         target.update(
             push__comments=comment.obj,
