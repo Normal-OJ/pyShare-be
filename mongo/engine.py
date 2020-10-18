@@ -52,6 +52,8 @@ class Course(Document):
     tags = ListField(StringField(max_length=16), deafult=list)
     students = ListField(ReferenceField('User'), default=[])
     problems = ListField(ReferenceField('Problem'), default=[])
+    year = IntField(required=True)
+    semester = IntField(required=True)
 
 
 class Tag(Document):
