@@ -1,3 +1,4 @@
+from mongo.engine import Problem
 from flask import Blueprint, request, send_file
 from urllib import parse
 import threading
@@ -19,7 +20,7 @@ problem_api = Blueprint('problem_api', __name__)
     'title',
     'tags',
     'course',
-    'is_template'
+    'is_template',
 )
 @login_required
 def get_problem_list(
@@ -35,24 +36,24 @@ def get_problem_list(
     if 'title' in ks:
         ks['name'] = ks.pop('title')
     tags = parse.unquote(tags).split(',') if tags else None
+    # parse offset & count
     try:
-        offset, count = map(int, (offset, count))
-    except ValueError:
+        if offset is not None:
+            ks['offset'] = int(offset)
+        if count is not None:
+            ks['count'] = int(count)
+    except TypeError:
         return HTTPError('count and offset only accept integer', 400)
     ps = Problem.filter(
-        offset=offset,
-        count=count,
         tags=tags,
-        only=[
-            'pid',
-        ] + ['status'] if user > 'student' else [],
+        only=['pid'],
         **ks,
     )
-    ps = [Problem(p.pid).to_dict() for p in ps]
-    # post process
-    if user <= 'student':
-        for p in ps:
-            del p['status']
+    # check whether user has read permission
+    ps = [
+        pp.to_dict() for p in ps
+        if (pp := Problem(p.pid)).permission(user, {'r'})
+    ]
     return HTTPResponse('here you are, bro', data=ps)
 
 
@@ -76,7 +77,7 @@ def get_single_problem(user, problem):
     'course: str',
     'default_code: str',
     'status: int',
-    'is_template: bool'
+    'is_template: bool',
 )
 @Request.doc('course', 'course', Course)
 @login_required
@@ -105,14 +106,8 @@ def create_problem(
 
 
 @problem_api.route('/<int:pid>', methods=['PUT'])
-@Request.json(
-    'title: str',
-    'description: str',
-    'tags: list',
-    'default_code: str',
-    'status: int',
-    'is_template: bool'
-)
+@Request.json('title: str', 'description: str', 'tags: list',
+              'default_code: str', 'status: int', 'is_template: bool')
 @Request.doc('pid', 'problem', Problem)
 @login_required
 def modify_problem(
