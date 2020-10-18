@@ -7,6 +7,15 @@ __all__ = ['submission_api']
 submission_api = Blueprint('submission_api', __name__)
 
 
+@submission_api.route('/<_id>', methods=['GET'])
+@Request.doc('_id', 'submission', Submission)
+def get_single(submission):
+    return HTTPResponse(
+        'here you are, bro.',
+        data=submission.to_dict(),
+    )
+
+
 @submission_api.route('/<_id>/complete', methods=['PUT'])
 def complete(_id):
     token = request.values['token']
