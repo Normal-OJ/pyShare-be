@@ -63,7 +63,7 @@ class Comment(MongoBase, engine=engine.Comment):
         return ret
 
     def get_file(self, filename):
-        if self.depth != 0:
+        if not self.is_comment:
             raise NotAComment
         for f in self.submission.result.files:
             if f.filename == filename:
@@ -99,7 +99,7 @@ class Comment(MongoBase, engine=engine.Comment):
         rejudge current submission
         '''
         from .submission import Submission
-        if self.depth != 0:
+        if not self.is_comment:
             raise NotAComment
         submission = Submission(self.submission.id)
         if not submission:
@@ -115,7 +115,7 @@ class Comment(MongoBase, engine=engine.Comment):
         called after a submission finish
         '''
         from .submission import Submission
-        if self.depth != 0:
+        if not self.is_comment:
             raise NotAComment
         if not Submission(self.submission.id):
             raise SubmissionNotFound
@@ -205,3 +205,17 @@ class Comment(MongoBase, engine=engine.Comment):
         # append to author's
         author.update(push__comments=comment)
         return cls(comment.id)
+
+    def add_new_submission(self, code):
+        from .submission import Submission
+        if not self.is_comment:
+            raise NotAComment
+        submission = Submission.add(
+            problem=self.problem.pk,
+            user=self.author,
+            comment=self.pk,
+            code=code,
+        )
+        submission.submit()
+        self.update(push__submissions=submission.obj)
+        return submission

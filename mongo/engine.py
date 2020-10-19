@@ -106,7 +106,10 @@ class Comment(Document):
 
     @property
     def submission(self):
-        return self.submissions[0] if len(self.submissions) else None
+        '''
+        the lastest submission
+        '''
+        return self.submissions[-1] if len(self.submissions) else None
 
 
 class ProblemStatus(Enum):

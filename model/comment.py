@@ -1,3 +1,7 @@
+from model.utils.response import HTTPError
+from mongo.comment import NotAComment
+from mongo import user
+from mongo.engine import Comment
 from flask import Blueprint, send_file
 from .utils import *
 from .auth import *
@@ -79,7 +83,6 @@ def get_comment_file(
 @Request.json(
     'content: str',
     'title: str',
-    'code',
 )
 @Request.doc('_id', 'comment', Comment)
 @login_required
@@ -88,7 +91,6 @@ def modify_comment(
     comment: Comment,
     content,
     title,
-    code,
 ):
     if not comment.permission(user=user, req={'w'}):
         return HTTPError('Permission denied.', 403)
@@ -99,10 +101,6 @@ def modify_comment(
             title=title,
             updated=datetime.now(),
         )
-        # if it's a direct comment and need to rejudge
-        if comment.depth == 0 and code and code != comment.submission.code:
-            # update code & rejudge
-            comment.submit(code)
     except engine.ValidationError as ve:
         return HTTPError(
             'Invalid data',
@@ -110,6 +108,25 @@ def modify_comment(
             data=ve.to_dict(),
         )
     return HTTPResponse('success')
+
+
+@comment_api.route('/<_id>/submission', methods=['POST'])
+@login_required
+@Request.json('code: str')
+@Request.doc('_id', 'comment', Comment)
+def create_new_submission(user, code, comment: Comment):
+    if not comment.permission(user, {'j'}):
+        return HTTPError('Permission denied.', 403)
+    try:
+        submission = comment.add_new_submission(code)
+    except NotAComment:
+        return HTTPError('Only comments can has code.', 400)
+    except ValidationError as ve:
+        return HTTPError('The source code is invalid!', 400)
+    return HTTPResponse(
+        'Create new submission',
+        data={'submissionId': str(submission.id)},
+    )
 
 
 @comment_api.route('/<_id>', methods=['DELETE'])
