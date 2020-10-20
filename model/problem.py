@@ -19,7 +19,8 @@ problem_api = Blueprint('problem_api', __name__)
     'title',
     'tags',
     'course',
-    'is_template'
+    'is_template',
+    'allow_multiple_comments'
 )
 @login_required
 def get_problem_list(
@@ -76,7 +77,8 @@ def get_single_problem(user, problem):
     'course: str',
     'default_code: str',
     'status: int',
-    'is_template: bool'
+    'is_template: bool',
+    'allow_multiple_comments: bool'
 )
 @Request.doc('course', 'course', Course)
 @login_required
@@ -111,7 +113,8 @@ def create_problem(
     'tags: list',
     'default_code: str',
     'status: int',
-    'is_template: bool'
+    'is_template: bool',
+    'allow_multiple_comments: bool'
 )
 @Request.doc('pid', 'problem', Problem)
 @login_required
