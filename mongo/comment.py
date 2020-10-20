@@ -141,8 +141,8 @@ class Comment(MongoBase, engine=engine.Comment):
     def add_to_problem(
         cls,
         target,
-        code,
-        author,
+        code: str,
+        author: str,
         **ks,
     ):
         # TODO: solve circular import between submission and comment
@@ -153,12 +153,7 @@ class Comment(MongoBase, engine=engine.Comment):
             target = Problem(target)
         # check if allow multiple comments
         if not target.allow_multiple_comments:
-            flag = False
-            for comment in target.comments:
-                if comment.author.username == author:
-                    flag = True
-                    break
-            if flag:
+            if any(comment.author.username == author for comment in target.comments):
                 raise TooManyComments
 
         # create new commment
