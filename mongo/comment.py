@@ -9,6 +9,7 @@ __all__ = [
     'Comment',
     'NotAComment',
     'SubmissionNotFound',
+    'TooManyComments'
 ]
 
 
@@ -17,6 +18,10 @@ class NotAComment(Exception):
 
 
 class SubmissionNotFound(Exception):
+    pass
+
+
+class TooManyComments(Exception):
     pass
 
 
@@ -136,8 +141,8 @@ class Comment(MongoBase, engine=engine.Comment):
     def add_to_problem(
         cls,
         target,
-        code,
-        author,
+        code: str,
+        author: str,
         **ks,
     ):
         # TODO: solve circular import between submission and comment
@@ -146,6 +151,11 @@ class Comment(MongoBase, engine=engine.Comment):
         if not isinstance(target, (Problem, engine.Problem)):
             # try convert to document
             target = Problem(target)
+        # check if allow multiple comments
+        if not target.allow_multiple_comments:
+            if any(comment.author.username == author for comment in target.comments):
+                raise TooManyComments
+
         # create new commment
         comment = cls.add(
             floor=target.height + 1,
