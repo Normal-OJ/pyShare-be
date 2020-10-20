@@ -9,6 +9,7 @@ __all__ = [
     'Comment',
     'NotAComment',
     'SubmissionNotFound',
+    'TooManyComments'
 ]
 
 
@@ -17,6 +18,10 @@ class NotAComment(Exception):
 
 
 class SubmissionNotFound(Exception):
+    pass
+
+
+class TooManyComments(Exception):
     pass
 
 
@@ -146,6 +151,16 @@ class Comment(MongoBase, engine=engine.Comment):
         if not isinstance(target, (Problem, engine.Problem)):
             # try convert to document
             target = Problem(target)
+        # check if allow multiple comments
+        if not target.allow_multiple_comments:
+            flag = False
+            for comment in target.comments:
+                if comment.author == author:
+                    flag = True
+                    break
+            if flag:
+                raise TooManyComments
+
         # create new commment
         comment = cls.add(
             floor=target.height + 1,
