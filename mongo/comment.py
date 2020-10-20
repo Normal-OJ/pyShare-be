@@ -155,7 +155,7 @@ class Comment(MongoBase, engine=engine.Comment):
         if not target.allow_multiple_comments:
             flag = False
             for comment in target.comments:
-                if comment.author == author:
+                if comment.author.username == author:
                     flag = True
                     break
             if flag:
