@@ -53,7 +53,7 @@ def get_problem_list(
     # check whether user has read permission
     ps = [
         pp.to_dict() for p in ps
-        if (pp := Problem(p.pid)).permission(user, {'r'})
+        if (pp := Problem(p.pid)).permission(user=user, req={'r'})
     ]
     return HTTPResponse('here you are, bro', data=ps)
 

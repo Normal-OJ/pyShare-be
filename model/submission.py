@@ -103,8 +103,8 @@ def complete(_id):
 def change_state(user, submission: Submission, state):
     if submission.comment is None:
         return HTTPError('The submission is not in a comment.', 400)
-    comment = submission.comment
-    if not comment.permission(user, {'s'}):
+    comment = Comment(submission.comment.id)
+    if not comment.permission(user=user, req={'s'}):
         return HTTPError('Permission denied.', 403)
     try:
         submission.update(state=state)

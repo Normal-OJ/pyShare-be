@@ -221,7 +221,7 @@ class Comment(MongoBase, engine=engine.Comment):
             raise NotAComment
         submission = Submission.add(
             problem=self.problem.pk,
-            user=self.author,
+            user=self.author.pk,
             comment=self.pk,
             code=code,
         )
