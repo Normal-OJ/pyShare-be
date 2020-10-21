@@ -91,3 +91,28 @@ def complete(_id):
         request.values['stdout'],
     )
     return HTTPResponse('ok')
+
+
+@submission_api.route('/<_id>/state', methods=['PUT'])
+@login_required
+@Request.json(
+    'state: int',
+)
+@Request.doc('_id', 'submission', Submission)
+def change_state(user, submission: Submission, state):
+    if submission.comment is None:
+        return HTTPError('The submission is not in a comment.', 400)
+    comment = submission.comment
+    if not comment.permission(user, {'s'}):
+        return HTTPError('Permission denied.', 403)
+    try:
+        submission.update(state=state)
+    except engine.ValidationError as ve:
+        return HTTPError(
+            'Invalid data',
+            400,
+            data=ve.to_dict())
+
+    comment.update(has_accepted=any(submission.state ==
+                                    1 for submission in comment.submissions))
+    return HTTPResponse('ok')

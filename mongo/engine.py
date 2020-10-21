@@ -91,6 +91,7 @@ class Comment(Document):
     # successed / failed execution counter
     success = IntField(default=0)
     fail = IntField(default=0)
+    has_accepted = BooleanField(db_field='hasAccepted', default=False)
 
     @property
     def is_comment(self):
@@ -153,6 +154,12 @@ class SubmissionStatus(Enum):
     OUTPUT_LIMIT_EXCEED = 2
 
 
+class SubmissionState(Enum):
+    PENDING = 0
+    ACCEPT = 1
+    DENIED = 2
+
+
 class SubmissionResult(EmbeddedDocument):
     files = ListField(FileField(), default=[])
     stdout = StringField(max_length=10**6, default='')
@@ -169,6 +176,10 @@ class Submission(Document):
     status = IntField(
         default=SubmissionStatus.PENDING,
         choices=SubmissionStatus.choices(),
+    )
+    state = IntField(
+        default=SubmissionState.PENDING,
+        choices=SubmissionState.choices(),
     )
     # is this submission accepted?
     passed = BooleanField(default=False)

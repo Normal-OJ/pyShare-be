@@ -28,14 +28,21 @@ class Comment(MongoBase, engine=engine.Comment):
     def permission(self, user: User, req):
         '''
         require 'j' for rejudge
+        require 's' for changing state
+        require 'd' for deletion
+        require 'w' for writing
+        require 'r' for reading
         '''
         _permission = {'r'}
-        # author have all permissions
+        # author have all permissions except changing state
         if user == self.author:
             _permission |= {'w', 'j', 'd'}
-        # teacher can not edit comment
-        elif user > 'student':
-            _permission |= {'d', 'j'}
+            # can change state if he's a teacher
+            if user > 'student':
+                _permission |= {'s'}
+        # teacher can not edit comment, but he can change state
+        elif user > 'student' and self.problem.course in user.courses:
+            _permission |= {'d', 'j', 's'}
         # other students can not view hidden comment
         elif self.hidden:
             _permission.remove('r')
