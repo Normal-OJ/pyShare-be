@@ -2,6 +2,7 @@ from flask import Blueprint, request
 from mongo import *
 from mongo import engine
 from .utils import *
+from .auth import login_required
 
 __all__ = ['submission_api']
 
