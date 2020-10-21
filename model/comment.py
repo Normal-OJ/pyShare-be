@@ -37,6 +37,8 @@ def create_comment(user, target, code, id_, **ks):
                 author=user.pk,
                 **ks,
             )
+        except TooManyComments:
+            return HTTPError('You can only have one comment', 400)
         except engine.DoesNotExist:
             return HTTPError('Can not find some docuemnt', 404)
     else:
