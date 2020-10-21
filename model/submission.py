@@ -1,6 +1,6 @@
-from mongo import engine
 from flask import Blueprint, request
 from mongo import *
+from mongo import engine
 from .utils import *
 
 __all__ = ['submission_api']
@@ -21,6 +21,27 @@ def get_single(submission):
         'here you are, bro.',
         data=data,
     )
+
+
+@submission_api.route('/<_id>/file/<name>', methods=['GET'])
+@login_required
+@Request.doc('_id', 'submission', Submission)
+def get_submission_file(
+    user,
+    submission: Submission,
+    name,
+):
+    try:
+        return send_file(
+            submission.get_file(name),
+            as_attachment=True,
+            cache_timeout=1,
+            attachment_filename=filename,
+        )
+    except FileNotFoundError:
+        return HTTPError('File not found', 404)
+    except SubmissionPending:
+        return HTTPError('Submission is still in pending', 400)
 
 
 @submission_api.route('/', methods=['POST'])

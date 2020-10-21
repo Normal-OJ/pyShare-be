@@ -62,14 +62,6 @@ class Comment(MongoBase, engine=engine.Comment):
                 del ret[k]
         return ret
 
-    def get_file(self, filename):
-        if not self.is_comment:
-            raise NotAComment
-        for f in self.submission.result.files:
-            if f.filename == filename:
-                return f
-        raise FileNotFoundError
-
     def delete(self):
         self.update(status=0)
         for reply in self.replies:

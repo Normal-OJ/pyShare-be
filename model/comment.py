@@ -1,7 +1,3 @@
-from model.utils.response import HTTPError
-from mongo.comment import NotAComment
-from mongo import user
-from mongo.engine import Comment
 from flask import Blueprint, send_file
 from .utils import *
 from .auth import *
@@ -57,28 +53,6 @@ def get_comment(user, comment: Comment):
     return HTTPResponse('success', data=comment.to_dict())
 
 
-@comment_api.route('/<_id>/file/<name>', methods=['GET'])
-@login_required
-@Request.doc('_id', 'comment', Comment)
-def get_comment_file(
-    user,
-    comment: Comment,
-    name,
-):
-    try:
-        f = comment.get_file(name)
-        return send_file(
-            f,
-            as_attachment=True,
-            cache_timeout=1,
-            attachment_filename=f.filename,
-        )
-    except FileNotFoundError:
-        return HTTPError('file not found', 404)
-    except NotAComment:
-        return HTTPError('not a comment', 400)
-
-
 @comment_api.route('/<_id>', methods=['PUT'])
 @Request.json(
     'content: str',
@@ -121,7 +95,7 @@ def create_new_submission(user, code, comment: Comment):
         submission = comment.add_new_submission(code)
     except NotAComment:
         return HTTPError('Only comments can has code.', 400)
-    except ValidationError as ve:
+    except engine.ValidationError as ve:
         return HTTPError('The source code is invalid!', 400)
     return HTTPResponse(
         'Create new submission',

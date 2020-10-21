@@ -191,6 +191,14 @@ class Submission(MongoBase, engine=engine.Submission):
         Comment(self.comment.id).finish_submission()
         return True
 
+    def get_file(self, filename):
+        if self.result is None:
+            raise SubmissionPending(self.id)
+        for f in self.result.files:
+            if f.filename == filename:
+                return f
+        raise FileNotFoundError
+
     @staticmethod
     def new_file(file_obj, filename):
         '''
