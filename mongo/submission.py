@@ -2,6 +2,7 @@ import os
 import logging
 import secrets
 import requests as rq
+import base64
 from flask import current_app
 import redis
 import fakeredis
@@ -93,6 +94,9 @@ class Submission(MongoBase, engine=engine.Submission):
         return self.problem.problem_id
 
     def to_dict(self):
+        '''
+        return serialized submission
+        '''
         ret = {'code': self.code}
         if self.result is not None:
             ret.update({
@@ -100,6 +104,25 @@ class Submission(MongoBase, engine=engine.Submission):
                 'stderr': self.result.stderr,
                 'files': [f.filename for f in self.result.files],
             })
+        return ret
+
+    def extract(self, _delete=True):
+        '''
+        deeply serialize submission, include file content instead of only containing files' name.
+        '''
+        ret = self.to_dict()
+        if self.result is None:
+            files = [{
+                'filename': f.filename,
+                'content': base64.b64encode(f.read()),
+            } for f in self.result.files]
+            ret.update({
+                'stdout': self.result.stdout,
+                'stderr': self.result.stderr,
+                'files': files,
+            })
+            if _delete:
+                self.delete()
         return ret
 
     def clear(self):
