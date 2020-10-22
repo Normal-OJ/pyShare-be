@@ -36,24 +36,24 @@ def get_problem_list(
     if 'title' in ks:
         ks['name'] = ks.pop('title')
     tags = parse.unquote(tags).split(',') if tags else None
+    # parse offset & count
     try:
-        offset, count = map(int, (offset, count))
-    except ValueError:
+        if offset is not None:
+            ks['offset'] = int(offset)
+        if count is not None:
+            ks['count'] = int(count)
+    except TypeError:
         return HTTPError('count and offset only accept integer', 400)
     ps = Problem.filter(
-        offset=offset,
-        count=count,
         tags=tags,
-        only=[
-            'pid',
-        ] + ['status'] if user > 'student' else [],
+        only=['pid'],
         **ks,
     )
-    ps = [Problem(p.pid).to_dict() for p in ps]
-    # post process
-    if user <= 'student':
-        for p in ps:
-            del p['status']
+    # check whether user has read permission
+    ps = [
+        pp.to_dict() for p in ps
+        if (pp := Problem(p.pid)).permission(user=user, req={'r'})
+    ]
     return HTTPResponse('here you are, bro', data=ps)
 
 

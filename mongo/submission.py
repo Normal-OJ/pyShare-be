@@ -1,11 +1,9 @@
-import json
 import os
-import pathlib
 import logging
 import secrets
 import requests as rq
+import base64
 from flask import current_app
-from typing import List
 import redis
 import fakeredis
 
@@ -96,6 +94,9 @@ class Submission(MongoBase, engine=engine.Submission):
         return self.problem.problem_id
 
     def to_dict(self):
+        '''
+        return serialized submission
+        '''
         ret = {'code': self.code}
         if self.result is not None:
             ret.update({
@@ -105,14 +106,36 @@ class Submission(MongoBase, engine=engine.Submission):
             })
         return ret
 
-    def delete(self):
-        if not self:
-            raise engine.DoesNotExist(f'{self}')
+    def extract(self, _delete=True):
+        '''
+        deeply serialize submission, include file content instead of only containing files' name.
+        '''
+        ret = self.to_dict()
+        if self.result is None:
+            files = [{
+                'filename': f.filename,
+                'content': base64.b64encode(f.read()),
+            } for f in self.result.files]
+            ret.update({
+                'stdout': self.result.stdout,
+                'stderr': self.result.stderr,
+                'files': files,
+            })
+            if _delete:
+                self.delete()
+        return ret
+
+    def clear(self):
         # delete files
         if self.result is not None:
             for f in self.result.files:
                 f.delete()
+
+    def delete(self):
+        if not self:
+            raise engine.DoesNotExist(f'{self}')
         # delete document
+        self.clear()
         self.obj.delete()
 
     def submit(self) -> bool:
@@ -167,6 +190,14 @@ class Submission(MongoBase, engine=engine.Submission):
         # notify comment
         Comment(self.comment.id).finish_submission()
         return True
+
+    def get_file(self, filename):
+        if self.result is None:
+            raise SubmissionPending(self.id)
+        for f in self.result.files:
+            if f.filename == filename:
+                return f
+        raise FileNotFoundError
 
     @staticmethod
     def new_file(file_obj, filename):

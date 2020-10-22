@@ -55,33 +55,10 @@ def get_comment(user, comment: Comment):
     return HTTPResponse('success', data=comment.to_dict())
 
 
-@comment_api.route('/<_id>/file/<name>', methods=['GET'])
-@login_required
-@Request.doc('_id', 'comment', Comment)
-def get_comment_file(
-    user,
-    comment: Comment,
-    name,
-):
-    try:
-        f = comment.get_file(name)
-        return send_file(
-            f,
-            as_attachment=True,
-            cache_timeout=1,
-            attachment_filename=f.filename,
-        )
-    except FileNotFoundError:
-        return HTTPError('file not found', 404)
-    except NotAComment:
-        return HTTPError('not a comment', 400)
-
-
 @comment_api.route('/<_id>', methods=['PUT'])
 @Request.json(
     'content: str',
     'title: str',
-    'code',
 )
 @Request.doc('_id', 'comment', Comment)
 @login_required
@@ -90,7 +67,6 @@ def modify_comment(
     comment: Comment,
     content,
     title,
-    code,
 ):
     if not comment.permission(user=user, req={'w'}):
         return HTTPError('Permission denied.', 403)
@@ -101,11 +77,6 @@ def modify_comment(
             title=title,
             updated=datetime.now(),
         )
-        # if it's a direct comment and need to rejudge
-        if comment.depth == 0 and code and code != comment.submission.code:
-            # update code & rejudge
-            comment.submission.update(code=code)
-            comment.submit()
     except engine.ValidationError as ve:
         return HTTPError(
             'Invalid data',
@@ -113,6 +84,25 @@ def modify_comment(
             data=ve.to_dict(),
         )
     return HTTPResponse('success')
+
+
+@comment_api.route('/<_id>/submission', methods=['POST'])
+@login_required
+@Request.json('code: str')
+@Request.doc('_id', 'comment', Comment)
+def create_new_submission(user, code, comment: Comment):
+    if not comment.permission(user=user, req={'j'}):
+        return HTTPError('Permission denied.', 403)
+    try:
+        submission = comment.add_new_submission(code)
+    except NotAComment:
+        return HTTPError('Only comments can has code.', 400)
+    except engine.ValidationError as ve:
+        return HTTPError('The source code is invalid!', 400)
+    return HTTPResponse(
+        'Create new submission',
+        data={'submissionId': str(submission.id)},
+    )
 
 
 @comment_api.route('/<_id>', methods=['DELETE'])

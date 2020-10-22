@@ -57,14 +57,27 @@ def delete_course(name, course):
 
 @course_api.route('/', methods=['POST'])
 @login_required
-@Request.json('name: str', 'teacher: str')
+@Request.json(
+    'name: str',
+    'teacher: str',
+    'year: int',
+    'semester: int',
+)
 @Request.doc('teacher', 'teacher', User)
 @identity_verify(0, 1)  # only admin and teacher can call this route
-def create_course(user, name, teacher):
+def create_course(
+    user,
+    name,
+    teacher,
+    year,
+    semester,
+):
     try:
         Course.add(
             name=name,
             teacher=teacher,
+            year=year,
+            semester=semester,
         )
     except engine.ValidationError as ve:
         return HTTPError(
@@ -72,6 +85,8 @@ def create_course(user, name, teacher):
             400,
             data=ve.to_dict(),
         )
+    except ValueError as e:
+        return HTTPError(str(e), 400)
     except (engine.NotUniqueError, PermissionError) as e:
         return HTTPError(str(e), 403)
     return HTTPResponse('success')

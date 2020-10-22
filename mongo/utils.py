@@ -53,6 +53,8 @@ def doc_required(src, des, cls=None):
             if src_param is None:
                 raise TypeError(f'{src} not found in function argument')
             # convert it to document
+            # TODO: add type checking, whether the cls is a subclass of `MongoBase`
+            #       or maybe it is not need
             if type(cls) != type(int):
                 raise TypeError('cls must be a type')
             if not isinstance(src_param, cls):
@@ -61,7 +63,7 @@ def doc_required(src, des, cls=None):
             else:
                 doc = src_param
             if not doc:
-                raise engine.DoesNotExist()
+                raise engine.DoesNotExist(f'{doc} not found!')
             # replace original paramters
             del ks[src]
             if des in ks:

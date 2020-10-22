@@ -51,6 +51,8 @@ class Course(Document):
     tags = ListField(StringField(max_length=16), deafult=list)
     students = ListField(ReferenceField('User'), default=[])
     problems = ListField(ReferenceField('Problem'), default=[])
+    year = IntField(required=True)
+    semester = IntField(required=True)
 
 
 class Tag(Document):
@@ -69,7 +71,7 @@ class Comment(Document):
     content = StringField(required=True, max_length=100000)
     author = ReferenceField('User', required=True)
     problem = ReferenceField('Problem', default=None)
-    submission = ReferenceField('Submission', default=None)
+    submissions = ListField(ReferenceField('Submission', default=[]))
     # 0 is direct comment, 1 is reply of comments
     depth = IntField(default=0, choice=[0, 1])
     # those who like this comment
@@ -88,6 +90,7 @@ class Comment(Document):
     # successed / failed execution counter
     success = IntField(default=0)
     fail = IntField(default=0)
+    has_accepted = BooleanField(db_field='hasAccepted', default=False)
 
     @property
     def is_comment(self):
@@ -96,6 +99,17 @@ class Comment(Document):
     @property
     def show(self):
         return self.status == CommentStatus.SHOW
+
+    @property
+    def hidden(self):
+        return not self.show
+
+    @property
+    def submission(self):
+        '''
+        the lastest submission
+        '''
+        return self.submissions[-1] if len(self.submissions) else None
 
 
 class ProblemStatus(Enum):
@@ -140,6 +154,12 @@ class SubmissionStatus(Enum):
     OUTPUT_LIMIT_EXCEED = 2
 
 
+class SubmissionState(Enum):
+    PENDING = 0
+    ACCEPT = 1
+    DENIED = 2
+
+
 class SubmissionResult(EmbeddedDocument):
     files = ListField(FileField(), default=[])
     stdout = StringField(max_length=10**6, default='')
@@ -156,6 +176,10 @@ class Submission(Document):
     status = IntField(
         default=SubmissionStatus.PENDING,
         choices=SubmissionStatus.choices(),
+    )
+    state = IntField(
+        default=SubmissionState.PENDING,
+        choices=SubmissionState.choices(),
     )
     # is this submission accepted?
     passed = BooleanField(default=False)
@@ -174,7 +198,7 @@ Problem.register_delete_rule(Course, 'problems', PULL)
 Problem.register_delete_rule(User, 'problems', PULL)
 Problem.register_delete_rule(Comment, 'problem', CASCADE)
 Problem.register_delete_rule(Submission, 'problem', NULLIFY)
-Submission.register_delete_rule(Comment, 'submission', NULLIFY)
+Submission.register_delete_rule(Comment, 'submissions', PULL)
 Comment.register_delete_rule(Comment, 'replies', PULL)
 Comment.register_delete_rule(Submission, 'comment', CASCADE)
 Comment.register_delete_rule(User, 'comments', PULL)
