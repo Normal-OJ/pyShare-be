@@ -91,7 +91,7 @@ def modify_comment(
 @Request.json('code: str')
 @Request.doc('_id', 'comment', Comment)
 def create_new_submission(user, code, comment: Comment):
-    if not comment.permission(user, {'j'}):
+    if not comment.permission(user=user, req={'j'}):
         return HTTPError('Permission denied.', 403)
     try:
         submission = comment.add_new_submission(code)
