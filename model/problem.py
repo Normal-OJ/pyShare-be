@@ -1,4 +1,3 @@
-from mongo.engine import Problem
 from flask import Blueprint, request, send_file
 from urllib import parse
 import threading

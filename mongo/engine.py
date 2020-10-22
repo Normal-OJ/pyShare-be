@@ -1,4 +1,3 @@
-from os import sendfile
 from mongoengine import *
 import mongoengine
 import os
