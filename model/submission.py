@@ -74,7 +74,10 @@ def create_test_submission(
             data=ve.to_dict(),
         )
     submission.submit()
-    return HTTPResponse('Submission recieved.')
+    return HTTPResponse(
+        'Submission recieved.',
+        data={'submissionId': str(submission.id)},
+    )
 
 
 @submission_api.route('/<_id>/complete', methods=['PUT'])
