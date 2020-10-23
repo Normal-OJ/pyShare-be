@@ -48,9 +48,9 @@ def statistic(course):
 
 @course_api.route('/<name>', methods=['DELETE'])
 @login_required
-@identity_verify(0)  # only admin can call this route
 @Request.doc('name', 'course', Course)
-def delete_course(user, name, course):
+@identity_verify(0)  # only admin can call this route
+def delete_course(user, course):
     course.delete()
     return HTTPResponse('success')
 
