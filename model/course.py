@@ -50,7 +50,7 @@ def statistic(course):
 @login_required
 @identity_verify(0)  # only admin can call this route
 @Request.doc('name', 'course', Course)
-def delete_course(name, course):
+def delete_course(user, name, course):
     course.delete()
     return HTTPResponse('success')
 
