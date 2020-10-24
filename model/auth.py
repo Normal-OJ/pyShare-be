@@ -25,18 +25,18 @@ def login_required(func):
 
     Returns:
         - A wrapped function
-        - 403 Not Logged In
-        - 403 Invalid Token
+        - 401 Not Logged In
+        - 401 Invalid Token
         - 403 Inactive User
     '''
     @wraps(func)
     @Request.cookies(vars_dict={'token': 'piann'})
     def wrapper(token, *args, **kwargs):
         if token is None:
-            return HTTPError('Not Logged In', 403)
+            return HTTPError('Not Logged In', 401)
         json = jwt_decode(token)
         if json is None or not json.get('secret'):
-            return HTTPError('Invalid Token', 403)
+            return HTTPError('Invalid Token', 401)
         user = User(json['data']['username'])
         if json['data'].get('userId') != user.user_id:
             return HTTPError(f'Authorization Expired', 403)
@@ -87,14 +87,14 @@ def session():
         '''Login a user.
         Returns:
             - 400 Incomplete Data
-            - 403 Login Failed
+            - 401 Login Failed
         '''
         try:
             user = User.login(username, password)
         except DoesNotExist:
-            return HTTPError('Login Failed', 403)
+            return HTTPError('Login Failed', 401)
         if not user.active:
-            return HTTPError('Invalid User', 403)
+            return HTTPError('Inactive User', 403)
         cookies = {'piann_httponly': user.secret, 'jwt': user.cookie}
         return HTTPResponse('Login Success', cookies=cookies)
 
