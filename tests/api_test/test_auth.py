@@ -157,7 +157,7 @@ class TestLogin:
                              'password': 'tset'
                          })
         json = rv.get_json()
-        assert rv.status_code == 403
+        assert rv.status_code == 401
         assert json['status'] == 'err'
         assert json['message'] == 'Login Failed'
 
@@ -171,7 +171,7 @@ class TestLogin:
         json = rv.get_json()
         assert rv.status_code == 403
         assert json['status'] == 'err'
-        assert json['message'] == 'Invalid User'
+        assert json['message'] == 'Inactive User'
 
     def test_with_username(self, client):
         # Login with username
