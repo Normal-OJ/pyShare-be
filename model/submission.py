@@ -100,8 +100,7 @@ def complete(_id):
 @submission_api.route('/<_id>/state', methods=['PUT'])
 @login_required
 @Request.json(
-    'state: int',
-)
+    'state: int', )
 @Request.doc('_id', 'submission', Submission)
 def change_state(user, submission: Submission, state):
     if submission.comment is None:
@@ -115,8 +114,9 @@ def change_state(user, submission: Submission, state):
         return HTTPError(
             'Invalid data',
             400,
-            data=ve.to_dict())
-
-    comment.update(has_accepted=any(submission.state ==
-                                    1 for submission in comment.submissions))
+            data=ve.to_dict(),
+        )
+    comment.update(has_accepted=any(
+        submission.state == engine.SubmissionState.ACCEPT
+        for submission in comment.submissions))
     return HTTPResponse('ok')
