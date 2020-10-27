@@ -9,7 +9,7 @@ __all__ = [
     'Comment',
     'NotAComment',
     'SubmissionNotFound',
-    'TooManyComments'
+    'TooManyComments',
 ]
 
 
@@ -144,7 +144,8 @@ class Comment(MongoBase, engine=engine.Comment):
             target = Problem(target)
         # check if allow multiple comments
         if not target.allow_multiple_comments:
-            if any(comment.author.username == author for comment in target.comments):
+            if any(comment.author.username == author
+                   for comment in target.comments):
                 raise TooManyComments
 
         # create new commment

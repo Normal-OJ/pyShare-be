@@ -141,7 +141,8 @@ class Problem(Document):
     # whether a user passed this problem
     passed = MapField(BooleanField(default=False), default={})
     is_template = BooleanField(db_field='isTemplate', default=False)
-    allow_multiple_comments = BooleanField(db_field='allowMultipleComments', default=False)
+    allow_multiple_comments = BooleanField(db_field='allowMultipleComments',
+                                           default=False)
 
     @property
     def online(self):

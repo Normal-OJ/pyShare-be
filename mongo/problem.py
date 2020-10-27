@@ -142,16 +142,16 @@ class Problem(MongoBase, engine=engine.Problem):
         tags: list = None,
         only: list = None,
         is_template: bool = None,
-        allow_multiple_comments: bool = None
+        allow_multiple_comments: bool = None,
     ) -> 'List[engine.Problem]':
         '''
         read a list of problem filtered by given paramter
         '''
         qs = {
-            'course': course, 
+            'course': course,
             'is_template': is_template,
-            'allow_multiple_comments': allow_multiple_comments
-            }
+            'allow_multiple_comments': allow_multiple_comments,
+        }
         # filter None parameter
         qs = {k: v for k, v in qs.items() if v is not None}
         ps = cls.engine.objects(**qs)
