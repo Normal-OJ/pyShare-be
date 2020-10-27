@@ -1,4 +1,3 @@
-from mongo.course import Course
 from flask import Blueprint, send_file
 from .utils import *
 from .auth import *
