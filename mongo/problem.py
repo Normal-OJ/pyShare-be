@@ -104,7 +104,7 @@ class Problem(MongoBase, engine=engine.Problem):
         '''
         insert a attahment into this problem.
         '''
-        # check permission
+        # check existence
         if any([att.filename == filename for att in self.attachments]):
             raise FileExistsError(
                 f'A attachment named [{filename}] '
@@ -129,16 +129,14 @@ class Problem(MongoBase, engine=engine.Problem):
         raise FileNotFoundError(f'can not find a attachment named [{name}]')
 
     @classmethod
-    def filter(
-        cls,
-        offset=0,
-        count=-1,
-        name: str = None,
-        course: str = None,
-        tags: list = None,
-        only: list = None,
-        is_template: bool = False
-    ) -> 'List[engine.Problem]':
+    def filter(cls,
+               offset=0,
+               count=-1,
+               name: str = None,
+               course: str = None,
+               tags: list = None,
+               only: list = None,
+               is_template: bool = False) -> 'List[engine.Problem]':
         '''
         read a list of problem filtered by given paramter
         '''
