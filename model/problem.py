@@ -48,9 +48,9 @@ def get_problem_list(
         return HTTPError('count and offset only accept integer', 400)
     try:
         if is_template is not None:
-            ks['is_template'] = is_template == 'true'
+            ks['is_template'] = to_bool(is_template)
         if allow_multiple_comments is not None:
-            ks['allow_multiple_comments'] = allow_multiple_comments == 'true'
+            ks['allow_multiple_comments'] = to_bool(allow_multiple_comments)
     except TypeError:
         return HTTPError(
             'isTemplate and allowMultipleComments only accept boolean', 400)

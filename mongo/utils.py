@@ -6,6 +6,7 @@ __all__ = [
     'hash_id',
     'doc_required',
     'Enum',
+    'to_bool'
 ]
 
 
@@ -28,6 +29,15 @@ def hash_id(salt, text):
     text = ((salt or '') + (text or '')).encode()
     sha = hashlib.sha3_512(text)
     return sha.hexdigest()[:24]
+
+
+def to_bool(s: str):
+    if s == 'true':
+        return True
+    elif s == 'false':
+        return False
+    else:
+        raise TypeError
 
 
 def doc_required(src, des, cls=None):
