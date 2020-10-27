@@ -28,6 +28,8 @@ def get_problem_list(
     tags,
     offset,
     count,
+    is_template,
+    allow_multiple_comments,
     **ks,
 ):
     # filter values user passed and decode
@@ -44,6 +46,14 @@ def get_problem_list(
             ks['count'] = int(count)
     except TypeError:
         return HTTPError('count and offset only accept integer', 400)
+    try:
+        if is_template is not None:
+            ks['is_template'] = to_bool(is_template)
+        if allow_multiple_comments is not None:
+            ks['allow_multiple_comments'] = to_bool(allow_multiple_comments)
+    except TypeError:
+        return HTTPError(
+            'isTemplate and allowMultipleComments only accept boolean', 400)
     ps = Problem.filter(
         tags=tags,
         only=['pid'],
