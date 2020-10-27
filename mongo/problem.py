@@ -195,6 +195,9 @@ class Problem(MongoBase, engine=engine.Problem):
         # but teacher and admin are not limited by this rule
         if course not in author.courses and author < 'teacher':
             raise PermissionError('Not enough permission')
+        # if allow_multiple_comments is None or False
+        if author < 'teacher' and not ks.get('allow_multiple_comments'):
+            raise PermissionError('Students have to allow multiple comments')
         for tag in tags:
             if not course.check_tag(tag):
                 raise TagNotFoundError(
