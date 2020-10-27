@@ -57,9 +57,17 @@ class Course(MongoBase, engine=engine.Course):
         )
         writer.writeheader()
         for u in self.students:
-            u = User(u.username)
+            stat = User(u.username).statistic()
+            # extract exec info
+            exec_info = stat.pop('execInfo')
+            # update every other info to its length
+            stat = {k: len(v) for k, v in stat.items()}
+            stat.update({
+                k: sum(info[k] for info in exec_info)
+                for k in ['success', 'fail']
+            })
             writer.writerow({
-                **u.statistic(),
+                **stat,
                 **{
                     'username': u.username,
                 },
