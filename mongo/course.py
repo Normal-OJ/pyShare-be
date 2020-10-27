@@ -1,4 +1,6 @@
 import re
+import io
+import csv
 from .base import MongoBase
 from .user import User
 from . import engine
@@ -42,3 +44,24 @@ class Course(MongoBase, engine=engine.Course):
         # update teacher course
         teacher.update(add_to_set__courses=c)
         return cls(c.name)
+
+    def statistic_file(self):
+        f = io.StringIO()
+        statistic_fields = [User('').statistic().keys()]
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                'username',
+                *statistic_fields,
+            ],
+        )
+        writer.writeheader()
+        for u in self.students:
+            u = User(u.username)
+            writer.writerow({
+                **u.statistic(),
+                **{
+                    'username': u.username,
+                },
+            })
+        return f

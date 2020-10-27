@@ -1,4 +1,5 @@
-from flask import Blueprint
+from mongo.course import Course
+from flask import Blueprint, send_file
 from .utils import *
 from .auth import *
 from mongo import *
@@ -156,3 +157,19 @@ def update_tags(user, course, push, pop):
     except engine.ValidationError as ve:
         return HTTPError(str(ve), 400, data=ve.to_dict())
     return HTTPResponse('success')
+
+
+@course_api.route('/<name>/statistic', methods=['GET'])
+@login_required
+@Request.doc('name', 'course', Course)
+def get_statistic_file(user, course: Course):
+    # TODO: use one function to declear the permission
+    if user <= 'teacher' and user != course.teacher:
+        return HTTPError('Permission denied', 403)
+    f = course.statistic_file()
+    return send_file(
+        f,
+        as_attachment=True,
+        cache_timeout=30,
+        attachment_filename=f'{course.name}-statistic.csv',
+    )
