@@ -9,7 +9,11 @@ from .course import Course
 from .user import User
 from .utils import doc_required
 
-__all__ = ['Problem']
+__all__ = ['Problem', 'TagNotFoundError']
+
+
+class TagNotFoundError(Exception):
+    pass
 
 
 class Problem(MongoBase, engine=engine.Problem):
