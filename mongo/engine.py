@@ -80,7 +80,6 @@ class Comment(Document):
         default=CommentStatus.SHOW,
         choices=CommentStatus.choices(),
     )
-    passed = BooleanField(default=False)
     created = DateTimeField(default=datetime.now)
     updated = DateTimeField(default=datetime.now)
     replies = ListField(
@@ -138,10 +137,9 @@ class Problem(Document):
         max_length=100000,
         db_field='defaultCode',
     )
-    # whether a user passed this problem
-    passed = MapField(BooleanField(default=False), default={})
     is_template = BooleanField(db_field='isTemplate', default=False)
-    allow_multiple_comments = BooleanField(db_field='allowMultipleComments', default=True)
+    allow_multiple_comments = BooleanField(db_field='allowMultipleComments',
+                                           default=True)
 
     @property
     def online(self):
@@ -181,8 +179,6 @@ class Submission(Document):
         default=SubmissionState.PENDING,
         choices=SubmissionState.choices(),
     )
-    # is this submission accepted?
-    passed = BooleanField(default=False)
 
 
 # register delete rule. execute here to resolve `NotRegistered`

@@ -5,12 +5,7 @@ from .user import User
 from .utils import doc_required
 from .submission import *
 
-__all__ = [
-    'Comment',
-    'NotAComment',
-    'SubmissionNotFound',
-    'TooManyComments'
-]
+__all__ = ['Comment', 'NotAComment', 'SubmissionNotFound', 'TooManyComments']
 
 
 class NotAComment(Exception):
@@ -66,7 +61,6 @@ class Comment(MongoBase, engine=engine.Comment):
         for k in (
                 '_id',
                 'problem',
-                'passed',
                 'success',
                 'fail',
         ):
@@ -90,13 +84,6 @@ class Comment(MongoBase, engine=engine.Comment):
         user.update(**{f'{action}__likes': self.obj})
         # reload
         self.reload()
-        # check pass
-        if self.depth == 0 and user > 'student':
-            for u in self.liked:
-                if User(u.username) > 'student':
-                    self.submission.update(passed=True)
-                    return
-            self.submission.update(passed=False)
 
     def submit(self, code=None):
         '''
@@ -144,7 +131,8 @@ class Comment(MongoBase, engine=engine.Comment):
             target = Problem(target)
         # check if allow multiple comments
         if not target.allow_multiple_comments:
-            if any(comment.author.username == author for comment in target.comments):
+            if any(comment.author.username == author
+                   for comment in target.comments):
                 raise TooManyComments
 
         # create new commment
