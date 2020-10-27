@@ -9,7 +9,11 @@ from .course import Course
 from .user import User
 from .utils import doc_required
 
-__all__ = ['Problem']
+__all__ = ['Problem', 'TagNotFoundError']
+
+
+class TagNotFoundError(Exception):
+    pass
 
 
 class Problem(MongoBase, engine=engine.Problem):
@@ -138,16 +142,16 @@ class Problem(MongoBase, engine=engine.Problem):
         tags: list = None,
         only: list = None,
         is_template: bool = None,
-        allow_multiple_comments: bool = None
+        allow_multiple_comments: bool = None,
     ) -> 'List[engine.Problem]':
         '''
         read a list of problem filtered by given paramter
         '''
         qs = {
-            'course': course, 
+            'course': course,
             'is_template': is_template,
-            'allow_multiple_comments': allow_multiple_comments
-            }
+            'allow_multiple_comments': allow_multiple_comments,
+        }
         # filter None parameter
         qs = {k: v for k, v in qs.items() if v is not None}
         ps = cls.engine.objects(**qs)
@@ -195,6 +199,9 @@ class Problem(MongoBase, engine=engine.Problem):
         # but teacher and admin are not limited by this rule
         if course not in author.courses and author < 'teacher':
             raise PermissionError('Not enough permission')
+        # if allow_multiple_comments is None or False
+        if author < 'teacher' and not ks.get('allow_multiple_comments'):
+            raise PermissionError('Students have to allow multiple comments')
         for tag in tags:
             if not course.check_tag(tag):
                 raise TagNotFoundError(

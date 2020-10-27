@@ -6,7 +6,7 @@ __all__ = [
     'hash_id',
     'doc_required',
     'Enum',
-    'to_bool'
+    'to_bool',
 ]
 
 
