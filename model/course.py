@@ -158,7 +158,7 @@ def update_tags(user, course, push, pop):
     return HTTPResponse('success')
 
 
-@course_api.route('/<name>/statistic', methods=['GET'])
+@course_api.route('/<name>/statistic-file', methods=['GET'])
 @login_required
 @Request.doc('name', 'course', Course)
 def get_statistic_file(user, course: Course):
