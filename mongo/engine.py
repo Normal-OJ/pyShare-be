@@ -139,7 +139,7 @@ class Problem(Document):
     )
     is_template = BooleanField(db_field='isTemplate', default=False)
     allow_multiple_comments = BooleanField(db_field='allowMultipleComments',
-                                           default=True)
+                                           default=False)
 
     @property
     def online(self):

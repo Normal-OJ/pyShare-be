@@ -5,7 +5,12 @@ from .user import User
 from .utils import doc_required
 from .submission import *
 
-__all__ = ['Comment', 'NotAComment', 'SubmissionNotFound', 'TooManyComments']
+__all__ = [
+    'Comment',
+    'NotAComment',
+    'SubmissionNotFound',
+    'TooManyComments',
+]
 
 
 class NotAComment(Exception):

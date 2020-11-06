@@ -20,7 +20,7 @@ problem_api = Blueprint('problem_api', __name__)
     'tags',
     'course',
     'is_template',
-    'allow_multiple_comments'
+    'allow_multiple_comments',
 )
 @login_required
 def get_problem_list(
@@ -28,6 +28,8 @@ def get_problem_list(
     tags,
     offset,
     count,
+    is_template,
+    allow_multiple_comments,
     **ks,
 ):
     # filter values user passed and decode
@@ -44,6 +46,14 @@ def get_problem_list(
             ks['count'] = int(count)
     except TypeError:
         return HTTPError('count and offset only accept integer', 400)
+    try:
+        if is_template is not None:
+            ks['is_template'] = to_bool(is_template)
+        if allow_multiple_comments is not None:
+            ks['allow_multiple_comments'] = to_bool(allow_multiple_comments)
+    except TypeError:
+        return HTTPError(
+            'isTemplate and allowMultipleComments only accept boolean', 400)
     ps = Problem.filter(
         tags=tags,
         only=['pid'],
@@ -78,7 +88,7 @@ def get_single_problem(user, problem):
     'default_code: str',
     'status: int',
     'is_template: bool',
-    'allow_multiple_comments: bool'
+    'allow_multiple_comments: bool',
 )
 @Request.doc('course', 'course', Course)
 @login_required
@@ -114,7 +124,7 @@ def create_problem(
     'default_code: str',
     'status: int',
     'is_template: bool',
-    'allow_multiple_comments: bool'
+    'allow_multiple_comments: bool',
 )
 @Request.doc('pid', 'problem', Problem)
 @login_required
@@ -126,6 +136,9 @@ def modify_problem(
 ):
     if not problem.permission(user=user, req={'w'}):
         return HTTPError('Permission denied.', 403)
+    # if allow_multiple_comments is False
+    if user < 'teacher' and p_ks.get('allow_multiple_comments') == False:
+        return HTTPError('Students have to allow multiple comments.', 403)
     for tag in tags:
         c = Course(problem.course.name)
         if not c.check_tag(tag):
