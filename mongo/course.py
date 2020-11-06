@@ -47,7 +47,7 @@ class Course(MongoBase, engine=engine.Course):
 
     def statistic_file(self):
         f = io.StringIO()
-        statistic_fields = list(User('').statistic().keys())
+        statistic_fields = [*User('').statistic().keys(), 'success', 'fail']
         writer = csv.DictWriter(
             f,
             fieldnames=[
