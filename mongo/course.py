@@ -52,6 +52,7 @@ class Course(MongoBase, engine=engine.Course):
             'success',
             'fail',
         ]
+        statistic_fields.remove('execInfo')
         writer = csv.DictWriter(
             f,
             fieldnames=[
@@ -76,4 +77,5 @@ class Course(MongoBase, engine=engine.Course):
                     'username': u.username,
                 },
             })
+        f.seek(0)
         return f
