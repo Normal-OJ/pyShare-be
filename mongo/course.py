@@ -1,6 +1,6 @@
 import re
-import io
 import csv
+import tempfile
 from .base import MongoBase
 from .user import User
 from . import engine
@@ -46,8 +46,12 @@ class Course(MongoBase, engine=engine.Course):
         return cls(c.name)
 
     def statistic_file(self):
-        f = io.StringIO()
-        statistic_fields = [*User('').statistic().keys(), 'success', 'fail']
+        f = tempfile.TemporaryFile('w+')
+        statistic_fields = [
+            *User('').statistic().keys(),
+            'success',
+            'fail',
+        ]
         writer = csv.DictWriter(
             f,
             fieldnames=[
