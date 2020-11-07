@@ -54,7 +54,6 @@ class Problem(MongoBase, engine=engine.Problem):
                 'comments',
                 'attachments',
                 'height',
-                'passed',
         ):
             del p[field]
         # field conversion
@@ -90,7 +89,7 @@ class Problem(MongoBase, engine=engine.Problem):
         ret['timestamp'] = ret['timestamp'].timestamp()
         ret['author'] = self.author.info
         ret['comments'] = [str(c) for c in ret['comments']]
-        for k in ('_id', 'passed', 'height'):
+        for k in ('_id', 'height'):
             del ret[k]
         return ret
 
@@ -108,7 +107,7 @@ class Problem(MongoBase, engine=engine.Problem):
         '''
         insert a attahment into this problem.
         '''
-        # check permission
+        # check existence
         if any([att.filename == filename for att in self.attachments]):
             raise FileExistsError(
                 f'A attachment named [{filename}] '

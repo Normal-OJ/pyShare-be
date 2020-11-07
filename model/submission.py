@@ -111,8 +111,12 @@ def change_state(user, submission: Submission, state):
     try:
         submission.update(state=state)
     except engine.ValidationError as ve:
-        return HTTPError('Invalid data', 400, data=ve.to_dict())
-
-    comment.update(has_accepted=any(submission.state == 1
-                                    for submission in comment.submissions))
+        return HTTPError(
+            'Invalid data',
+            400,
+            data=ve.to_dict(),
+        )
+    comment.update(has_accepted=any(
+        submission.state == engine.SubmissionState.ACCEPT
+        for submission in comment.submissions))
     return HTTPResponse('ok')

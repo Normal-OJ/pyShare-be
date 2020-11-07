@@ -66,7 +66,6 @@ class Comment(MongoBase, engine=engine.Comment):
         for k in (
                 '_id',
                 'problem',
-                'passed',
                 'success',
                 'fail',
         ):
@@ -90,13 +89,6 @@ class Comment(MongoBase, engine=engine.Comment):
         user.update(**{f'{action}__likes': self.obj})
         # reload
         self.reload()
-        # check pass
-        if self.depth == 0 and user > 'student':
-            for u in self.liked:
-                if User(u.username) > 'student':
-                    self.submission.update(passed=True)
-                    return
-            self.submission.update(passed=False)
 
     def submit(self, code=None):
         '''

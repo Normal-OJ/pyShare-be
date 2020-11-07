@@ -1,4 +1,6 @@
 import re
+import csv
+import tempfile
 from .base import MongoBase
 from .user import User
 from . import engine
@@ -42,3 +44,38 @@ class Course(MongoBase, engine=engine.Course):
         # update teacher course
         teacher.update(add_to_set__courses=c)
         return cls(c.name)
+
+    def statistic_file(self):
+        f = tempfile.TemporaryFile('w+')
+        statistic_fields = [
+            *User('').statistic().keys(),
+            'success',
+            'fail',
+        ]
+        statistic_fields.remove('execInfo')
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                'username',
+                *statistic_fields,
+            ],
+        )
+        writer.writeheader()
+        for u in self.students:
+            stat = User(u.username).statistic()
+            # extract exec info
+            exec_info = stat.pop('execInfo')
+            # update every other info to its length
+            stat = {k: len(v) for k, v in stat.items()}
+            stat.update({
+                k: sum(info[k] for info in exec_info)
+                for k in ['success', 'fail']
+            })
+            writer.writerow({
+                **stat,
+                **{
+                    'username': u.username,
+                },
+            })
+        f.seek(0)
+        return f
