@@ -31,9 +31,9 @@ class Problem(MongoBase, engine=engine.Problem):
             a `bool` value denotes whether user has these
             permissions 
         '''
-        _permission = {}
+        _permission = set()
         if self.online:
-            if self.course.permission(user=user, req={'r'}):
+            if Course(self.course.pk).permission(user=user, req={'r'}):
                 _permission.add('r')
         elif user == self.course.teacher:
             _permission.add('r')

@@ -27,14 +27,14 @@ class Course(MongoBase, engine=engine.Course):
             a `bool` value denotes whether user has these
             permissions 
         '''
-        _permission = {}
+        _permission = set()
         # course's teacher and admins can do anything
         if user == self.teacher or user >= 'admin':
             _permission |= {'r', 'p', 'm'}
         # course's students can participate, or everyone can participate if the course is public
-        elif user in self.students or self.status == CourseStatus.PUBLIC:
+        elif user in self.students or self.status == engine.CourseStatus.PUBLIC:
             _permission |= {'r', 'p'}
-        elif self.status == CourseStatus.READONLY:
+        elif self.status == engine.CourseStatus.READONLY:
             _permission |= {'r'}
         return bool(req & _permission)
 
