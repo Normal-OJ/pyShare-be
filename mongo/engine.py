@@ -45,6 +45,12 @@ class User(Document):
         }
 
 
+class CourseStatus(Enum):
+    PRIVATE = 0
+    READONLY = 1
+    PUBLIC = 2
+
+
 class Course(Document):
     name = StringField(primary_key=True, required=True, max_length=64)
     teacher = ReferenceField('User', required=True)
@@ -53,6 +59,10 @@ class Course(Document):
     problems = ListField(ReferenceField('Problem'), default=[])
     year = IntField(required=True)
     semester = IntField(required=True)
+    status = IntField(
+        default=CourseStatus.PUBLIC,
+        choices=CourseStatus.choices(),
+    )
 
 
 class Tag(Document):
