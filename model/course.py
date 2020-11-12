@@ -18,7 +18,7 @@ def course_list(user):
     cs = list({
         'name': data.name,
         'teacher': data.teacher.info
-    } for data in engine.Course.objects.only('name', 'teacher'))
+    } for data in engine.Course.objects.only('name', 'teacher') if Course(data.name).permission(user=user, req={'r'}))
     return HTTPResponse('here you are', data=cs)
 
 

@@ -45,11 +45,11 @@ class Comment(MongoBase, engine=engine.Comment):
             # can change state if he's a teacher
             if user > 'student':
                 _permission |= {'s'}
-        # teacher can not edit comment, but he can change state
-        elif user > 'student' and self.problem.course in user.courses:
+        # course's teacher and admin can not edit comment, but he can change state
+        elif user == self.problem.course.teacher or user >= 'admin':
             _permission |= {'d', 'j', 's'}
-        # other students can not view hidden comment
-        elif self.hidden:
+        # other people can not view hidden comments or non visible problems' comments
+        elif self.hidden or not self.problem.permission(user=user, req={'r'}):
             _permission.remove('r')
         return bool(req & _permission)
 
@@ -192,8 +192,11 @@ class Comment(MongoBase, engine=engine.Comment):
         author: User,
         floor: int,
         depth: int,
-        problem: engine.Problem = None,
+        problem: engine.Problem,
     ):
+        # check permission
+        if not problem.permission(user=author, req={'r'}) or not problem.course.permission(user=author, req={'p'}):
+            raise PermissionError('Not enough permission')
         # insert into DB
         comment = engine.Comment(
             title=title,
@@ -201,7 +204,7 @@ class Comment(MongoBase, engine=engine.Comment):
             author=author.pk,
             floor=floor,
             depth=depth,
-            problem=problem.pk if problem is not None else None,
+            problem=problem.pk,
         )
         comment.save()
         # append to author's

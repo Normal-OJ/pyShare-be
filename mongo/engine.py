@@ -80,7 +80,7 @@ class Comment(Document):
     floor = IntField(required=True)
     content = StringField(required=True, max_length=100000)
     author = ReferenceField('User', required=True)
-    problem = ReferenceField('Problem', default=None)
+    problem = ReferenceField('Problem', required=True)
     submissions = ListField(ReferenceField('Submission', default=[]))
     # 0 is direct comment, 1 is reply of comments
     depth = IntField(default=0, choice=[0, 1])
