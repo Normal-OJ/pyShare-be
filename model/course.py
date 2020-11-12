@@ -54,8 +54,9 @@ def statistic(user, course):
 @course_api.route('/<name>', methods=['DELETE'])
 @login_required
 @Request.doc('name', 'course', Course)
-@identity_verify(0)  # only admin can call this route
 def delete_course(user, course):
+    if not course.permission(user=user, req={'m'}):
+        return HTTPError('Not enough permission', 403)
     course.delete()
     return HTTPResponse('success')
 
