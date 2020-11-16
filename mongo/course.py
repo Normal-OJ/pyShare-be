@@ -20,7 +20,7 @@ class Course(MongoBase, engine=engine.Course):
     def permission(self, user: User, req: set):
         '''
         check user's permission, `req` is a set of required
-        permissions, currently accept values are {'r', 'p', 'm'}
+        permissions, currently accept values are {'r', 'p', 'w'}
         stand for read, participate, modify
 
         Returns:
@@ -30,7 +30,7 @@ class Course(MongoBase, engine=engine.Course):
         _permission = set()
         # course's teacher and admins can do anything
         if user == self.teacher or user >= 'admin':
-            _permission |= {'r', 'p', 'm'}
+            _permission |= {'r', 'p', 'w'}
         # course's students can participate, or everyone can participate if the course is public
         elif user in self.students or self.status == engine.CourseStatus.PUBLIC:
             _permission |= {'r', 'p'}

@@ -55,7 +55,7 @@ def statistic(user, course):
 @login_required
 @Request.doc('name', 'course', Course)
 def delete_course(user, course):
-    if not course.permission(user=user, req={'m'}):
+    if not course.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
     course.delete()
     return HTTPResponse('success')
@@ -106,7 +106,7 @@ def update_students(user, course, users, action):
     '''
     update course students, action should be `insert` or `remove`
     '''
-    if not course.permission(user=user, req={'m'}):
+    if not course.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
     # preprocess action
     if action not in {'insert', 'remove'}:
@@ -147,7 +147,7 @@ def update_tags(user, course, push, pop):
     '''
     push/pop tags to/from course
     '''
-    if not course.permission(user=user, req={'m'}):
+    if not course.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
     for t in push:
         if not Tag(t):
@@ -170,7 +170,7 @@ def update_tags(user, course, push, pop):
 @login_required
 @Request.doc('name', 'course', Course)
 def get_statistic_file(user, course: Course):
-    if not course.permission(user=user, req={'m'}):
+    if not course.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
     f = course.statistic_file()
     return send_file(
