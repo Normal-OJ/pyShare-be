@@ -217,7 +217,7 @@ class Submission(MongoBase, engine=engine.Submission):
     @classmethod
     @doc_required('problem', Problem)
     @doc_required('user', User)
-    @doc_required('comment', Comment)
+    @doc_required('comment', Comment, null=True)
     def add(
         cls,
         problem: Problem,

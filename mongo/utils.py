@@ -40,7 +40,12 @@ def to_bool(s: str):
         raise TypeError
 
 
-def doc_required(src, des, cls=None):
+def doc_required(
+    src,
+    des,
+    cls=None,
+    null=True,
+):
     '''
     query db to inject document into functions.
     if the document does not exist in db, raise `engine.DoesNotExist`.
@@ -67,12 +72,18 @@ def doc_required(src, des, cls=None):
             #       or maybe it is not need
             if type(cls) != type(int):
                 raise TypeError('cls must be a type')
-            if not isinstance(src_param, cls):
+            # process `None`
+            if src_param is None:
+                if not null:
+                    raise ValueError('src can not be None')
+                doc = None
+            elif not isinstance(src_param, cls):
                 doc = cls(src_param)
             # or, it is already target class instance
             else:
                 doc = src_param
-            if not doc:
+            # not None and non-existent
+            if doc is not None and not doc:
                 raise engine.DoesNotExist(f'{doc} not found!')
             # replace original paramters
             del ks[src]
