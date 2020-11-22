@@ -28,10 +28,14 @@ def course_list(user):
 def get_single_course(user, course):
     if not course.permission(user=user, req={'r'}):
         return HTTPError('Not enough permission', 403)
+    comments_of_problems = [p.comments for p in course.problems if not p.is_template]
     ret = {
         'teacher': course.teacher.info,
         'students': [s.info for s in course.students],
-        'problems': [p.pid for p in course.problems]
+        'numOfProblems': len(comments_of_problems),
+        'numOfComments': sum(map(len, comments_of_problems)),
+        'year': course.year,
+        'semester': course.semester,
     }
     return HTTPResponse('here you are', data=ret)
 
