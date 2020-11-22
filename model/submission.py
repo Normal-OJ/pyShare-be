@@ -49,7 +49,7 @@ def get_submission_file(
 @login_required
 @Request.json(
     'code: str',
-    'problem_id',
+    'problem_id: int',
 )
 @Request.doc('problem_id', 'problem', Problem)
 def create_test_submission(
@@ -99,8 +99,7 @@ def complete(_id):
 
 @submission_api.route('/<_id>/state', methods=['PUT'])
 @login_required
-@Request.json(
-    'state: int', )
+@Request.json('state: int')
 @Request.doc('_id', 'submission', Submission)
 def change_state(user, submission: Submission, state):
     if submission.comment is None:
