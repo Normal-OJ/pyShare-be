@@ -29,6 +29,8 @@ def create_comment(user, target, code, id_, **ks):
             )
         except engine.DoesNotExist:
             return HTTPError('Can not find some docuemnt', 404)
+        except PermissionError as e:
+            return HTTPError(str(e), 403)
     elif target == 'problem':
         try:
             comment = Comment.add_to_problem(
@@ -41,6 +43,8 @@ def create_comment(user, target, code, id_, **ks):
             return HTTPError('You can only have one comment', 400)
         except engine.DoesNotExist:
             return HTTPError('Can not find some docuemnt', 404)
+        except PermissionError as e:
+            return HTTPError(str(e), 403)
     else:
         return HTTPError('Unknown target', 400)
     return HTTPResponse('success', data={'id': str(comment.id)})
@@ -122,6 +126,8 @@ def delete_comment(
 @login_required
 @Request.doc('_id', 'comment', Comment)
 def like_comment(user, comment: Comment):
+    if not comment.permission(user=user, req={'r'}):
+        return HTTPError('Permission denied', 403)
     comment.like(user=user)
     return HTTPResponse('success')
 

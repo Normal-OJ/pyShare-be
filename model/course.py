@@ -18,7 +18,7 @@ def course_list(user):
     cs = list({
         'name': data.name,
         'teacher': data.teacher.info
-    } for data in engine.Course.objects.only('name', 'teacher'))
+    } for data in engine.Course.objects.only('name', 'teacher') if Course(data.name).permission(user=user, req={'r'}))
     return HTTPResponse('here you are', data=cs)
 
 
@@ -26,6 +26,8 @@ def course_list(user):
 @login_required
 @Request.doc('name', 'course', Course)
 def get_single_course(user, course):
+    if not course.permission(user=user, req={'r'}):
+        return HTTPError('Not enough permission', 403)
     ret = {
         'teacher': course.teacher.info,
         'students': [s.info for s in course.students],
@@ -35,8 +37,11 @@ def get_single_course(user, course):
 
 
 @course_api.route('/<name>/statistic', methods=['GET'])
+@login_required
 @Request.doc('name', 'course', Course)
-def statistic(course):
+def statistic(user, course):
+    if not course.permission(user=user, req={'r'}):
+        return HTTPError('Not enough permission', 403)
     users = [User(u.username) for u in course.students]
     ret = []
     for u in users:
@@ -49,8 +54,9 @@ def statistic(course):
 @course_api.route('/<name>', methods=['DELETE'])
 @login_required
 @Request.doc('name', 'course', Course)
-@identity_verify(0)  # only admin can call this route
 def delete_course(user, course):
+    if not course.permission(user=user, req={'w'}):
+        return HTTPError('Not enough permission', 403)
     course.delete()
     return HTTPResponse('success')
 
@@ -96,11 +102,12 @@ def create_course(
 @login_required
 @Request.json('users: list')
 @Request.doc('name', 'course', Course)
-@identity_verify(0, 1)  # only admin and teacher can call this route
 def update_students(user, course, users, action):
     '''
     update course students, action should be `insert` or `remove`
     '''
+    if not course.permission(user=user, req={'w'}):
+        return HTTPError('Not enough permission', 403)
     # preprocess action
     if action not in {'insert', 'remove'}:
         return HTTPError('only accept action \'insert\' or \'remove\'', 400)
@@ -136,11 +143,12 @@ def update_students(user, course, users, action):
 @login_required
 @Request.json('push: list', 'pop: list')
 @Request.doc('name', 'course', Course)
-@identity_verify(0, 1)  # only admin and teacher can call this route
 def update_tags(user, course, push, pop):
     '''
     push/pop tags to/from course
     '''
+    if not course.permission(user=user, req={'w'}):
+        return HTTPError('Not enough permission', 403)
     for t in push:
         if not Tag(t):
             return HTTPError('Push: Tag not found', 404)
@@ -162,9 +170,8 @@ def update_tags(user, course, push, pop):
 @login_required
 @Request.doc('name', 'course', Course)
 def get_statistic_file(user, course: Course):
-    # TODO: use one function to declear the permission
-    if user <= 'teacher' and user != course.teacher:
-        return HTTPError('Permission denied', 403)
+    if not course.permission(user=user, req={'w'}):
+        return HTTPError('Not enough permission', 403)
     f = course.statistic_file()
     return send_file(
         f,
