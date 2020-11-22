@@ -203,8 +203,11 @@ def patch_attachment(
 
 
 @problem_api.route('/<int:pid>/attachment/<name>', methods=['GET'])
+@login_required
 @Request.doc('pid', 'problem', Problem)
-def get_attachment(problem, name):
+def get_attachment(user, problem, name):
+    if not problem.permission(user=user, req={'r'}):
+        return HTTPError('Permission denied.', 403)
     name = parse.unquote(name)
     for att in problem.attachments:
         if att.filename == name:
@@ -218,13 +221,14 @@ def get_attachment(problem, name):
 
 
 @problem_api.route('/<int:pid>/clone/<course_name>', methods=['GET'])
-@identity_verify(0, 1)
 @Request.doc('pid', 'problem', Problem)
 @Request.doc('course_name', 'course', Course)
 def clone_problem(user, problem, course):
     '''
     clone a problem to another course
     '''
+    if not problem.permission(user=user, req={'r'}):
+        return HTTPError('Permission denied.', 403)
     try:
         problem.copy(target_course=course)
     except engine.ValidationError as ve:

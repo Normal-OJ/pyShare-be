@@ -45,6 +45,12 @@ class User(Document):
         }
 
 
+class CourseStatus(Enum):
+    PRIVATE = 0
+    READONLY = 1
+    PUBLIC = 2
+
+
 class Course(Document):
     name = StringField(primary_key=True, required=True, max_length=64)
     teacher = ReferenceField('User', required=True)
@@ -53,6 +59,10 @@ class Course(Document):
     problems = ListField(ReferenceField('Problem'), default=[])
     year = IntField(required=True)
     semester = IntField(required=True)
+    status = IntField(
+        default=CourseStatus.PUBLIC,
+        choices=CourseStatus.choices(),
+    )
 
 
 class Tag(Document):
@@ -70,7 +80,7 @@ class Comment(Document):
     floor = IntField(required=True)
     content = StringField(required=True, max_length=100000)
     author = ReferenceField('User', required=True)
-    problem = ReferenceField('Problem', default=None)
+    problem = ReferenceField('Problem', required=True)
     submissions = ListField(ReferenceField('Submission', default=[]))
     # 0 is direct comment, 1 is reply of comments
     depth = IntField(default=0, choice=[0, 1])
