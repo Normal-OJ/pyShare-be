@@ -97,6 +97,8 @@ class Submission(MongoBase, engine=engine.Submission):
         '''
         return serialized submission
         '''
+        if not self:
+            return {}
         ret = {'code': self.code}
         if self.result is not None:
             ret.update({
