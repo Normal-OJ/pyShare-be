@@ -44,7 +44,7 @@ def doc_required(
     src,
     des,
     cls=None,
-    null=True,
+    null=False,
 ):
     '''
     query db to inject document into functions.

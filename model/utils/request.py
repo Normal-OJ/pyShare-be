@@ -62,12 +62,12 @@ class _Request(type):
 
 class Request(metaclass=_Request):
     @staticmethod
-    def doc(src, des, cls=None):
+    def doc(src, des, cls=None, null=False):
         '''
         a warpper to `doc_required` for flask route
         '''
         def deco(func):
-            @doc_required(src, des, cls)
+            @doc_required(src, des, cls, null)
             def inner_wrapper(*args, **ks):
                 return func(*args, **ks)
 
