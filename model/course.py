@@ -26,12 +26,12 @@ def course_list(user):
 @login_required
 @Request.doc('name', 'course', Course)
 def get_single_course(user, course):
-    commentsOfProblems = [p.comments for p in course.problems if not p.is_template]
+    comments_of_problems = [p.comments for p in course.problems if not p.is_template]
     ret = {
         'teacher': course.teacher.info,
         'students': [s.info for s in course.students],
         'numOfProblems': len(problems),
-        'numOfComments': reduce(lambda x, y: x+y, commentsOfProblems),
+        'numOfComments': reduce(lambda x, y: x+y, comments_of_problems),
         'year': course.teacher.year,
         'semester': course.teacher.semester,
     }
