@@ -30,10 +30,10 @@ def get_single_course(user, course):
     ret = {
         'teacher': course.teacher.info,
         'students': [s.info for s in course.students],
-        'numOfProblems': len(problems),
-        'numOfComments': reduce(lambda x, y: x+y, comments_of_problems),
-        'year': course.teacher.year,
-        'semester': course.teacher.semester,
+        'numOfProblems': len(comments_of_problems),
+        'numOfComments': sum(map(len, comments_of_problems)),
+        'year': course.year,
+        'semester': course.semester,
     }
     return HTTPResponse('here you are', data=ret)
 
