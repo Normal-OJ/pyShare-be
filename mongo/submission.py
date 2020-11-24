@@ -114,7 +114,7 @@ class Submission(MongoBase, engine=engine.Submission):
         deeply serialize submission, include file content instead of only containing files' name.
         '''
         ret = self.to_dict()
-        if self.result is None:
+        if self.result is not None:
             files = [{
                 'filename': f.filename,
                 'content': base64.b64encode(f.read()),
