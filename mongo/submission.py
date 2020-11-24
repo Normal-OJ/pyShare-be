@@ -191,7 +191,8 @@ class Submission(MongoBase, engine=engine.Submission):
             self.result.files.append(f)
             self.save()
         # notify comment
-        Comment(self.comment.id).finish_submission()
+        if self.comment is not None:
+            Comment(self.comment.id).finish_submission()
         return True
 
     def get_file(self, filename):
