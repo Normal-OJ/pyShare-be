@@ -64,9 +64,9 @@ def doc_required(
         @wraps(func)
         def wrapper(*args, **ks):
             # try get source param
-            src_param = ks.get(src)
-            if src_param is None:
+            if src not in ks:
                 raise TypeError(f'{src} not found in function argument')
+            src_param = ks.get(src)
             # convert it to document
             # TODO: add type checking, whether the cls is a subclass of `MongoBase`
             #       or maybe it is not need
