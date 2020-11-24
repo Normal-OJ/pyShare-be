@@ -1,6 +1,7 @@
 import os
 import logging
 import secrets
+from typing import Union
 import requests as rq
 import base64
 from flask import current_app
@@ -222,7 +223,7 @@ class Submission(MongoBase, engine=engine.Submission):
         cls,
         problem: Problem,
         user: User,
-        comment: Comment,
+        comment: Union[None, Comment],
         code: str,
     ) -> 'Submission':
         '''
@@ -234,7 +235,7 @@ class Submission(MongoBase, engine=engine.Submission):
         submission = engine.Submission(
             problem=problem.obj,
             user=user.obj,
-            comment=comment.obj,
+            comment=getattr(comment, 'obj', None),
             code=code,
         )
         submission.save()
