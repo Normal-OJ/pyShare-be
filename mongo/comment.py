@@ -135,6 +135,8 @@ class Comment(MongoBase, engine=engine.Comment):
         if not isinstance(target, (Problem, engine.Problem)):
             # try convert to document
             target = Problem(target)
+        if not target:
+            raise engine.DoesNotExist
         # check if allow multiple comments
         if not target.allow_multiple_comments:
             if any(comment.author.username == author
@@ -174,6 +176,8 @@ class Comment(MongoBase, engine=engine.Comment):
         # reply other's comment
         if not isinstance(target, (cls, engine.Comment)):
             target = Comment(target)
+        if not target:
+            raise engine.DoesNotExist
         # create new comment
         comment = cls.add(
             floor=target.floor,
