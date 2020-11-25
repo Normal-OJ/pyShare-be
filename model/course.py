@@ -111,6 +111,40 @@ def create_course(
     return HTTPResponse('success')
 
 
+@course_api.route('/<name>', methods=['PUT'])
+@login_required
+@Request.json(
+    'year: int',
+    'semester: int',
+    'status: int',
+)
+@Request.doc('name', 'course', Course)
+def update_course(
+    user,
+    course,
+    year,
+    semester,
+    status,
+):
+    if not course.permission(user=user, req={'w'}):
+        return HTTPError('Not enough permission', 403)
+    try:
+        course.update(
+            year=year,
+            semester=semester,
+            status=status,
+        )
+    except engine.ValidationError as ve:
+        return HTTPError(
+            str(ve),
+            400,
+            data=ve.to_dict(),
+        )
+    except ValueError as e:
+        return HTTPError(str(e), 400)
+    return HTTPResponse('success')
+
+
 @course_api.route('/<name>/student/<action>', methods=['PATCH'])
 @login_required
 @Request.json('users: list')
