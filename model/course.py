@@ -17,8 +17,12 @@ def course_list(user):
     '''
     cs = list({
         'name': data.name,
-        'teacher': data.teacher.info
-    } for data in engine.Course.objects.only('name', 'teacher') if Course(data.name).permission(user=user, req={'r'}))
+        'teacher': data.teacher.info,
+        'year': data.year,
+        'semester': data.semester,
+    } for data in engine.Course.objects.only('name', 'teacher', 'year',
+                                             'semester')
+              if Course(data.name).permission(user=user, req={'r'}))
     return HTTPResponse('here you are', data=cs)
 
 
@@ -28,7 +32,9 @@ def course_list(user):
 def get_single_course(user, course):
     if not course.permission(user=user, req={'r'}):
         return HTTPError('Not enough permission', 403)
-    comments_of_problems = [p.comments for p in course.problems if not p.is_template]
+    comments_of_problems = [
+        p.comments for p in course.problems if not p.is_template
+    ]
     ret = {
         'teacher': course.teacher.info,
         'students': [s.info for s in course.students],
@@ -72,6 +78,7 @@ def delete_course(user, course):
     'teacher: str',
     'year: int',
     'semester: int',
+    'status: int',
 )
 @Request.doc('teacher', 'teacher', User)
 @identity_verify(0, 1)  # only admin and teacher can call this route
@@ -81,6 +88,7 @@ def create_course(
     teacher,
     year,
     semester,
+    status,
 ):
     try:
         Course.add(
@@ -88,6 +96,7 @@ def create_course(
             teacher=teacher,
             year=year,
             semester=semester,
+            status=status,
         )
     except engine.ValidationError as ve:
         return HTTPError(
