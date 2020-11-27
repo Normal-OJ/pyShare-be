@@ -40,7 +40,12 @@ def to_bool(s: str):
         raise TypeError
 
 
-def doc_required(src, des, cls=None):
+def doc_required(
+    src,
+    des,
+    cls=None,
+    null=False,
+):
     '''
     query db to inject document into functions.
     if the document does not exist in db, raise `engine.DoesNotExist`.
@@ -59,20 +64,26 @@ def doc_required(src, des, cls=None):
         @wraps(func)
         def wrapper(*args, **ks):
             # try get source param
-            src_param = ks.get(src)
-            if src_param is None:
+            if src not in ks:
                 raise TypeError(f'{src} not found in function argument')
+            src_param = ks.get(src)
             # convert it to document
             # TODO: add type checking, whether the cls is a subclass of `MongoBase`
             #       or maybe it is not need
             if type(cls) != type(int):
                 raise TypeError('cls must be a type')
-            if not isinstance(src_param, cls):
+            # process `None`
+            if src_param is None:
+                if not null:
+                    raise ValueError('src can not be None')
+                doc = None
+            elif not isinstance(src_param, cls):
                 doc = cls(src_param)
             # or, it is already target class instance
             else:
                 doc = src_param
-            if not doc:
+            # not None and non-existent
+            if doc is not None and not doc:
                 raise engine.DoesNotExist(f'{doc} not found!')
             # replace original paramters
             del ks[src]

@@ -1,6 +1,7 @@
 import os
 import logging
 import secrets
+from typing import Union
 import requests as rq
 import base64
 from flask import current_app
@@ -97,6 +98,8 @@ class Submission(MongoBase, engine=engine.Submission):
         '''
         return serialized submission
         '''
+        if not self:
+            return {}
         ret = {'code': self.code}
         if self.result is not None:
             ret.update({
@@ -111,7 +114,7 @@ class Submission(MongoBase, engine=engine.Submission):
         deeply serialize submission, include file content instead of only containing files' name.
         '''
         ret = self.to_dict()
-        if self.result is None:
+        if self.result is not None:
             files = [{
                 'filename': f.filename,
                 'content': base64.b64encode(f.read()),
@@ -188,7 +191,8 @@ class Submission(MongoBase, engine=engine.Submission):
             self.result.files.append(f)
             self.save()
         # notify comment
-        Comment(self.comment.id).finish_submission()
+        if self.comment is not None:
+            Comment(self.comment.id).finish_submission()
         return True
 
     def get_file(self, filename):
@@ -215,12 +219,12 @@ class Submission(MongoBase, engine=engine.Submission):
     @classmethod
     @doc_required('problem', Problem)
     @doc_required('user', User)
-    @doc_required('comment', Comment)
+    @doc_required('comment', Comment, null=True)
     def add(
         cls,
         problem: Problem,
         user: User,
-        comment: Comment,
+        comment: Union[None, Comment],
         code: str,
     ) -> 'Submission':
         '''
@@ -232,7 +236,7 @@ class Submission(MongoBase, engine=engine.Submission):
         submission = engine.Submission(
             problem=problem.obj,
             user=user.obj,
-            comment=comment.obj,
+            comment=getattr(comment, 'obj', None),
             code=code,
         )
         submission.save()

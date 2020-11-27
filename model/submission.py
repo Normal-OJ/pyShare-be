@@ -49,7 +49,7 @@ def get_submission_file(
 @login_required
 @Request.json(
     'code: str',
-    'problem_id',
+    'problem_id: int',
 )
 @Request.doc('problem_id', 'problem', Problem)
 def create_test_submission(
@@ -99,8 +99,7 @@ def complete(_id):
 
 @submission_api.route('/<_id>/state', methods=['PUT'])
 @login_required
-@Request.json(
-    'state: int', )
+@Request.json('state: int')
 @Request.doc('_id', 'submission', Submission)
 def change_state(user, submission: Submission, state):
     if submission.comment is None:
@@ -116,7 +115,13 @@ def change_state(user, submission: Submission, state):
             400,
             data=ve.to_dict(),
         )
-    comment.update(has_accepted=any(
-        submission.state == engine.SubmissionState.ACCEPT
-        for submission in comment.submissions))
+    if state == engine.SubmissionState.ACCEPT:
+        comment.update(has_accepted=state)
+    else:
+        is_accepted = lambda s: s.state == engine.SubmissionState.ACCEPT
+        comment.update(
+            has_accepted=any(filter(
+                is_accepted,
+                comment.submissions,
+            )))
     return HTTPResponse('ok')

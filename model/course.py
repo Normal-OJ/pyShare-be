@@ -15,10 +15,14 @@ def course_list(user):
     '''
     get a list of course with course name and teacher's name
     '''
-    cs = list({
+    cs = engine.Course.objects.only('name', 'teacher')
+    cs = [{
         'name': data.name,
         'teacher': data.teacher.info
-    } for data in engine.Course.objects.only('name', 'teacher') if Course(data.name).permission(user=user, req={'r'}))
+    } for data in cs if Course(data.name).permission(
+        user=user,
+        req={'r'},
+    )]
     return HTTPResponse('here you are', data=cs)
 
 
@@ -28,7 +32,9 @@ def course_list(user):
 def get_single_course(user, course):
     if not course.permission(user=user, req={'r'}):
         return HTTPError('Not enough permission', 403)
-    comments_of_problems = [p.comments for p in course.problems if not p.is_template]
+    comments_of_problems = [
+        p.comments for p in course.problems if not p.is_template
+    ]
     ret = {
         'teacher': course.teacher.info,
         'students': [s.info for s in course.students],

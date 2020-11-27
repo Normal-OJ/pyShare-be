@@ -50,7 +50,8 @@ class Comment(MongoBase, engine=engine.Comment):
         elif user == self.problem.course.teacher or user >= 'admin':
             _permission |= {'d', 'j', 's'}
         # other people can not view hidden comments or non visible problems' comments
-        elif self.hidden or not Problem(self.problem.pk).permission(user=user, req={'r'}):
+        elif self.hidden or not Problem(self.problem.pk).permission(user=user,
+                                                                    req={'r'}):
             _permission.remove('r')
         return bool(req & _permission)
 
@@ -59,7 +60,8 @@ class Comment(MongoBase, engine=engine.Comment):
         ret = self.to_mongo().to_dict()
         ret['created'] = self.created.timestamp()
         ret['updated'] = self.updated.timestamp()
-        ret['submission'] = Submission(self.submission.id).to_dict()
+        ret['submission'] = self.submission and Submission(
+            self.submission.id).to_dict()
         ret['submissions'] = [str(s.id) for s in self.submissions]
         ret['author'] = self.author.info
         ret['replies'] = [str(r) for r in ret['replies']]
@@ -196,7 +198,9 @@ class Comment(MongoBase, engine=engine.Comment):
         problem: engine.Problem,
     ):
         # check permission
-        if not Problem(problem.pk).permission(user=author, req={'r'}) or not Course(problem.course.pk).permission(user=author, req={'p'}):
+        if not Problem(problem.pk).permission(user=author, req={
+                'r'
+        }) or not Course(problem.course.pk).permission(user=author, req={'p'}):
             raise PermissionError('Not enough permission')
         # insert into DB
         comment = engine.Comment(
