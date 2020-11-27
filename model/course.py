@@ -15,10 +15,12 @@ def course_list(user):
     '''
     get a list of course with course name and teacher's name
     '''
-    cs = engine.Course.objects.only('name', 'teacher')
+    cs = engine.Course.objects.only('name', 'teacher', 'year', 'semester')
     cs = [{
         'name': data.name,
-        'teacher': data.teacher.info
+        'teacher': data.teacher.info,
+        'year': data.year,
+        'semester': data.semester,
     } for data in cs if Course(data.name).permission(
         user=user,
         req={'r'},
@@ -78,6 +80,7 @@ def delete_course(user, course):
     'teacher: str',
     'year: int',
     'semester: int',
+    'status: int',
 )
 @Request.doc('teacher', 'teacher', User)
 @identity_verify(0, 1)  # only admin and teacher can call this route
@@ -87,6 +90,7 @@ def create_course(
     teacher,
     year,
     semester,
+    status,
 ):
     try:
         Course.add(
@@ -94,6 +98,7 @@ def create_course(
             teacher=teacher,
             year=year,
             semester=semester,
+            status=status,
         )
     except engine.ValidationError as ve:
         return HTTPError(
@@ -105,6 +110,40 @@ def create_course(
         return HTTPError(str(e), 400)
     except (engine.NotUniqueError, PermissionError) as e:
         return HTTPError(str(e), 403)
+    return HTTPResponse('success')
+
+
+@course_api.route('/<name>', methods=['PUT'])
+@login_required
+@Request.json(
+    'year: int',
+    'semester: int',
+    'status: int',
+)
+@Request.doc('name', 'course', Course)
+def update_course(
+    user,
+    course,
+    year,
+    semester,
+    status,
+):
+    if not course.permission(user=user, req={'w'}):
+        return HTTPError('Not enough permission', 403)
+    try:
+        course.update(
+            year=year,
+            semester=semester,
+            status=status,
+        )
+    except engine.ValidationError as ve:
+        return HTTPError(
+            str(ve),
+            400,
+            data=ve.to_dict(),
+        )
+    except ValueError as e:
+        return HTTPError(str(e), 400)
     return HTTPResponse('success')
 
 

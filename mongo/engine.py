@@ -78,7 +78,7 @@ class Comment(Document):
     meta = {'indexes': ['floor', 'created', 'updated']}
     title = StringField(required=True, max_length=128)
     floor = IntField(required=True)
-    content = StringField(required=True, max_length=100000)
+    content = StringField(required=True, max_length=5000000)
     author = ReferenceField('User', required=True)
     problem = ReferenceField('Problem', required=True)
     submissions = ListField(ReferenceField('Submission', default=[]))
@@ -132,7 +132,7 @@ class Problem(Document):
     height = IntField(default=0)
     title = StringField(max_length=64, required=True)
     course = ReferenceField('Course', reuired=True)
-    description = StringField(max_length=100000, required=True)
+    description = StringField(max_length=5000000, required=True)
     author = ReferenceField('User', requried=True)
     tags = ListField(StringField(max_length=16), deafult=[])
     attachments = ListField(FileField(), default=[])
