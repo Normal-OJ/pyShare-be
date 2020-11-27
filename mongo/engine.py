@@ -176,7 +176,7 @@ class SubmissionResult(EmbeddedDocument):
 
 class Submission(Document):
     problem = ReferenceField(Problem, null=True, required=True)
-    comment = ReferenceField(Comment, null=True, required=True)
+    comment = ReferenceField(Comment, null=True)
     user = ReferenceField(User, null=True, required=True)
     code = StringField(max_length=10**6, default='')
     timestamp = DateTimeField(default=datetime.now)

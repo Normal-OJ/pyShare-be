@@ -15,14 +15,16 @@ def course_list(user):
     '''
     get a list of course with course name and teacher's name
     '''
-    cs = list({
+    cs = engine.Course.objects.only('name', 'teacher', 'year', 'semester')
+    cs = [{
         'name': data.name,
         'teacher': data.teacher.info,
         'year': data.year,
         'semester': data.semester,
-    } for data in engine.Course.objects.only('name', 'teacher', 'year',
-                                             'semester')
-              if Course(data.name).permission(user=user, req={'r'}))
+    } for data in cs if Course(data.name).permission(
+        user=user,
+        req={'r'},
+    )]
     return HTTPResponse('here you are', data=cs)
 
 
