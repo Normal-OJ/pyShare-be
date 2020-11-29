@@ -100,7 +100,7 @@ def create_course(
             semester=semester,
             status=status,
         )
-    except engine.ValidationError as ve:
+    except ValidationError as ve:
         return HTTPError(
             str(ve),
             400,
@@ -108,8 +108,10 @@ def create_course(
         )
     except ValueError as e:
         return HTTPError(str(e), 400)
-    except (engine.NotUniqueError, PermissionError) as e:
+    except PermissionError as e:
         return HTTPError(str(e), 403)
+    except NotUniqueError as e:
+        return HTTPError(str(e), 422)
     return HTTPResponse('success')
 
 
@@ -136,7 +138,7 @@ def update_course(
             semester=semester,
             status=status,
         )
-    except engine.ValidationError as ve:
+    except ValidationError as ve:
         return HTTPError(
             str(ve),
             400,
@@ -210,7 +212,7 @@ def update_tags(user, course, push, pop):
         course.tags += push
         course.tags = list(set([tag for tag in course.tags if tag not in pop]))
         course.save()
-    except engine.ValidationError as ve:
+    except ValidationError as ve:
         return HTTPError(str(ve), 400, data=ve.to_dict())
     return HTTPResponse('success')
 
