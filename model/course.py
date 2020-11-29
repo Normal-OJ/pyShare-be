@@ -15,12 +15,13 @@ def course_list(user):
     '''
     get a list of course with course name and teacher's name
     '''
-    cs = engine.Course.objects.only('name', 'teacher', 'year', 'semester')
+    cs = engine.Course.objects.only('name', 'teacher', 'year', 'semester', 'status')
     cs = [{
         'name': data.name,
         'teacher': data.teacher.info,
         'year': data.year,
         'semester': data.semester,
+        'status': data.status,
     } for data in cs if Course(data.name).permission(
         user=user,
         req={'r'},
@@ -44,6 +45,7 @@ def get_single_course(user, course):
         'numOfComments': sum(map(len, comments_of_problems)),
         'year': course.year,
         'semester': course.semester,
+        'status': course.status,
     }
     return HTTPResponse('here you are', data=ret)
 
