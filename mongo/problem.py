@@ -198,7 +198,7 @@ class Problem(MongoBase, engine=engine.Problem):
         add a problem to db
         '''
         # user needs to be able to modify the course
-        if not course.permission(user=author, req={'w'}):
+        if not course.permission(user=author, req={'p'}):
             raise PermissionError('Not enough permission')
         # if allow_multiple_comments is None or False
         if author < 'teacher' and not ks.get('allow_multiple_comments'):
