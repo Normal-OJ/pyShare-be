@@ -117,7 +117,7 @@ class Submission(MongoBase, engine=engine.Submission):
         if self.result is not None:
             files = [{
                 'filename': f.filename,
-                'content': base64.b64encode(f.read()),
+                'content': base64.b64encode(f.read()).decode('ascii'),
             } for f in self.result.files]
             ret.update({
                 'stdout': self.result.stdout,
