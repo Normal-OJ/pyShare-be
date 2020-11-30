@@ -103,7 +103,7 @@ class Submission(MongoBase, engine=engine.Submission):
         ret = {
             'code': self.code,
             'state': self.state,
-            'timestamp': self.timestamp,
+            'timestamp': self.timestamp.timestamp(),
             }
         if self.result is not None:
             ret.update({
