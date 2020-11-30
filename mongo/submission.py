@@ -100,7 +100,11 @@ class Submission(MongoBase, engine=engine.Submission):
         '''
         if not self:
             return {}
-        ret = {'code': self.code}
+        ret = {
+            'code': self.code,
+            'state': self.state,
+            'timestamp': self.timestamp.timestamp(),
+            }
         if self.result is not None:
             ret.update({
                 'stdout': self.result.stdout,
