@@ -33,12 +33,23 @@ def test_not_unique(field, value):
         User.signup(**utils.user.data(**{field: value}))
 
 
-def test_invalid_email():
+@pytest.mark.parametrize(
+    'email',
+    [
+        '192.168.0.1',
+        'bogay＠noj.tw',
+        'bogay@noj..tw',
+        'A\t\t@OAO.oj',
+        '$skps1450@dpp.org#bogay',
+        'bogay@noj.\'tw',
+    ],
+)
+def test_invalid_email(email):
     with pytest.raises(
             ValidationError,
             match=r'.*email.*',
     ):
-        User.signup(**utils.user.data(email='invalid_email'))
+        User.signup(**utils.user.data(email=email))
 
 
 def test_email_case_sensitivity():
