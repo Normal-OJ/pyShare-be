@@ -32,6 +32,7 @@ class User(MongoBase, engine=engine.User):
         email,
         course=None,
         display_name=None,
+        role=2,
     ):
         user_id = hash_id(username, password)
         email = email.lower().strip()
@@ -41,6 +42,7 @@ class User(MongoBase, engine=engine.User):
             username=username,
             display_name=display_name or username,
             email=email,
+            role=role,
             md5=hashlib.md5(email.encode()).hexdigest(),
         ).save(force_insert=True)
         user = cls(username)
