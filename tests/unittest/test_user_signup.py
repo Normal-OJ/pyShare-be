@@ -46,6 +46,12 @@ def test_email_case_sensitivity():
         User.signup(**utils.user.data(email='BogAy@nOj.tw'))
 
 
+def test_email_strip_space():
+    email = ' email@with.space  '
+    u = User.signup(**utils.user.data(email=email))
+    assert u.email == email.strip()
+
+
 def test_long_username():
     with pytest.raises(
             ValidationError,
