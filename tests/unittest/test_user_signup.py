@@ -3,6 +3,10 @@ from mongo import *
 from tests import utils
 
 
+def setup_function(function):
+    utils.mongo.drop_db()
+
+
 def test_normally_signup():
     utils.user.randomly_add()
 
