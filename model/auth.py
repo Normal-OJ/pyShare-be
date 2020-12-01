@@ -134,6 +134,13 @@ def batch_signup(user, csv_string, course):
     for _u in user_data:
         new_user = User(_u['username'])
         if not new_user:
+            role = _u.get('role', 2)
+            try:
+                role = int(role)
+            except ValueError:
+                return HTTPError('Role needs to be int', 400)
+            if role < 2 and user.role != 0:
+                return HTTPError('Only admins can change roles', 403)
             # sign up a new user
             try:
                 new_user = User.signup(
@@ -142,6 +149,7 @@ def batch_signup(user, csv_string, course):
                     email=_u['email'],
                     display_name=_u['displayName'],
                     course=course.obj,
+                    role=role,
                 )
             except ValidationError as ve:
                 logging.error(

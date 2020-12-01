@@ -15,7 +15,8 @@ def course_list(user):
     '''
     get a list of course with course name and teacher's name
     '''
-    cs = engine.Course.objects.only('name', 'teacher', 'year', 'semester', 'status')
+    cs = engine.Course.objects.only('name', 'teacher', 'year', 'semester',
+                                    'status')
     cs = [{
         'name': data.name,
         'teacher': data.teacher.info,
