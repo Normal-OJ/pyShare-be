@@ -37,7 +37,7 @@ def get_submission_file(
             submission.get_file(name),
             as_attachment=True,
             cache_timeout=1,
-            attachment_filename=filename,
+            attachment_filename=name,
         )
     except FileNotFoundError:
         return HTTPError('File not found', 404)
