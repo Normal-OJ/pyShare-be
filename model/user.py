@@ -26,7 +26,4 @@ def get_all_user():
 @Request.doc('student', 'student', User)
 @login_required
 def statistic(user, student):
-    if user.role == 2 and user.username != student.username:
-        return HTTPError('Not enough permission', 403)
-
     return HTTPResponse('here you are.', data=student.statistic())
