@@ -116,7 +116,7 @@ def change_state(user, submission: Submission, state):
             data=ve.to_dict(),
         )
     if state == engine.SubmissionState.ACCEPT:
-        comment.update(has_accepted=state)
+        comment.update(has_accepted=True)
     else:
         is_accepted = lambda s: s.state == engine.SubmissionState.ACCEPT
         comment.update(
