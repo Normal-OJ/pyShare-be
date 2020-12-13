@@ -121,6 +121,11 @@ class Comment(Document):
         return self.submissions[-1] if len(self.submissions) else None
 
 
+class Attachment(Document):
+    description = StringField(max_length=5000000, required=True)
+    file = FileField(required=True)
+
+
 class ProblemStatus(Enum):
     ONLINE = 1
     OFFLINE = 0
