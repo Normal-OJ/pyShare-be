@@ -17,7 +17,7 @@ class Attachment(MongoBase, engine=engine.Attachment):
             raise FileNotFoundError(
                 f'can not find a attachment named [{self.filename}] in public attachment DB'
             )
-        return self.file.read()
+        return self.file
 
     def delete(self):
         '''
