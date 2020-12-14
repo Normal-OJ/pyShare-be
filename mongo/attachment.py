@@ -7,29 +7,41 @@ __all__ = ['Attachment']
 
 class Attachment(MongoBase, engine=engine.Attachment):
     def __init__(self, filename):
-        self.name = filename
+        self.filename = filename
 
     def delete(self):
         '''
         remove an attachment from db
         '''
-        attachment = engine.Attachment.objects(file__filename=self.filename)
-        if not attachment:
-            raise FileNotFoundError(f'can not find a attachment named [{self.filename}]')
-        attachment.file.delete()
+        if not self:
+            raise FileNotFoundError(
+                f'can not find a attachment named [{self.filename}]')
+        self.file.delete()
         self.obj.delete()
+
+    def update(self, file_obj, filename, description):
+        '''
+        update an attachment from db
+        '''
+        if not self:
+            raise FileNotFoundError(
+                f'can not find a attachment named [{self.filename}]')
+        self.file.replace(file_obj, filename=filename)
+        self.description = description
+        self.filename = filename
+        self.save()
 
     @classmethod
     def add(cls, file_obj, filename, description):
         '''
         add an attachment to db
         '''
-        if engine.Attachment.objects(file__filename=filename):
+        if Attachment(filename):
             raise FileExistsError(
                 f'A attachment named [{filename}] '
                 'already exists!', )
         file = GridFSProxy()
         file.put(file_obj, filename=filename)
 
-        attachment = engine.Attachment(file=file, description=description)
+        attachment = engine.Attachment(filename=filename, file=file, description=description)
         attachment.save()

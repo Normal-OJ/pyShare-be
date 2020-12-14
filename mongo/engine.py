@@ -122,6 +122,7 @@ class Comment(Document):
 
 
 class Attachment(Document):
+    filename = StringField(max_length=64, required=True, primary_key=True)
     description = StringField(max_length=5000000, required=True)
     file = FileField(required=True)
 
