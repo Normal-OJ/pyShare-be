@@ -190,11 +190,14 @@ def patch_attachment(
         return HTTPError('Not enough permission', 403)
     if request.method == 'POST':
         try:
+            # use public attachment db
+            if attachment is None:
+                attachment = Attachment(attachment_name).copy()
             problem.insert_attachment(
                 attachment,
-                filename=attachment.filename,
+                filename=attachment_name,
             )
-        except FileExistsError as e:
+        except (FileExistsError, FileNotFoundError) as e:
             return HTTPError(str(e), 400)
     elif request.method == 'DELETE':
         try:

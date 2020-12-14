@@ -9,6 +9,16 @@ class Attachment(MongoBase, engine=engine.Attachment):
     def __init__(self, filename):
         self.filename = filename
 
+    def copy(self):
+        '''
+        copy an attachment in db
+        '''
+        if not self:
+            raise FileNotFoundError(
+                f'can not find a attachment named [{self.filename}] in public attachment DB'
+            )
+        return self.file.read()
+
     def delete(self):
         '''
         remove an attachment from db
@@ -43,5 +53,7 @@ class Attachment(MongoBase, engine=engine.Attachment):
         file = GridFSProxy()
         file.put(file_obj, filename=filename)
 
-        attachment = engine.Attachment(filename=filename, file=file, description=description)
+        attachment = engine.Attachment(filename=filename,
+                                       file=file,
+                                       description=description)
         attachment.save()
