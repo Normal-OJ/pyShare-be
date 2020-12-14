@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, send_file
 from urllib import parse
 import threading
 
@@ -17,16 +17,18 @@ attachment_api = Blueprint('attachment_api', __name__)
 @login_required
 def get_attachment_list(user, filename):
     if filename is None:
-        return HTTPResponse(
-            'get all attachments\' names',
-            data=[a.file.filename for a in engine.Attachment.objects])
+        return HTTPResponse('get all attachments\' names',
+                            data=[{
+                                'filename': a.file.filename,
+                                'description': a.description
+                            } for a in engine.Attachment.objects])
     else:
         attachment = Attachment(filename)
         if not attachment:
             return HTTPError('file not found', 404)
 
         return send_file(
-            attachment,
+            attachment.file,
             as_attachment=True,
             cache_timeout=30,
             attachment_filename=attachment.filename,
@@ -49,9 +51,7 @@ def add_attachment(
     add an attachment to db
     '''
     try:
-        Attachment.add(file_obj,
-                       filename=filename,
-                       description=description)
+        Attachment.add(file_obj, filename=filename, description=description)
     except FileExistsError as e:
         return HTTPError(str(e), 400)
     return HTTPResponse('success')
@@ -59,7 +59,6 @@ def add_attachment(
 
 @attachment_api.route('/<filename>', methods=['PUT', 'DELETE'])
 @Request.files('file_obj')
-@Request.form('filename')
 @Request.form('description')
 @login_required
 @identity_verify(0, 1)
