@@ -2,7 +2,7 @@
 from functools import wraps
 from random import SystemRandom
 # Related third party imports
-from flask import Blueprint, request
+from flask import Blueprint, request, current_app
 # Local application
 from mongo import *
 from mongo.utils import hash_id
@@ -134,12 +134,15 @@ def batch_signup(user, csv_string, course):
     for _u in user_data:
         new_user = User(_u['username'])
         if not new_user:
+            # get role
             role = _u.get('role', 2)
+            if role == '':
+                role = 2
             try:
                 role = int(role)
             except ValueError:
                 return HTTPError('Role needs to be int', 400)
-            if role < 2 and user.role != 0:
+            if role < 2 and user != 'admin':
                 return HTTPError('Only admins can change roles', 403)
             # sign up a new user
             try:
@@ -152,10 +155,16 @@ def batch_signup(user, csv_string, course):
                     role=role,
                 )
             except ValidationError as ve:
-                logging.error(
-                    'fail to sign up for user\n'
+                current_app.logger.error(
+                    f'fail to sign up for {new_user}\n'
                     f'error: {ve}\n'
                     f'data: {ve.to_dict()}', )
+                fails.append(_u['username'])
+            except NotUniqueError as ne:
+                current_app.logger.error(
+                    f'fail to sign up for {new_user}\n'
+                    f'error: {ne}\n'
+                    f'data: EMAIL_DUPLICATED', )
                 fails.append(_u['username'])
         else:
             # add to course
