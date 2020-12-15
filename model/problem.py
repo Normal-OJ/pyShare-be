@@ -109,7 +109,7 @@ def create_problem(
     except engine.ValidationError as ve:
         return HTTPError(str(ve), 400, data=ve.to_dict())
     except TagNotFoundError as e:
-        return HTTPError(str(e), 400)
+        return HTTPError(str(e), 404)
     except PermissionError as e:
         return HTTPError(str(e), 403)
     return HTTPResponse(
@@ -197,13 +197,15 @@ def patch_attachment(
                 attachment,
                 filename=attachment_name,
             )
-        except (FileExistsError, FileNotFoundError) as e:
+        except FileExistsError as e:
             return HTTPError(str(e), 400)
+        except FileNotFoundError as e:
+            return HTTPError(str(e), 404)
     elif request.method == 'DELETE':
         try:
             problem.remove_attachment(attachment_name)
         except FileNotFoundError as e:
-            return HTTPError(str(e), 400)
+            return HTTPError(str(e), 404)
     return HTTPResponse('success')
 
 

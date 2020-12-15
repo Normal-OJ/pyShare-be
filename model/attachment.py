@@ -75,7 +75,7 @@ def edit_attachment(
     try:
         atta.update(file_obj, filename, description)
     except FileNotFoundError as e:
-        return HTTPError(str(e), 400)
+        return HTTPError(str(e), 404)
     return HTTPResponse('success')
 
 
@@ -93,5 +93,5 @@ def delete_attachment(
     try:
         atta.delete()
     except FileNotFoundError as e:
-        return HTTPError(str(e), 400)
+        return HTTPError(str(e), 404)
     return HTTPResponse('success')
