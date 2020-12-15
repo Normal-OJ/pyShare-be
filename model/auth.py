@@ -130,7 +130,7 @@ def signup(username, password, email, course):
 @login_required
 def batch_signup(user, csv_string, course):
     user_data = csv.DictReader(io.StringIO(csv_string))
-    fails = []
+    fails = {}
     for _u in user_data:
         new_user = User(_u['username'])
         if not new_user:
@@ -145,6 +145,7 @@ def batch_signup(user, csv_string, course):
             if role < 2 and user != 'admin':
                 return HTTPError('Only admins can change roles', 403)
             # sign up a new user
+            err = None
             try:
                 new_user = User.signup(
                     username=_u['username'],
@@ -155,26 +156,23 @@ def batch_signup(user, csv_string, course):
                     role=role,
                 )
             except ValidationError as ve:
-                current_app.logger.error(
-                    f'fail to sign up for {new_user}\n'
-                    f'error: {ve}\n'
-                    f'data: {ve.to_dict()}', )
-                fails.append(_u['username'])
+                err = str(ve), ve.to_dict()
+                fails[_u['username']] = [*ve.to_dict().keys()][0]
             except NotUniqueError as ne:
+                err = str(ne), 'EMAIL_DUPLICATED'
+                fails[_u['username']] = 'email'
+            if err is not None:
                 current_app.logger.error(
                     f'fail to sign up for {new_user}\n'
-                    f'error: {ne}\n'
-                    f'data: EMAIL_DUPLICATED', )
-                fails.append(_u['username'])
+                    f'error: {err[0]}\n'
+                    f'data: {err[1]}', )
         else:
             # add to course
             new_user.update(add_to_set__courses=course.obj)
             course.update(add_to_set__students=new_user.obj)
     return HTTPResponse(
         'sign up finish',
-        data={
-            'fails': fails,
-        },
+        data=fails,
     )
 
 
