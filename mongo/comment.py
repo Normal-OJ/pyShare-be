@@ -141,10 +141,15 @@ class Comment(MongoBase, engine=engine.Comment):
             raise engine.DoesNotExist
         # check if allow multiple comments
         if not target.allow_multiple_comments:
-            if any(comment.author.username == author
-                   for comment in target.comments):
+            comments = map(
+                lambda c: c.author.username == author,
+                filter(
+                    lambda c: c.status == engine.CommentStatus.SHOW,
+                    target.comments,
+                ),
+            )
+            if any(comments):
                 raise TooManyComments
-
         # create new commment
         comment = cls.add(
             floor=target.height + 1,
