@@ -50,10 +50,14 @@ def add_attachment(
     '''
     add an attachment to db
     '''
+    if file_obj is None:
+        return HTTPError('you need to upload a file', 400)
     try:
         Attachment.add(file_obj, filename=filename, description=description)
     except FileExistsError as e:
         return HTTPError(str(e), 400)
+    except engine.ValidationError as ve:
+        return HTTPError(str(ve), 400, data=ve.to_dict())
     return HTTPResponse('success')
 
 
@@ -73,9 +77,11 @@ def edit_attachment(
     '''
     atta = Attachment(filename)
     try:
-        atta.update(file_obj, filename, description)
+        atta.update(file_obj, description)
     except FileNotFoundError as e:
         return HTTPError(str(e), 404)
+    except engine.ValidationError as ve:
+        return HTTPError(str(ve), 400, data=ve.to_dict())
     return HTTPResponse('success')
 
 

@@ -188,6 +188,8 @@ def patch_attachment(
     '''
     if not problem.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
+    if attachment_name is None:
+        return HTTPError('you need an attachment name', 400)
     if request.method == 'POST':
         try:
             # use public attachment db
