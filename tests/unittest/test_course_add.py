@@ -1,5 +1,7 @@
+from _pytest.config import filter_traceback_for_conftest_import_failure
 import pytest
 from mongo import *
+from mongo import engine
 from tests import utils
 
 
@@ -30,6 +32,27 @@ def test_user_permission(role):
     user.update(role=role)
     user = user.reload()
     Course.add(**utils.course.data(teacher=user))
+
+
+@pytest.mark.parametrize(
+    'status',
+    [
+        engine.CourseStatus.PRIVATE,
+        engine.CourseStatus.PUBLIC,
+        engine.CourseStatus.READONLY,
+        pytest.param(
+            -10086,
+            marks=pytest.mark.xfail,
+        ),
+        pytest.param(
+            55688,
+            marks=pytest.mark.xfail,
+        ),
+    ],
+)
+def test_course_status(status):
+    user = random_teacher()
+    Course.add(**utils.course.data(teacher=user, status=status))
 
 
 @pytest.mark.parametrize(
