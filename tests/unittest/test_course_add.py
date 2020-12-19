@@ -15,6 +15,24 @@ def random_teacher():
 
 
 @pytest.mark.parametrize(
+    'role',
+    [
+        0,
+        1,
+        pytest.param(
+            2,
+            marks=pytest.mark.xfail,
+        ),
+    ],
+)
+def test_user_permission(role):
+    user = utils.user.lazy_signup()
+    user.update(role=role)
+    user = user.reload()
+    Course.add(**utils.course.data(teacher=user))
+
+
+@pytest.mark.parametrize(
     'name',
     [
         'Computer-Programming-I',
