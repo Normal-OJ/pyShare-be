@@ -22,7 +22,7 @@ def data(
         'teacher':
         none_or(
             teacher,
-            engine.User.objects(role__gt=0).first().username,
+            engine.User.objects(role__lt=2).first().username,
         ),
         'year':
         none_or(year, random.randint(109, 115)),
