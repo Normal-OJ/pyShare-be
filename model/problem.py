@@ -5,6 +5,7 @@ import threading
 from mongo import *
 from mongo import engine
 from .auth import *
+from .notifier import *
 from .utils import *
 
 __all__ = ['problem_api']
@@ -82,6 +83,7 @@ def get_single_problem(user, problem):
 )
 @Request.doc('course', 'course', Course)
 @login_required
+@fe_update('PROBLEM', 'course')
 def create_problem(
         user,
         **p_ks,  # problem args
@@ -102,7 +104,7 @@ def create_problem(
         return HTTPError(str(e), 403)
     return HTTPResponse(
         'success',
-        data={'pid': problem.pid},
+        data={'course': p_ks['course'].name, 'pid': problem.pid,},
     )
 
 
@@ -118,6 +120,7 @@ def create_problem(
 )
 @Request.doc('pid', 'problem', Problem)
 @login_required
+@fe_update('PROBLEM', 'course')
 def modify_problem(
     user,
     problem,
@@ -140,12 +143,16 @@ def modify_problem(
             400,
             data=ve.to_dict(),
         )
-    return HTTPResponse('success')
+    return HTTPResponse(
+        'success',
+        data={'course': problem.course.name},
+    )
 
 
 @problem_api.route('/<int:pid>', methods=['DELETE'])
 @Request.doc('pid', 'problem', Problem)
 @login_required
+@fe_update('PROBLEM', 'course')
 def delete_problem(user, problem):
     '''
     delete a problem
@@ -153,8 +160,12 @@ def delete_problem(user, problem):
     # student can delete only self problem
     if not problem.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
+    course = problem.course.name
     problem.delete()
-    return HTTPResponse(f'{problem} deleted.')
+    return HTTPResponse(
+        f'{problem} deleted.',
+        data={'course': course},
+    )
 
 
 @problem_api.route('/<int:pid>/attachment', methods=['POST', 'DELETE'])
@@ -208,6 +219,7 @@ def get_attachment(problem, name):
 @identity_verify(0, 1)
 @Request.doc('pid', 'problem', Problem)
 @Request.doc('course_name', 'course', Course)
+@fe_update('PROBLEM', 'course')
 def clone_problem(user, problem, course):
     '''
     clone a problem to another course
@@ -218,4 +230,7 @@ def clone_problem(user, problem, course):
         return HTTPError(str(ve), 400, data=ve.to_dict())
     except PermissionError as e:
         return HTTPError(str(e), 403)
-    return HTTPResponse('Success.')
+    return HTTPResponse(
+        'Success.',
+        data={'course': course.name},
+    )

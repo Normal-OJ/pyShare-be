@@ -7,3 +7,5 @@ pre-commit
 yapf==0.29.0
 redis
 fakeredis
+flask-socketio
+eventlet
