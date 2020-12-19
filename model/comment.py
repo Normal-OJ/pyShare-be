@@ -1,6 +1,7 @@
 from flask import Blueprint, send_file
 from .utils import *
 from .auth import *
+from .notifier import *
 from mongo import *
 from mongo import engine
 from datetime import datetime
@@ -19,6 +20,7 @@ comment_api = Blueprint('comment_api', __name__)
     'content: str',
     'code: str',
 )
+@fe_update('COMMENT', 'target', 'target_id')
 def create_comment(user, target, code, id_, **ks):
     if target == 'comment':
         try:
@@ -47,7 +49,11 @@ def create_comment(user, target, code, id_, **ks):
             return HTTPError(str(e), 403)
     else:
         return HTTPError('Unknown target', 400)
-    return HTTPResponse('success', data={'id': str(comment.id)})
+    return HTTPResponse('success', data={
+        'id': str(comment.id),
+        'target': target,
+        'target_id': id_,
+    })
 
 
 @comment_api.route('/<_id>', methods=['GET'])
@@ -66,6 +72,7 @@ def get_comment(user, comment: Comment):
 )
 @Request.doc('_id', 'comment', Comment)
 @login_required
+@fe_update('COMMENT', 'target', 'target_id')
 def modify_comment(
     user,
     comment: Comment,
@@ -87,7 +94,17 @@ def modify_comment(
             400,
             data=ve.to_dict(),
         )
-    return HTTPResponse('success')
+    return HTTPResponse('success', data={
+        'target': 'comment',
+        'target_id': str(engine.Comment.objects.get(
+            depth=0,
+            floor=comment.floor,
+            problem=comment.problem.pid,
+        ).id),
+    }  if comment.depth else {
+        'target': 'problem',
+        'target_id': comment.problem.pid,
+    })
 
 
 @comment_api.route('/<_id>/submission', methods=['POST'])
@@ -112,6 +129,7 @@ def create_new_submission(user, code, comment: Comment):
 @comment_api.route('/<_id>', methods=['DELETE'])
 @login_required
 @Request.doc('_id', 'comment', Comment)
+@fe_update('COMMENT', 'target', 'target_id')
 def delete_comment(
     user,
     comment: Comment,
@@ -119,7 +137,17 @@ def delete_comment(
     if not comment.permission(user=user, req={'d'}):
         return HTTPError('Permission denied', 403)
     comment.delete()
-    return HTTPResponse('success')
+    return HTTPResponse('success', data={
+        'target': 'comment',
+        'target_id': str(engine.Comment.objects.get(
+            depth=0,
+            floor=comment.floor,
+            problem=comment.problem.pid,
+        ).id),
+    }  if comment.depth else {
+        'target': 'problem',
+        'target_id': comment.problem.pid,
+    })
 
 
 @comment_api.route('<_id>/like', methods=['GET'])

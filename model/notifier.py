@@ -23,7 +23,7 @@ def uriparser(obj, *uris):
             u = int(u[1:]) if u[0] == ':' and u[1:].isnumeric() else u
             try:
                 o = o[u]
-            except (IndexError, KeyError):
+            except (IndexError, KeyError, TypeError):
                 return None
         return o
     return tuple(resolver(obj, uri) for uri in uris)
@@ -33,8 +33,8 @@ def fe_update(topic, *uris):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            ret = json.loads(func(*args, **kwargs)[0].data)
-            data = uriparser(ret, *(f'data/{uri}' for uri in uris))
+            ret = func(*args, **kwargs)
+            data = uriparser(json.loads(ret[0].data), *(f'data/{uri}' for uri in uris))
             pk = '-'.join(map(str, data))
             emit('refetch', {'topic': topic, 'id': pk}, room=f'{topic}-{pk}', namespace=Notifier.namespace)
             return ret
