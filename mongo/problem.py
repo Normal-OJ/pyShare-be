@@ -9,7 +9,11 @@ from .course import Course
 from .user import User
 from .utils import doc_required
 
-__all__ = ['Problem']
+__all__ = ['Problem', 'TagNotFoundError']
+
+
+class TagNotFoundError(Exception):
+    pass
 
 
 class Problem(MongoBase, engine=engine.Problem):
@@ -27,13 +31,16 @@ class Problem(MongoBase, engine=engine.Problem):
             a `bool` value denotes whether user has these
             permissions 
         '''
-        _permission = {'r'}
-        # problem author can edit, delete problem
-        if user == self.author:
-            _permission.add('w')
-            _permission.add('d')
-        # teacher and admin can, too
-        elif user > 'student':
+        _permission = set()
+        if self.online:
+            if Course(self.course.pk).permission(user=user, req={'r'}):
+                _permission.add('r')
+        elif user == self.course.teacher:
+            _permission.add('r')
+
+        # problem author and admin can edit, delete problem
+        if user == self.author or user >= 'admin':
+            _permission.add('r')
             _permission.add('w')
             _permission.add('d')
         return bool(req & _permission)
@@ -50,7 +57,6 @@ class Problem(MongoBase, engine=engine.Problem):
                 'comments',
                 'attachments',
                 'height',
-                'passed',
         ):
             del p[field]
         # field conversion
@@ -86,7 +92,7 @@ class Problem(MongoBase, engine=engine.Problem):
         ret['timestamp'] = ret['timestamp'].timestamp()
         ret['author'] = self.author.info
         ret['comments'] = [str(c) for c in ret['comments']]
-        for k in ('_id', 'passed', 'height'):
+        for k in ('_id', 'height'):
             del ret[k]
         return ret
 
@@ -104,7 +110,7 @@ class Problem(MongoBase, engine=engine.Problem):
         '''
         insert a attahment into this problem.
         '''
-        # check permission
+        # check existence
         if any([att.filename == filename for att in self.attachments]):
             raise FileExistsError(
                 f'A attachment named [{filename}] '
@@ -130,19 +136,24 @@ class Problem(MongoBase, engine=engine.Problem):
 
     @classmethod
     def filter(
-        cls,
-        offset=0,
-        count=-1,
-        name: str = None,
-        course: str = None,
-        tags: list = None,
-        only: list = None,
-        is_template: bool = False
+            cls,
+            offset=0,
+            count=-1,
+            name: str = None,
+            course: str = None,
+            tags: list = None,
+            only: list = None,
+            is_template: bool = None,
+            allow_multiple_comments: bool = None,
     ) -> 'List[engine.Problem]':
         '''
         read a list of problem filtered by given paramter
         '''
-        qs = {'course': course}
+        qs = {
+            'course': course,
+            'is_template': is_template,
+            'allow_multiple_comments': allow_multiple_comments,
+        }
         # filter None parameter
         qs = {k: v for k, v in qs.items() if v is not None}
         ps = cls.engine.objects(**qs)
@@ -156,8 +167,6 @@ class Problem(MongoBase, engine=engine.Problem):
         # search for title
         if name is not None:
             ps = ps.filter(title__icontains=name)
-        # check if they are templates
-        ps = ps.filter(is_template=is_template)
         # retrive fields
         if only is not None:
             ps = ps.only(*only)
@@ -179,19 +188,21 @@ class Problem(MongoBase, engine=engine.Problem):
     @doc_required('author', 'author', User)
     @doc_required('course', 'course', Course)
     def add(
-        cls,
-        author: User,
-        course: Course,
-        tags: list = [],
-        **ks,
+            cls,
+            author: User,
+            course: Course,
+            tags: list = [],
+            **ks,
     ) -> 'Problem':
         '''
         add a problem to db
         '''
-        # student can create problem only in their course
-        # but teacher and admin are not limited by this rule
-        if course not in author.courses and author < 'teacher':
+        # user needs to be able to modify the course
+        if not course.permission(user=author, req={'p'}):
             raise PermissionError('Not enough permission')
+        # if allow_multiple_comments is None or False
+        if author < 'teacher' and not ks.get('allow_multiple_comments'):
+            raise PermissionError('Students have to allow multiple comments')
         for tag in tags:
             if not course.check_tag(tag):
                 raise TagNotFoundError(

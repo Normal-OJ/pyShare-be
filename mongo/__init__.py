@@ -7,6 +7,7 @@ from . import tag
 from . import comment
 from . import utils
 from . import comment
+from . import attachment
 
 from .engine import *
 from .user import *
@@ -17,6 +18,7 @@ from .tag import *
 from .course import *
 from .utils import *
 from .comment import *
+from .attachment import *
 
 __all__ = [
     *engine.__all__,
@@ -28,4 +30,5 @@ __all__ = [
     *comment.__all__,
     *utils.__all__,
     *comment.__all__,
+    *attachment.__all__,
 ]

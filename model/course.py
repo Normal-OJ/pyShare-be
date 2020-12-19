@@ -1,4 +1,4 @@
-from flask import Blueprint
+from flask import Blueprint, send_file
 from .utils import *
 from .auth import *
 from mongo import *
@@ -15,10 +15,17 @@ def course_list(user):
     '''
     get a list of course with course name and teacher's name
     '''
-    cs = list({
-        'name': data.name,
-        'teacher': data.teacher.info
-    } for data in engine.Course.objects.only('name', 'teacher'))
+    cs = engine.Course.objects.only('name')
+    cs = [{
+        'name': c.name,
+        'teacher': c.teacher.info,
+        'year': c.year,
+        'semester': c.semester,
+        'status': c.status,
+    } for c_doc in cs if (c := Course(c_doc.name)).permission(
+        user=user,
+        req={'r'},
+    )]
     return HTTPResponse('here you are', data=cs)
 
 
@@ -26,17 +33,29 @@ def course_list(user):
 @login_required
 @Request.doc('name', 'course', Course)
 def get_single_course(user, course):
+    if not course.permission(user=user, req={'r'}):
+        return HTTPError('Not enough permission', 403)
+    comments_of_problems = [
+        p.comments for p in course.problems if not p.is_template
+    ]
     ret = {
         'teacher': course.teacher.info,
         'students': [s.info for s in course.students],
-        'problems': [p.pid for p in course.problems]
+        'numOfProblems': len(comments_of_problems),
+        'numOfComments': sum(map(len, comments_of_problems)),
+        'year': course.year,
+        'semester': course.semester,
+        'status': course.status,
     }
     return HTTPResponse('here you are', data=ret)
 
 
 @course_api.route('/<name>/statistic', methods=['GET'])
+@login_required
 @Request.doc('name', 'course', Course)
-def statistic(course):
+def statistic(user, course):
+    if not course.permission(user=user, req={'r'}):
+        return HTTPError('Not enough permission', 403)
     users = [User(u.username) for u in course.students]
     ret = []
     for u in users:
@@ -49,8 +68,9 @@ def statistic(course):
 @course_api.route('/<name>', methods=['DELETE'])
 @login_required
 @Request.doc('name', 'course', Course)
-@identity_verify(0)  # only admin can call this route
 def delete_course(user, course):
+    if not course.permission(user=user, req={'w'}):
+        return HTTPError('Not enough permission', 403)
     course.delete()
     return HTTPResponse('success')
 
@@ -62,6 +82,7 @@ def delete_course(user, course):
     'teacher: str',
     'year: int',
     'semester: int',
+    'status: int',
 )
 @Request.doc('teacher', 'teacher', User)
 @identity_verify(0, 1)  # only admin and teacher can call this route
@@ -71,6 +92,7 @@ def create_course(
     teacher,
     year,
     semester,
+    status,
 ):
     try:
         Course.add(
@@ -78,8 +100,9 @@ def create_course(
             teacher=teacher,
             year=year,
             semester=semester,
+            status=status,
         )
-    except engine.ValidationError as ve:
+    except ValidationError as ve:
         return HTTPError(
             str(ve),
             400,
@@ -87,8 +110,44 @@ def create_course(
         )
     except ValueError as e:
         return HTTPError(str(e), 400)
-    except (engine.NotUniqueError, PermissionError) as e:
+    except PermissionError as e:
         return HTTPError(str(e), 403)
+    except NotUniqueError as e:
+        return HTTPError(str(e), 422)
+    return HTTPResponse('success')
+
+
+@course_api.route('/<name>', methods=['PUT'])
+@login_required
+@Request.json(
+    'year: int',
+    'semester: int',
+    'status: int',
+)
+@Request.doc('name', 'course', Course)
+def update_course(
+    user,
+    course,
+    year,
+    semester,
+    status,
+):
+    if not course.permission(user=user, req={'w'}):
+        return HTTPError('Not enough permission', 403)
+    try:
+        course.update(
+            year=year,
+            semester=semester,
+            status=status,
+        )
+    except ValidationError as ve:
+        return HTTPError(
+            str(ve),
+            400,
+            data=ve.to_dict(),
+        )
+    except ValueError as e:
+        return HTTPError(str(e), 400)
     return HTTPResponse('success')
 
 
@@ -96,11 +155,12 @@ def create_course(
 @login_required
 @Request.json('users: list')
 @Request.doc('name', 'course', Course)
-@identity_verify(0, 1)  # only admin and teacher can call this route
 def update_students(user, course, users, action):
     '''
     update course students, action should be `insert` or `remove`
     '''
+    if not course.permission(user=user, req={'w'}):
+        return HTTPError('Not enough permission', 403)
     # preprocess action
     if action not in {'insert', 'remove'}:
         return HTTPError('only accept action \'insert\' or \'remove\'', 400)
@@ -136,11 +196,12 @@ def update_students(user, course, users, action):
 @login_required
 @Request.json('push: list', 'pop: list')
 @Request.doc('name', 'course', Course)
-@identity_verify(0, 1)  # only admin and teacher can call this route
 def update_tags(user, course, push, pop):
     '''
     push/pop tags to/from course
     '''
+    if not course.permission(user=user, req={'w'}):
+        return HTTPError('Not enough permission', 403)
     for t in push:
         if not Tag(t):
             return HTTPError('Push: Tag not found', 404)
@@ -153,6 +214,21 @@ def update_tags(user, course, push, pop):
         course.tags += push
         course.tags = list(set([tag for tag in course.tags if tag not in pop]))
         course.save()
-    except engine.ValidationError as ve:
+    except ValidationError as ve:
         return HTTPError(str(ve), 400, data=ve.to_dict())
     return HTTPResponse('success')
+
+
+@course_api.route('/<name>/statistic-file', methods=['GET'])
+@login_required
+@Request.doc('name', 'course', Course)
+def get_statistic_file(user, course: Course):
+    if not course.permission(user=user, req={'w'}):
+        return HTTPError('Not enough permission', 403)
+    f = course.statistic_file()
+    return send_file(
+        f,
+        as_attachment=True,
+        cache_timeout=30,
+        attachment_filename=f'{course.name}-statistic.csv',
+    )

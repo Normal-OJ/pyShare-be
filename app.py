@@ -22,6 +22,7 @@ api2name = [
     (submission_api, '/submission'),
     (tag_api, '/tag'),
     (course_api, '/course'),
+    (attachment_api, '/attachment'),
 ]
 for api, name in api2name:
     app.register_blueprint(api, url_prefix=name)

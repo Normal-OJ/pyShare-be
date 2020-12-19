@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, send_file
 from mongo import *
 from mongo import engine
 from .utils import *
@@ -37,7 +37,7 @@ def get_submission_file(
             submission.get_file(name),
             as_attachment=True,
             cache_timeout=1,
-            attachment_filename=filename,
+            attachment_filename=name,
         )
     except FileNotFoundError:
         return HTTPError('File not found', 404)
@@ -49,7 +49,7 @@ def get_submission_file(
 @login_required
 @Request.json(
     'code: str',
-    'problem_id',
+    'problem_id: int',
 )
 @Request.doc('problem_id', 'problem', Problem)
 def create_test_submission(
@@ -99,9 +99,7 @@ def complete(_id):
 
 @submission_api.route('/<_id>/state', methods=['PUT'])
 @login_required
-@Request.json(
-    'state: int',
-)
+@Request.json('state: int')
 @Request.doc('_id', 'submission', Submission)
 def change_state(user, submission: Submission, state):
     if submission.comment is None:
@@ -115,8 +113,15 @@ def change_state(user, submission: Submission, state):
         return HTTPError(
             'Invalid data',
             400,
-            data=ve.to_dict())
-
-    comment.update(has_accepted=any(submission.state ==
-                                    1 for submission in comment.submissions))
+            data=ve.to_dict(),
+        )
+    if state == engine.SubmissionState.ACCEPT:
+        comment.update(has_accepted=True)
+    else:
+        is_accepted = lambda s: s.state == engine.SubmissionState.ACCEPT
+        comment.update(
+            has_accepted=any(filter(
+                is_accepted,
+                comment.submissions,
+            )))
     return HTTPResponse('ok')

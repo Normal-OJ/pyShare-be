@@ -1,6 +1,7 @@
 from . import engine
 from .base import MongoBase
 from .problem import Problem
+from .course import Course
 from .user import User
 from .utils import doc_required
 from .submission import *
@@ -9,7 +10,7 @@ __all__ = [
     'Comment',
     'NotAComment',
     'SubmissionNotFound',
-    'TooManyComments'
+    'TooManyComments',
 ]
 
 
@@ -45,11 +46,12 @@ class Comment(MongoBase, engine=engine.Comment):
             # can change state if he's a teacher
             if user > 'student':
                 _permission |= {'s'}
-        # teacher can not edit comment, but he can change state
-        elif user > 'student' and self.problem.course in user.courses:
+        # course's teacher and admin can not edit comment, but he can change state
+        elif user == self.problem.course.teacher or user >= 'admin':
             _permission |= {'d', 'j', 's'}
-        # other students can not view hidden comment
-        elif self.hidden:
+        # other people can not view hidden comments or non visible problems' comments
+        elif self.hidden or not Problem(self.problem.pk).permission(user=user,
+                                                                    req={'r'}):
             _permission.remove('r')
         return bool(req & _permission)
 
@@ -58,7 +60,8 @@ class Comment(MongoBase, engine=engine.Comment):
         ret = self.to_mongo().to_dict()
         ret['created'] = self.created.timestamp()
         ret['updated'] = self.updated.timestamp()
-        ret['submission'] = Submission(self.submission.id).to_dict()
+        ret['submission'] = self.submission and Submission(
+            self.submission.id).to_dict()
         ret['submissions'] = [str(s.id) for s in self.submissions]
         ret['author'] = self.author.info
         ret['replies'] = [str(r) for r in ret['replies']]
@@ -66,7 +69,6 @@ class Comment(MongoBase, engine=engine.Comment):
         for k in (
                 '_id',
                 'problem',
-                'passed',
                 'success',
                 'fail',
         ):
@@ -90,13 +92,6 @@ class Comment(MongoBase, engine=engine.Comment):
         user.update(**{f'{action}__likes': self.obj})
         # reload
         self.reload()
-        # check pass
-        if self.depth == 0 and user > 'student':
-            for u in self.liked:
-                if User(u.username) > 'student':
-                    self.submission.update(passed=True)
-                    return
-            self.submission.update(passed=False)
 
     def submit(self, code=None):
         '''
@@ -142,11 +137,19 @@ class Comment(MongoBase, engine=engine.Comment):
         if not isinstance(target, (Problem, engine.Problem)):
             # try convert to document
             target = Problem(target)
+        if not target:
+            raise engine.DoesNotExist
         # check if allow multiple comments
         if not target.allow_multiple_comments:
-            if any(comment.author.username == author for comment in target.comments):
+            comments = map(
+                lambda c: c.author.username == author,
+                filter(
+                    lambda c: c.status == engine.CommentStatus.SHOW,
+                    target.comments,
+                ),
+            )
+            if any(comments):
                 raise TooManyComments
-
         # create new commment
         comment = cls.add(
             floor=target.height + 1,
@@ -180,6 +183,8 @@ class Comment(MongoBase, engine=engine.Comment):
         # reply other's comment
         if not isinstance(target, (cls, engine.Comment)):
             target = Comment(target)
+        if not target:
+            raise engine.DoesNotExist
         # create new comment
         comment = cls.add(
             floor=target.floor,
@@ -199,8 +204,13 @@ class Comment(MongoBase, engine=engine.Comment):
         author: User,
         floor: int,
         depth: int,
-        problem: engine.Problem = None,
+        problem: engine.Problem,
     ):
+        # check permission
+        if not Problem(problem.pk).permission(user=author, req={
+                'r'
+        }) or not Course(problem.course.pk).permission(user=author, req={'p'}):
+            raise PermissionError('Not enough permission')
         # insert into DB
         comment = engine.Comment(
             title=title,
@@ -208,7 +218,7 @@ class Comment(MongoBase, engine=engine.Comment):
             author=author.pk,
             floor=floor,
             depth=depth,
-            problem=problem.pk if problem is not None else None,
+            problem=problem.pk,
         )
         comment.save()
         # append to author's

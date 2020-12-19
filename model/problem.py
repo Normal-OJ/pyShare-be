@@ -21,7 +21,7 @@ problem_api = Blueprint('problem_api', __name__)
     'tags',
     'course',
     'is_template',
-    'allow_multiple_comments'
+    'allow_multiple_comments',
 )
 @login_required
 def get_problem_list(
@@ -29,6 +29,8 @@ def get_problem_list(
     tags,
     offset,
     count,
+    is_template,
+    allow_multiple_comments,
     **ks,
 ):
     # filter values user passed and decode
@@ -45,6 +47,14 @@ def get_problem_list(
             ks['count'] = int(count)
     except TypeError:
         return HTTPError('count and offset only accept integer', 400)
+    try:
+        if is_template is not None:
+            ks['is_template'] = to_bool(is_template)
+        if allow_multiple_comments is not None:
+            ks['allow_multiple_comments'] = to_bool(allow_multiple_comments)
+    except TypeError:
+        return HTTPError(
+            'isTemplate and allowMultipleComments only accept boolean', 400)
     ps = Problem.filter(
         tags=tags,
         only=['pid'],
@@ -79,14 +89,14 @@ def get_single_problem(user, problem):
     'default_code: str',
     'status: int',
     'is_template: bool',
-    'allow_multiple_comments: bool'
+    'allow_multiple_comments: bool',
 )
 @Request.doc('course', 'course', Course)
 @login_required
 @fe_update('PROBLEM', 'course')
 def create_problem(
-        user,
-        **p_ks,  # problem args
+    user,
+    **p_ks,  # problem args
 ):
     '''
     create a new problem
@@ -98,8 +108,10 @@ def create_problem(
             author=user.pk,
             **p_ks,
         )
-    except (engine.ValidationError, TagNotFoundError) as ve:
+    except engine.ValidationError as ve:
         return HTTPError(str(ve), 400, data=ve.to_dict())
+    except TagNotFoundError as e:
+        return HTTPError(str(e), 404)
     except PermissionError as e:
         return HTTPError(str(e), 403)
     return HTTPResponse(
@@ -116,7 +128,7 @@ def create_problem(
     'default_code: str',
     'status: int',
     'is_template: bool',
-    'allow_multiple_comments: bool'
+    'allow_multiple_comments: bool',
 )
 @Request.doc('pid', 'problem', Problem)
 @login_required
@@ -129,6 +141,9 @@ def modify_problem(
 ):
     if not problem.permission(user=user, req={'w'}):
         return HTTPError('Permission denied.', 403)
+    # if allow_multiple_comments is False
+    if user < 'teacher' and p_ks.get('allow_multiple_comments') == False:
+        return HTTPError('Students have to allow multiple comments.', 403)
     for tag in tags:
         c = Course(problem.course.name)
         if not c.check_tag(tag):
@@ -186,23 +201,31 @@ def patch_attachment(
         return HTTPError('Not enough permission', 403)
     if request.method == 'POST':
         try:
+            # use public attachment db
+            if attachment is None:
+                attachment = Attachment(attachment_name).copy()
             problem.insert_attachment(
                 attachment,
-                filename=attachment.filename,
+                filename=attachment_name,
             )
         except FileExistsError as e:
             return HTTPError(str(e), 400)
+        except FileNotFoundError as e:
+            return HTTPError(str(e), 404)
     elif request.method == 'DELETE':
         try:
             problem.remove_attachment(attachment_name)
         except FileNotFoundError as e:
-            return HTTPError(str(e), 400)
+            return HTTPError(str(e), 404)
     return HTTPResponse('success')
 
 
 @problem_api.route('/<int:pid>/attachment/<name>', methods=['GET'])
+@login_required
 @Request.doc('pid', 'problem', Problem)
-def get_attachment(problem, name):
+def get_attachment(user, problem, name):
+    if not problem.permission(user=user, req={'r'}):
+        return HTTPError('Permission denied.', 403)
     name = parse.unquote(name)
     for att in problem.attachments:
         if att.filename == name:
@@ -216,7 +239,6 @@ def get_attachment(problem, name):
 
 
 @problem_api.route('/<int:pid>/clone/<course_name>', methods=['GET'])
-@identity_verify(0, 1)
 @Request.doc('pid', 'problem', Problem)
 @Request.doc('course_name', 'course', Course)
 @fe_update('PROBLEM', 'course')
@@ -224,6 +246,8 @@ def clone_problem(user, problem, course):
     '''
     clone a problem to another course
     '''
+    if not problem.permission(user=user, req={'r'}):
+        return HTTPError('Permission denied.', 403)
     try:
         problem.copy(target_course=course)
     except engine.ValidationError as ve:

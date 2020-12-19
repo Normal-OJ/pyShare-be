@@ -19,7 +19,7 @@ class User(Document):
     )
     user_id = StringField(db_field='userId', max_length=24, required=True)
     user_id2 = StringField(db_field='userId2', max_length=24, default='')
-    email = EmailField(required=True, unique=True)
+    email = EmailField(max_length=320, required=True, unique=True)
     md5 = StringField(required=True, max_length=32)
     active = BooleanField(default=True)
     # role: 0 -> admin / 1 -> teacher / 2 -> student
@@ -45,6 +45,12 @@ class User(Document):
         }
 
 
+class CourseStatus(Enum):
+    PRIVATE = 0
+    READONLY = 1
+    PUBLIC = 2
+
+
 class Course(Document):
     name = StringField(primary_key=True, required=True, max_length=64)
     teacher = ReferenceField('User', required=True)
@@ -53,6 +59,10 @@ class Course(Document):
     problems = ListField(ReferenceField('Problem'), default=[])
     year = IntField(required=True)
     semester = IntField(required=True)
+    status = IntField(
+        default=CourseStatus.PUBLIC,
+        choices=CourseStatus.choices(),
+    )
 
 
 class Tag(Document):
@@ -68,9 +78,9 @@ class Comment(Document):
     meta = {'indexes': ['floor', 'created', 'updated']}
     title = StringField(required=True, max_length=128)
     floor = IntField(required=True)
-    content = StringField(required=True, max_length=100000)
+    content = StringField(required=True, max_length=5000000)
     author = ReferenceField('User', required=True)
-    problem = ReferenceField('Problem', default=None)
+    problem = ReferenceField('Problem', required=True)
     submissions = ListField(ReferenceField('Submission', default=[]))
     # 0 is direct comment, 1 is reply of comments
     depth = IntField(default=0, choice=[0, 1])
@@ -80,7 +90,6 @@ class Comment(Document):
         default=CommentStatus.SHOW,
         choices=CommentStatus.choices(),
     )
-    passed = BooleanField(default=False)
     created = DateTimeField(default=datetime.now)
     updated = DateTimeField(default=datetime.now)
     replies = ListField(
@@ -112,6 +121,12 @@ class Comment(Document):
         return self.submissions[-1] if len(self.submissions) else None
 
 
+class Attachment(Document):
+    filename = StringField(max_length=64, required=True, primary_key=True)
+    description = StringField(max_length=5000000, required=True)
+    file = FileField(required=True)
+
+
 class ProblemStatus(Enum):
     ONLINE = 1
     OFFLINE = 0
@@ -123,7 +138,7 @@ class Problem(Document):
     height = IntField(default=0)
     title = StringField(max_length=64, required=True)
     course = ReferenceField('Course', reuired=True)
-    description = StringField(max_length=100000, required=True)
+    description = StringField(max_length=5000000, required=True)
     author = ReferenceField('User', requried=True)
     tags = ListField(StringField(max_length=16), deafult=[])
     attachments = ListField(FileField(), default=[])
@@ -138,10 +153,9 @@ class Problem(Document):
         max_length=100000,
         db_field='defaultCode',
     )
-    # whether a user passed this problem
-    passed = MapField(BooleanField(default=False), default={})
     is_template = BooleanField(db_field='isTemplate', default=False)
-    allow_multiple_comments = BooleanField(db_field='allowMultipleComments', default=True)
+    allow_multiple_comments = BooleanField(db_field='allowMultipleComments',
+                                           default=False)
 
     @property
     def online(self):
@@ -168,7 +182,7 @@ class SubmissionResult(EmbeddedDocument):
 
 class Submission(Document):
     problem = ReferenceField(Problem, null=True, required=True)
-    comment = ReferenceField(Comment, null=True, required=True)
+    comment = ReferenceField(Comment, null=True)
     user = ReferenceField(User, null=True, required=True)
     code = StringField(max_length=10**6, default='')
     timestamp = DateTimeField(default=datetime.now)
@@ -181,8 +195,6 @@ class Submission(Document):
         default=SubmissionState.PENDING,
         choices=SubmissionState.choices(),
     )
-    # is this submission accepted?
-    passed = BooleanField(default=False)
 
 
 # register delete rule. execute here to resolve `NotRegistered`
