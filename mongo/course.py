@@ -46,7 +46,6 @@ class Course(MongoBase, engine=engine.Course):
         name: str,
         **ks,
     ):
-        # convert username to user document
         if teacher < 'teacher':
             raise PermissionError(
                 'only those who has more permission'
