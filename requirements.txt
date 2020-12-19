@@ -7,5 +7,7 @@ pre-commit==2.8.2
 yapf==0.29.0
 redis==3.5.3
 fakeredis==1.4.4
-flask-socketio==4.3.1
+flask-socketio<5
+python-socketio<5
+python-engineio<4
 eventlet==0.29.1
