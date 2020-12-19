@@ -3,7 +3,7 @@ from mongo import *
 from tests import utils
 
 
-def setup_function(function):
+def setup_function(_):
     utils.mongo.drop_db()
 
 
