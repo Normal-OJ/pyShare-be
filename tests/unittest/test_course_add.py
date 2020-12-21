@@ -1,4 +1,3 @@
-from _pytest.config import filter_traceback_for_conftest_import_failure
 import pytest
 from mongo import *
 from mongo import engine
