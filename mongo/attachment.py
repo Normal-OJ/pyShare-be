@@ -46,6 +46,8 @@ class Attachment(MongoBase, engine=engine.Attachment):
         '''
         add an attachment to db
         '''
+        if file_obj is None:
+            raise FileNotFoundError('you need to upload a file')
         if Attachment(filename):
             raise FileExistsError(
                 f'A attachment named [{filename}] '

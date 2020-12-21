@@ -12,8 +12,8 @@ attachment_api = Blueprint('attachment_api', __name__)
 
 @attachment_api.route('/<filename>', methods=['GET'])
 @login_required
-def get_attachment(user, filename):
-    attachment = Attachment(filename)
+@Request.doc('filename', 'attachment', Attachment)
+def get_attachment(user, attachment):
     if not attachment:
         return HTTPError('file not found', 404)
 
@@ -50,13 +50,13 @@ def add_attachment(
     '''
     add an attachment to db
     '''
-    if file_obj is None:
-        return HTTPError('you need to upload a file', 400)
     try:
         Attachment.add(file_obj, filename=filename, description=description)
     except FileExistsError as e:
         return HTTPError(str(e), 400)
-    except engine.ValidationError as ve:
+    except FileNotFoundError as e:
+        return HTTPError(str(e), 404)
+    except ValidationError as ve:
         return HTTPError(str(ve), 400, data=ve.to_dict())
     return HTTPResponse('success')
 
@@ -66,21 +66,21 @@ def add_attachment(
 @Request.form('description')
 @login_required
 @identity_verify(0, 1)
+@Request.doc('filename', 'atta', Attachment)
 def edit_attachment(
     user,
     file_obj,
-    filename,
     description,
+    atta,
 ):
     '''
     update an attachment
     '''
-    atta = Attachment(filename)
     try:
         atta.update(file_obj, description)
     except FileNotFoundError as e:
         return HTTPError(str(e), 404)
-    except engine.ValidationError as ve:
+    except ValidationError as ve:
         return HTTPError(str(ve), 400, data=ve.to_dict())
     return HTTPResponse('success')
 
@@ -88,14 +88,14 @@ def edit_attachment(
 @attachment_api.route('/<filename>', methods=['DELETE'])
 @login_required
 @identity_verify(0, 1)
+@Request.doc('filename', 'atta', Attachment)
 def delete_attachment(
     user,
-    filename,
+    atta,
 ):
     '''
     delete an attachment
     '''
-    atta = Attachment(filename)
     try:
         atta.delete()
     except FileNotFoundError as e:
