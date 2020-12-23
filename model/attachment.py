@@ -14,9 +14,6 @@ attachment_api = Blueprint('attachment_api', __name__)
 @login_required
 @Request.doc('filename', 'attachment', Attachment)
 def get_attachment(user, attachment):
-    if not attachment:
-        return HTTPError('file not found', 404)
-
     return send_file(
         attachment.file,
         as_attachment=True,
@@ -78,8 +75,6 @@ def edit_attachment(
     '''
     try:
         atta.update(file_obj, description)
-    except FileNotFoundError as e:
-        return HTTPError(str(e), 404)
     except ValidationError as ve:
         return HTTPError(str(ve), 400, data=ve.to_dict())
     return HTTPResponse('success')
@@ -96,8 +91,5 @@ def delete_attachment(
     '''
     delete an attachment
     '''
-    try:
-        atta.delete()
-    except FileNotFoundError as e:
-        return HTTPError(str(e), 404)
+    atta.delete()
     return HTTPResponse('success')

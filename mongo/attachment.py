@@ -23,9 +23,6 @@ class Attachment(MongoBase, engine=engine.Attachment):
         '''
         remove an attachment from db
         '''
-        if not self:
-            raise FileNotFoundError(
-                f'can not find a attachment named [{self.filename}]')
         self.file.delete()
         self.obj.delete()
 
@@ -33,9 +30,6 @@ class Attachment(MongoBase, engine=engine.Attachment):
         '''
         update an attachment from db
         '''
-        if not self:
-            raise FileNotFoundError(
-                f'can not find a attachment named [{self.filename}]')
         if file_obj is not None:
             self.file.replace(file_obj, filename=self.filename)
         self.description = description
