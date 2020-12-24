@@ -61,10 +61,11 @@ def get_problem_list(
         **ks,
     )
     # check whether user has read permission
-    ps = [
-        pp.to_dict() for p in ps
-        if (pp := Problem(p.pid)).permission(user=user, req={'r'})
-    ]
+    ps = [Peoblem(p.pid) for p in ps]
+    ps = [p.to_dict() for p in ps if p.permission(
+        user=user,
+        req={'r'},
+    )]
     return HTTPResponse('here you are, bro', data=ps)
 
 
@@ -95,8 +96,8 @@ def get_single_problem(user, problem):
 @login_required
 @fe_update('PROBLEM', 'course')
 def create_problem(
-    user,
-    **p_ks,  # problem args
+        user,
+        **p_ks,  # problem args
 ):
     '''
     create a new problem
@@ -116,7 +117,10 @@ def create_problem(
         return HTTPError(str(e), 403)
     return HTTPResponse(
         'success',
-        data={'course': p_ks['course'].name, 'pid': problem.pid,},
+        data={
+            'course': p_ks['course'].name,
+            'pid': problem.pid,
+        },
     )
 
 
