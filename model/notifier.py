@@ -26,6 +26,7 @@ def uriparser(obj, *uris):
             except (IndexError, KeyError, TypeError):
                 return None
         return o
+
     return tuple(resolver(obj, uri) for uri in uris)
 
 
@@ -34,9 +35,22 @@ def fe_update(topic, *uris):
         @wraps(func)
         def wrapper(*args, **kwargs):
             ret = func(*args, **kwargs)
-            data = uriparser(json.loads(ret[0].data), *(f'data/{uri}' for uri in uris))
+            data = uriparser(
+                json.loads(ret[0].data),
+                *(f'data/{uri}' for uri in uris),
+            )
             pk = '-'.join(map(str, data))
-            emit('refetch', {'topic': topic, 'id': pk}, room=f'{topic}-{pk}', namespace=Notifier.namespace)
+            emit(
+                'refetch',
+                {
+                    'topic': topic,
+                    'id': pk,
+                },
+                room=f'{topic}-{pk}',
+                namespace=Notifier.namespace,
+            )
             return ret
+
         return wrapper
+
     return decorator

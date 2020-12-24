@@ -49,11 +49,14 @@ def create_comment(user, target, code, id_, **ks):
             return HTTPError(str(e), 403)
     else:
         return HTTPError('Unknown target', 400)
-    return HTTPResponse('success', data={
-        'id': str(comment.id),
-        'target': target,
-        'target_id': id_,
-    })
+    return HTTPResponse(
+        'success',
+        data={
+            'id': str(comment.id),
+            'target': target,
+            'target_id': id_,
+        },
+    )
 
 
 @comment_api.route('/<_id>', methods=['GET'])
@@ -94,17 +97,23 @@ def modify_comment(
             400,
             data=ve.to_dict(),
         )
-    return HTTPResponse('success', data={
-        'target': 'comment',
-        'target_id': str(engine.Comment.objects.get(
-            depth=0,
-            floor=comment.floor,
-            problem=comment.problem.pid,
-        ).id),
-    }  if comment.depth else {
-        'target': 'problem',
-        'target_id': comment.problem.pid,
-    })
+    return HTTPResponse(
+        'success',
+        data={
+            'target':
+            'comment',
+            'target_id':
+            str(
+                engine.Comment.objects.get(
+                    depth=0,
+                    floor=comment.floor,
+                    problem=comment.problem.pid,
+                ).id),
+        } if comment.depth else {
+            'target': 'problem',
+            'target_id': comment.problem.pid,
+        },
+    )
 
 
 @comment_api.route('/<_id>/submission', methods=['POST'])
@@ -137,17 +146,23 @@ def delete_comment(
     if not comment.permission(user=user, req={'d'}):
         return HTTPError('Permission denied', 403)
     comment.delete()
-    return HTTPResponse('success', data={
-        'target': 'comment',
-        'target_id': str(engine.Comment.objects.get(
-            depth=0,
-            floor=comment.floor,
-            problem=comment.problem.pid,
-        ).id),
-    }  if comment.depth else {
-        'target': 'problem',
-        'target_id': comment.problem.pid,
-    })
+    return HTTPResponse(
+        'success',
+        data={
+            'target':
+            'comment',
+            'target_id':
+            str(
+                engine.Comment.objects.get(
+                    depth=0,
+                    floor=comment.floor,
+                    problem=comment.problem.pid,
+                ).id),
+        } if comment.depth else {
+            'target': 'problem',
+            'target_id': comment.problem.pid,
+        },
+    )
 
 
 @comment_api.route('<_id>/like', methods=['GET'])

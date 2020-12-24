@@ -7,7 +7,6 @@ from mongo import *
 from mongo import engine
 from mongo import problem
 
-
 # Create a flask app
 app = Flask(__name__)
 app.url_map.strict_slashes = False
