@@ -56,13 +56,13 @@ def get_single_course(user, course):
 def statistic(user, course):
     if not course.permission(user=user, req={'r'}):
         return HTTPError('Not enough permission', 403)
-    users = [User(u.username) for u in course.students]
+    users = map(User, course.students)
     ret = []
     for u in users:
-        s = u.statistic()
+        s = u.statistic({course.obj})
         s.update({'info': u.info})
         ret.append(s)
-    return HTTPResponse('666', data=ret)
+    return HTTPResponse('ok', data=ret)
 
 
 @course_api.route('/<name>', methods=['DELETE'])

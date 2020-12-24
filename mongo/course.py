@@ -84,7 +84,7 @@ class Course(MongoBase, engine=engine.Course):
         )
         writer.writeheader()
         for u in self.students:
-            stat = User(u.username).statistic()
+            stat = User(u.username).statistic({self.obj})
             # extract exec info
             exec_info = stat.pop('execInfo')
             # update every other info to its length
