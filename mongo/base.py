@@ -15,10 +15,14 @@ class MongoBase:
 
     def __new__(cls, pk, *args, **kwargs):
         new = super().__new__(cls)
-        try:
-            new.obj = new.engine.objects(pk=pk).get()
-        except engine.DoesNotExist:
-            new.obj = new.engine(pk=pk)
+        # get a engine instance
+        if isinstance(pk, cls.engine):
+            new.obj = pk
+        else:
+            try:
+                new.obj = new.engine.objects(pk=pk).get()
+            except engine.DoesNotExist:
+                new.obj = new.engine(pk=pk)
         return new
 
     def __getattr__(self, name):

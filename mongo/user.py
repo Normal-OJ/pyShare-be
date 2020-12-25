@@ -1,15 +1,12 @@
 from datetime import datetime, timedelta
+from typing import Container, Optional
 from hmac import compare_digest
-from flask import current_app
 
 from . import engine
 from .utils import *
 from .base import *
 
-import base64
 import hashlib
-import html
-import json as jsonlib
 import jwt
 import os
 
@@ -173,42 +170,59 @@ class User(MongoBase, engine=engine.User):
     def liked_amount(self):
         return sum(len(c.liked) for c in self.comments)
 
-    def statistic(self):
+    def statistic(
+        self,
+        courses: Optional[Container[engine.Course]] = None,
+    ):
         '''
-        return user's statistic data
+        return user's statistic data in courses
         '''
+        def include(course):
+            return True if courses is None else course in courses
+
+        def include_problem(problem):
+            return problem.online and include(problem.course)
+
+        def include_comment(comment):
+            return comment.is_comment and comment.show and include(
+                comment.problem.course)
+
+        def include_reply(reply):
+            return not reply.is_comment and reply.show and include(
+                reply.problem.course)
+
         ret = {}
         # all problems
         ret['problems'] = [{
             'course': p.course.name,
             'pid': p.pid,
-        } for p in self.problems if p.online]
+        } for p in filter(include_problem, self.problems)]
         # liked comments
         ret['likes'] = [{
             'course': c.problem.course.name,
             'pid': c.problem.pid,
             'floor': c.floor,
             'staree': c.author.username,
-        } for c in self.likes if c.show]
+        } for c in filter(include_comment, self.likes)]
         # comments
         ret['comments'] = [{
             'course': c.problem.course.name,
             'pid': c.problem.pid,
             'floor': c.floor,
             'accepted': c.has_accepted,
-        } for c in self.comments if c.is_comment and c.show]
+        } for c in filter(include_comment, self.comments)]
         ret['replies'] = [{
             'course': c.problem.course.name,
             'pid': c.problem.pid,
             'floor': c.floor,
-        } for c in self.comments if not c.is_comment and c.show]
+        } for c in filter(include_reply, self.comments)]
         # comments be liked
         ret['liked'] = [{
             'course': c.problem.course.name,
             'pid': c.problem.pid,
             'floor': c.floor,
             'starers': [u.username for u in c.liked],
-        } for c in self.comments if c.is_comment and c.show]
+        } for c in filter(include_comment, self.comments)]
         # success & fail
         ret['execInfo'] = [{
             'course': c.problem.course.name,
@@ -216,7 +230,7 @@ class User(MongoBase, engine=engine.User):
             'floor': c.floor,
             'success': c.success,
             'fail': c.fail,
-        } for c in self.comments if c.is_comment and c.show]
+        } for c in filter(include_comment, self.comments)]
         return ret
 
 
