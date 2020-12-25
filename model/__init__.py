@@ -6,6 +6,7 @@ from . import tag
 from . import user
 from . import comment
 from . import course
+from . import notifier
 from . import attachment
 
 from .auth import *
@@ -16,6 +17,7 @@ from .tag import *
 from .user import *
 from .comment import *
 from .course import *
+from .notifier import *
 from .attachment import *
 
 __all__ = [
@@ -27,5 +29,6 @@ __all__ = [
     *user.__all__,
     *comment.__all__,
     *course.__all__,
+    *notifier.__all__,
     *attachment.__all__,
 ]
