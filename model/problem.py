@@ -188,11 +188,15 @@ def patch_attachment(
     '''
     if not problem.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
+    if attachment_name is None:
+        return HTTPError('you need an attachment name', 400)
     if request.method == 'POST':
+        use_db = False
         try:
             # use public attachment db
             if attachment is None:
                 attachment = Attachment(attachment_name).copy()
+                use_db = True
             problem.insert_attachment(
                 attachment,
                 filename=attachment_name,
@@ -201,12 +205,14 @@ def patch_attachment(
             return HTTPError(str(e), 400)
         except FileNotFoundError as e:
             return HTTPError(str(e), 404)
+        return HTTPResponse(
+            f'successfully update from {"db file" if use_db else "your file"}')
     elif request.method == 'DELETE':
         try:
             problem.remove_attachment(attachment_name)
         except FileNotFoundError as e:
             return HTTPError(str(e), 404)
-    return HTTPResponse('success')
+        return HTTPResponse('successfully delete')
 
 
 @problem_api.route('/<int:pid>/attachment/<name>', methods=['GET'])

@@ -23,22 +23,16 @@ class Attachment(MongoBase, engine=engine.Attachment):
         '''
         remove an attachment from db
         '''
-        if not self:
-            raise FileNotFoundError(
-                f'can not find a attachment named [{self.filename}]')
         self.file.delete()
         self.obj.delete()
 
-    def update(self, file_obj, filename, description):
+    def update(self, file_obj, description):
         '''
         update an attachment from db
         '''
-        if not self:
-            raise FileNotFoundError(
-                f'can not find a attachment named [{self.filename}]')
-        self.file.replace(file_obj, filename=filename)
+        if file_obj is not None:
+            self.file.replace(file_obj, filename=self.filename)
         self.description = description
-        self.filename = filename
         self.save()
 
     @classmethod
@@ -46,6 +40,8 @@ class Attachment(MongoBase, engine=engine.Attachment):
         '''
         add an attachment to db
         '''
+        if file_obj is None:
+            raise FileNotFoundError('you need to upload a file')
         if Attachment(filename):
             raise FileExistsError(
                 f'A attachment named [{filename}] '
