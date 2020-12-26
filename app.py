@@ -1,6 +1,7 @@
 import json
 import logging
 from flask import Flask
+from flask_socketio import SocketIO
 from model import *
 from mongo import *
 from mongo import engine
@@ -25,6 +26,11 @@ api2name = [
 ]
 for api, name in api2name:
     app.register_blueprint(api, url_prefix=name)
+
+# Setup SocketIO server
+socketio = SocketIO(cors_allowed_origins='*')
+socketio.on_namespace(Notifier(Notifier.namespace))
+socketio.init_app(app)
 
 
 def setup_user(usernames):

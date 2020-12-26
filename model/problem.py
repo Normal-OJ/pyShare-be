@@ -5,6 +5,7 @@ import threading
 from mongo import *
 from mongo import engine
 from .auth import *
+from .notifier import *
 from .utils import *
 
 __all__ = ['problem_api']
@@ -60,10 +61,11 @@ def get_problem_list(
         **ks,
     )
     # check whether user has read permission
-    ps = [
-        pp.to_dict() for p in ps
-        if (pp := Problem(p.pid)).permission(user=user, req={'r'})
-    ]
+    ps = [Peoblem(p.pid) for p in ps]
+    ps = [p.to_dict() for p in ps if p.permission(
+        user=user,
+        req={'r'},
+    )]
     return HTTPResponse('here you are, bro', data=ps)
 
 
@@ -92,9 +94,10 @@ def get_single_problem(user, problem):
 )
 @Request.doc('course', 'course', Course)
 @login_required
+@fe_update('PROBLEM', 'course')
 def create_problem(
-    user,
-    **p_ks,  # problem args
+        user,
+        **p_ks,  # problem args
 ):
     '''
     create a new problem
@@ -114,7 +117,10 @@ def create_problem(
         return HTTPError(str(e), 403)
     return HTTPResponse(
         'success',
-        data={'pid': problem.pid},
+        data={
+            'course': p_ks['course'].name,
+            'pid': problem.pid,
+        },
     )
 
 
@@ -130,6 +136,7 @@ def create_problem(
 )
 @Request.doc('pid', 'problem', Problem)
 @login_required
+@fe_update('PROBLEM', 'course')
 def modify_problem(
     user,
     problem,
@@ -155,12 +162,16 @@ def modify_problem(
             400,
             data=ve.to_dict(),
         )
-    return HTTPResponse('success')
+    return HTTPResponse(
+        'success',
+        data={'course': problem.course.name},
+    )
 
 
 @problem_api.route('/<int:pid>', methods=['DELETE'])
 @Request.doc('pid', 'problem', Problem)
 @login_required
+@fe_update('PROBLEM', 'course')
 def delete_problem(user, problem):
     '''
     delete a problem
@@ -168,8 +179,12 @@ def delete_problem(user, problem):
     # student can delete only self problem
     if not problem.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
+    course = problem.course.name
     problem.delete()
-    return HTTPResponse(f'{problem} deleted.')
+    return HTTPResponse(
+        f'{problem} deleted.',
+        data={'course': course},
+    )
 
 
 @problem_api.route('/<int:pid>/attachment', methods=['POST', 'DELETE'])
@@ -236,6 +251,7 @@ def get_attachment(user, problem, name):
 @problem_api.route('/<int:pid>/clone/<course_name>', methods=['GET'])
 @Request.doc('pid', 'problem', Problem)
 @Request.doc('course_name', 'course', Course)
+@fe_update('PROBLEM', 'course')
 def clone_problem(user, problem, course):
     '''
     clone a problem to another course
@@ -248,4 +264,7 @@ def clone_problem(user, problem, course):
         return HTTPError(str(ve), 400, data=ve.to_dict())
     except PermissionError as e:
         return HTTPError(str(e), 403)
-    return HTTPResponse('Success.')
+    return HTTPResponse(
+        'Success.',
+        data={'course': course.name},
+    )
