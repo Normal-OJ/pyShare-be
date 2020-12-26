@@ -131,6 +131,7 @@ def signup(username, password, email, course):
 def batch_signup(user, csv_string, course):
     user_data = csv.DictReader(io.StringIO(csv_string))
     fails = {}
+    exist = set()
     for _u in user_data:
         new_user = User(_u['username'])
         if not new_user:
@@ -167,13 +168,14 @@ def batch_signup(user, csv_string, course):
                     f'error: {err[0]}\n'
                     f'data: {err[1]}', )
         else:
+            exist.add(_u['username'])
             # add to course
             new_user.update(add_to_set__courses=course.obj)
             course.update(add_to_set__students=new_user.obj)
-    return HTTPResponse(
-        'sign up finish',
-        data=fails,
-    )
+    return HTTPResponse('sign up finish', data={
+        'fails': fails,
+        'exist': list(exist),
+    })
 
 
 @auth_api.route('/change-password', methods=['POST'])
