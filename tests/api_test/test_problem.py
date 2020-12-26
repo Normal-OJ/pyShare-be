@@ -70,7 +70,7 @@ def another_problem(request, problem_data):
 
 
 class TestProblem(BaseTester):
-    def test_get_problems(self, forge_client, problem_ids, config_app):
+    def test_get_problems(self, forge_client, config_app):
         # Get problems
         config_app(None, 'test')
         client = forge_client('teacher1')
@@ -82,9 +82,12 @@ class TestProblem(BaseTester):
                              'tags': [],
                              'course': 'course_108-1',
                              'defaultCode': '',
-                             'status': 1
+                             'status': 1,
+                             'isTemplate': False,
+                             'allowMultipleComments': True,
                          })
         json = rv.get_json()
+        print(json)
         assert rv.status_code == 200
 
         rv = client.get('/problem?offset=0&count=-1')
@@ -92,7 +95,7 @@ class TestProblem(BaseTester):
         assert len(json['data']) == 2
         assert rv.status_code == 200
 
-    def test_get_commentss(self, forge_client, problem_ids, config_app):
+    def test_get_comments(self, forge_client, problem_ids, config_app):
         # Get comments
         config_app(None, 'test')
         client = forge_client('teacher1')
@@ -126,3 +129,71 @@ class TestProblem(BaseTester):
         print(json)
         assert len(json['data']['replies']) == 3
         assert rv.status_code == 200
+
+    @pytest.mark.parametrize('key, value, status_code, message', [
+        (None, None, 200, 'your file'),
+        (['attachmentName', 'attachment'], ['atta1', None], 200, 'db file'),
+        ('attachmentName', None, 400, None),
+        ('attachmentName', 'att', 400, None),
+        ('attachment', None, 404, None),
+    ])
+    def test_add_attachment(self, forge_client, config_app, key, value,
+                            status_code, message):
+        config_app(None, 'test')
+        client = forge_client('teacher1')
+        data = {
+            'attachment': (io.BytesIO(b'Win'), 'goal'),
+            'attachmentName': 'haha',
+        }
+        if key:
+            if not isinstance(key, list):
+                key = [key]
+                value = [value]
+            for i in range(len(key)):
+                if value[i] is None:
+                    del data[key[i]]
+                else:
+                    data[key[i]] = value[i]
+
+        rv = client.post('/problem/1/attachment', data=data)
+        assert rv.status_code == status_code
+
+        if message:
+            assert message in rv.get_json()['message']
+
+        if status_code == 200:
+            rv = client.get(f'/problem/1/attachment/{data["attachmentName"]}')
+            assert rv.status_code == 200
+
+    @pytest.mark.parametrize('key, value, status_code', [
+        (None, None, 200),
+        ('attachmentName', None, 400),
+        ('attachmentName', 'non-exist', 404),
+    ])
+    def test_delete_attachment(self, forge_client, config_app, key, value,
+                               status_code):
+        config_app(None, 'test')
+        client = forge_client('teacher1')
+        data = {
+            'attachmentName': 'att',
+        }
+        if key:
+            if value is None:
+                del data[key]
+            else:
+                data[key] = value
+
+        rv = client.delete('/problem/1/attachment', data=data)
+        assert rv.status_code == status_code
+
+        if status_code == 200:
+            rv = client.get('/problem/1/attachment/att')
+            assert rv.status_code == 404
+
+    def test_get_an_attachment(self, forge_client, config_app):
+        config_app(None, 'test')
+        client = forge_client('teacher1')
+
+        rv = client.get('/problem/1/attachment/att')
+        assert rv.status_code == 200
+        assert rv.data == b'att'
