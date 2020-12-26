@@ -29,6 +29,9 @@ class TestAttachment(BaseTester):
         rv = client.post('/attachment', data=data)
         assert rv.status_code == status_code
 
+        if status_code == 200:
+            assert Attachment('test').description == 'haha'
+
     def test_get_attachments(self, forge_client, config_app):
         config_app(None, 'test')
         client = forge_client('teacher1')
@@ -58,6 +61,7 @@ class TestAttachment(BaseTester):
 
         rv = client.put('/attachment/atta1', data=data)
         assert rv.status_code == 200
+        assert Attachment('atta1').description == 'haha'
 
     @pytest.mark.parametrize('key, value, status_code', [
         (None, None, 200),
@@ -74,3 +78,6 @@ class TestAttachment(BaseTester):
 
         rv = client.delete(f'/attachment/{data["filename"]}')
         assert rv.status_code == status_code
+
+        if status_code == 200:
+            assert not bool(Attachment('atta1'))

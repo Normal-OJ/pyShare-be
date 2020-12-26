@@ -61,7 +61,7 @@ def get_problem_list(
         **ks,
     )
     # check whether user has read permission
-    ps = [Peoblem(p.pid) for p in ps]
+    ps = [Problem(p.pid) for p in ps]
     ps = [p.to_dict() for p in ps if p.permission(
         user=user,
         req={'r'},

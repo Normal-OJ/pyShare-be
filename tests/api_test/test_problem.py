@@ -161,6 +161,10 @@ class TestProblem(BaseTester):
         if message:
             assert message in rv.get_json()['message']
 
+        if status_code == 200:
+            rv = client.get(f'/problem/1/attachment/{data["attachmentName"]}')
+            assert rv.status_code == 200
+
     @pytest.mark.parametrize('key, value, status_code', [
         (None, None, 200),
         ('attachmentName', None, 400),
@@ -181,6 +185,10 @@ class TestProblem(BaseTester):
 
         rv = client.delete('/problem/1/attachment', data=data)
         assert rv.status_code == status_code
+
+        if status_code == 200:
+            rv = client.get('/problem/1/attachment/att')
+            assert rv.status_code == 404
 
     def test_get_an_attachment(self, forge_client, config_app):
         config_app(None, 'test')
