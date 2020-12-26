@@ -4,20 +4,26 @@
         "teacher": "teacher1",
         "tags": [],
         "students": ["student1", "student2"],
-        "problems": []
+        "problems": [],
+        "year": 107,
+        "semester": 2
     },
     "course_108-2": {
         "name": "course_108-2",
         "teacher": "teacher1",
         "tags": [],
         "students": [],
-        "problems": []
+        "problems": [],
+        "year": 107,
+        "semester": 2
     },
     "course_107-2": {
         "name": "course_107-2",
         "teacher": "teacher2",
         "tags": [],
         "students": [],
-        "problems": []
+        "problems": [],
+        "year": 107,
+        "semester": 2
     }
 }

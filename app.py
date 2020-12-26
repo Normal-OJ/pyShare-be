@@ -5,6 +5,7 @@ from model import *
 from mongo import *
 from mongo import engine
 from mongo import problem
+import io
 
 # Create a flask app
 app = Flask(__name__)
@@ -68,6 +69,22 @@ def setup_tag(tags):
                 f'Try to setup with tag that is not in tag.json: {tag}')
 
 
+def setup_attachment(attachments):
+    with open('env_data/attachment/attachment.json') as f:
+        ATTACHMENT_DATA = json.load(f)
+    for attachment in attachments:
+        # if we can find the pre defined attachment
+        if attachment in ATTACHMENT_DATA:
+            # the tag haven't add to DB
+            if not Attachment(attachment):
+                attachment_data = ATTACHMENT_DATA[attachment]
+                attachment_data['file_obj'] = io.BytesIO(str.encode(attachment_data['file_obj']))
+                Attachment.add(**attachment_data)
+        else:
+            logging.error(
+                f'Try to setup with attachment that is not in attachment.json: {attachment}')
+
+
 def setup_course(courses):
     with open('env_data/course/course.json') as f:
         COURSE_DATA = json.load(f)
@@ -79,6 +96,8 @@ def setup_course(courses):
                 c = Course.add(
                     name=course_data['name'],
                     teacher=course_data['teacher'],
+                    year=course_data['year'],
+                    semester=course_data['semester'],
                 )
                 # add tags if specified
                 tags = course_data.get('tags')
@@ -163,6 +182,7 @@ def setup_env(env):
         ('tag', setup_tag),
         ('course', setup_course),
         ('problem', setup_problem),
+        ('attachment', setup_attachment),
     ]
     for key, func in setup_funcs:
         if key in j:
