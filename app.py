@@ -78,11 +78,13 @@ def setup_attachment(attachments):
             # the tag haven't add to DB
             if not Attachment(attachment):
                 attachment_data = ATTACHMENT_DATA[attachment]
-                attachment_data['file_obj'] = io.BytesIO(str.encode(attachment_data['file_obj']))
+                attachment_data['file_obj'] = io.BytesIO(
+                    str.encode(attachment_data['file_obj']))
                 Attachment.add(**attachment_data)
         else:
             logging.error(
-                f'Try to setup with attachment that is not in attachment.json: {attachment}')
+                f'Try to setup with attachment that is not in attachment.json: {attachment}'
+            )
 
 
 def setup_course(courses):
