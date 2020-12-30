@@ -92,7 +92,7 @@ class Problem(MongoBase, engine=engine.Problem):
         ret['attachments'] = []
         for att in self.attachments:
             if not hasattr(att, 'filename'):
-                self.logger(self, att)
+                self.logger.debug(self, att)
                 continue
             ret['attachments'].append(att.filename)
         ret['timestamp'] = ret['timestamp'].timestamp()
