@@ -121,10 +121,10 @@ class Problem(MongoBase, engine=engine.Problem):
         self.attachments.append(att)
         self.save()
 
-    def remove_attachment(self, name):
+    def remove_attachment(self, filename):
         # search by name
         for i, att in enumerate(self.attachments):
-            if att.name == name:
+            if att.filename == filename:
                 # delete it
                 att.delete()
                 # remove attachment from problem
@@ -132,7 +132,7 @@ class Problem(MongoBase, engine=engine.Problem):
                 del self.attachments[i]
                 self.save()
                 return True
-        raise FileNotFoundError(f'can not find a attachment named [{name}]')
+        raise FileNotFoundError(f'can not find a attachment named [{filename}]')
 
     @classmethod
     def filter(
