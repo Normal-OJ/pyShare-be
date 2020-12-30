@@ -72,7 +72,8 @@ class Problem(MongoBase, engine=engine.Problem):
         for att in self.attachments:
             att = self.new_attatchment(
                 att,
-                filename=(att.filename if hasattr(att, 'filename') else att.name),
+                filename=(att.filename
+                          if hasattr(att, 'filename') else att.name),
             )
             p.attachments.append(att)
             p.save()
@@ -88,7 +89,12 @@ class Problem(MongoBase, engine=engine.Problem):
         '''
         ret = self.to_mongo().to_dict()
         ret['pid'] = ret['_id']
-        ret['attachments'] = [(att.filename if hasattr(att, 'filename') else att.name) for att in self.attachments]
+        ret['attachments'] = []
+        for att in self.attachments:
+            if not hasattr(att, 'filename'):
+                self.logger(self, att)
+                continue
+            ret['attachments'].append(att.filename)
         ret['timestamp'] = ret['timestamp'].timestamp()
         ret['author'] = self.author.info
         ret['comments'] = [str(c) for c in ret['comments']]
@@ -111,7 +117,9 @@ class Problem(MongoBase, engine=engine.Problem):
         insert a attahment into this problem.
         '''
         # check existence
-        if any([(att.filename if hasattr(att, 'filename') else att.name) == filename for att in self.attachments]):
+        if any([(att.filename
+                 if hasattr(att, 'filename') else att.name) == filename
+                for att in self.attachments]):
             raise FileExistsError(
                 f'A attachment named [{filename}] '
                 'already exists!', )
@@ -124,7 +132,8 @@ class Problem(MongoBase, engine=engine.Problem):
     def remove_attachment(self, filename):
         # search by name
         for i, att in enumerate(self.attachments):
-            if (att.filename if hasattr(att, 'filename') else att.name) == filename:
+            if (att.filename
+                    if hasattr(att, 'filename') else att.name) == filename:
                 # delete it
                 att.delete()
                 # remove attachment from problem
@@ -132,19 +141,20 @@ class Problem(MongoBase, engine=engine.Problem):
                 del self.attachments[i]
                 self.save()
                 return True
-        raise FileNotFoundError(f'can not find a attachment named [{filename}]')
+        raise FileNotFoundError(
+            f'can not find a attachment named [{filename}]')
 
     @classmethod
     def filter(
-        cls,
-        offset=0,
-        count=-1,
-        name: str = None,
-        course: str = None,
-        tags: list = None,
-        only: list = None,
-        is_template: bool = None,
-        allow_multiple_comments: bool = None,
+            cls,
+            offset=0,
+            count=-1,
+            name: str = None,
+            course: str = None,
+            tags: list = None,
+            only: list = None,
+            is_template: bool = None,
+            allow_multiple_comments: bool = None,
     ) -> 'List[engine.Problem]':
         '''
         read a list of problem filtered by given paramter
@@ -188,11 +198,11 @@ class Problem(MongoBase, engine=engine.Problem):
     @doc_required('author', 'author', User)
     @doc_required('course', 'course', Course)
     def add(
-        cls,
-        author: User,
-        course: Course,
-        tags: list = [],
-        **ks,
+            cls,
+            author: User,
+            course: Course,
+            tags: list = [],
+            **ks,
     ) -> 'Problem':
         '''
         add a problem to db
