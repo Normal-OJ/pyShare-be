@@ -238,12 +238,12 @@ def get_attachment(user, problem, name):
         return HTTPError('Permission denied.', 403)
     name = parse.unquote(name)
     for att in problem.attachments:
-        if att.filename == name:
+        if (att.filename if hasattr(att, 'filename') else att.name) == name:
             return send_file(
                 att,
                 as_attachment=True,
                 cache_timeout=30,
-                attachment_filename=att.filename,
+                attachment_filename=(att.filename if hasattr(att, 'filename') else att.name),
             )
     return HTTPError('file not found', 404)
 
