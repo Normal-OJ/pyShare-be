@@ -96,8 +96,8 @@ def get_single_problem(user, problem):
 @login_required
 @fe_update('PROBLEM', 'course')
 def create_problem(
-        user,
-        **p_ks,  # problem args
+    user,
+    **p_ks,  # problem args
 ):
     '''
     create a new problem
@@ -238,12 +238,12 @@ def get_attachment(user, problem, name):
         return HTTPError('Permission denied.', 403)
     name = parse.unquote(name)
     for att in problem.attachments:
-        if (att.filename if hasattr(att, 'filename') else att.name) == name:
+        if att.filename == name:
             return send_file(
                 att,
                 as_attachment=True,
                 cache_timeout=30,
-                attachment_filename=(att.filename if hasattr(att, 'filename') else att.name),
+                attachment_filename=att.filename,
             )
     return HTTPError('file not found', 404)
 

@@ -172,10 +172,11 @@ def batch_signup(user, csv_string, course):
             # add to course
             new_user.update(add_to_set__courses=course.obj)
             course.update(add_to_set__students=new_user.obj)
-    return HTTPResponse('sign up finish', data={
-        'fails': fails,
-        'exist': list(exist),
-    })
+    return HTTPResponse('sign up finish',
+                        data={
+                            'fails': fails,
+                            'exist': list(exist),
+                        })
 
 
 @auth_api.route('/change-password', methods=['POST'])

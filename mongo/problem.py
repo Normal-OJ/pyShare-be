@@ -72,8 +72,7 @@ class Problem(MongoBase, engine=engine.Problem):
         for att in self.attachments:
             att = self.new_attatchment(
                 att,
-                filename=(att.filename
-                          if hasattr(att, 'filename') else att.name),
+                filename=att.filename,
             )
             p.attachments.append(att)
             p.save()
@@ -92,7 +91,6 @@ class Problem(MongoBase, engine=engine.Problem):
         ret['attachments'] = []
         for att in self.attachments:
             if not hasattr(att, 'filename'):
-                self.logger.debug(self, att)
                 continue
             ret['attachments'].append(att.filename)
         ret['timestamp'] = ret['timestamp'].timestamp()
@@ -117,9 +115,7 @@ class Problem(MongoBase, engine=engine.Problem):
         insert a attahment into this problem.
         '''
         # check existence
-        if any([(att.filename
-                 if hasattr(att, 'filename') else att.name) == filename
-                for att in self.attachments]):
+        if any([att.filename == filename for att in self.attachments]):
             raise FileExistsError(
                 f'A attachment named [{filename}] '
                 'already exists!', )
@@ -132,8 +128,7 @@ class Problem(MongoBase, engine=engine.Problem):
     def remove_attachment(self, filename):
         # search by name
         for i, att in enumerate(self.attachments):
-            if (att.filename
-                    if hasattr(att, 'filename') else att.name) == filename:
+            if att.filename == filename:
                 # delete it
                 att.delete()
                 # remove attachment from problem
