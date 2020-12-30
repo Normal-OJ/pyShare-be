@@ -168,12 +168,9 @@ def update_students(user, course, users, action):
     # ignore duplicated usernames
     users = [*{*users}]
     # query document
-    u_users = [User(i) for i in users]
-    # some documents are not exist in db
-    if not all(u_users):
-        not_in_db = [*{n for i, n in enumerate(users) if not u_users[i]}]
-    else:
-        not_in_db = []
+    u_users = [*map(User, users)]
+    # store nonexistent usernames
+    not_in_db = [u.pk for u in filter(bool, u_users)]
     if action == 'insert':
         warning = [*({*course.students} & {*[u.obj for u in u_users]})]
         course.update(push_all__students=users)
@@ -181,7 +178,7 @@ def update_students(user, course, users, action):
         warning = [*({*[u.obj for u in u_users]} - {*course.students})]
         course.update(pull_all__students=users)
     # some users fail
-    if len(warning) != 0:
+    if len(warning):
         return HTTPError(
             'fail to update students',
             400,
