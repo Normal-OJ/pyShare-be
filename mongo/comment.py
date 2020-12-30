@@ -28,6 +28,8 @@ class TooManyComments(Exception):
 
 class Comment(MongoBase, engine=engine.Comment):
     def __init__(self, _id):
+        if isinstance(_id, self.engine):
+            _id = _id.id
         self.id = str(_id)
 
     @doc_required('user', 'user', User)
