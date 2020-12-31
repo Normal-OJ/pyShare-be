@@ -21,7 +21,7 @@ class Problem(MongoBase, engine=engine.Problem):
         self.pid = int(pid)
 
     @doc_required('user', 'user', User)
-    def permission(self, user: User, req: set):
+    def permission(self, user: User, req):
         '''
         check user's permission, `req` is a set of required
         permissions, currently accept values are {'r', 'w', 'd'}
@@ -37,13 +37,12 @@ class Problem(MongoBase, engine=engine.Problem):
                 _permission.add('r')
         elif user == self.course.teacher:
             _permission.add('r')
-
         # problem author and admin can edit, delete problem
         if user == self.author or user >= 'admin':
-            _permission.add('r')
-            _permission.add('w')
-            _permission.add('d')
-        return bool(req & _permission)
+            _permission |= {*'rwd'}
+        if isinstance(req, set):
+            return not bool(req - _permission)
+        return req in _permission
 
     @doc_required('target_course', 'target_course', Course)
     def copy(self, target_course):
@@ -136,15 +135,15 @@ class Problem(MongoBase, engine=engine.Problem):
 
     @classmethod
     def filter(
-        cls,
-        offset=0,
-        count=-1,
-        name: str = None,
-        course: str = None,
-        tags: list = None,
-        only: list = None,
-        is_template: bool = None,
-        allow_multiple_comments: bool = None,
+            cls,
+            offset=0,
+            count=-1,
+            name: str = None,
+            course: str = None,
+            tags: list = None,
+            only: list = None,
+            is_template: bool = None,
+            allow_multiple_comments: bool = None,
     ) -> 'List[engine.Problem]':
         '''
         read a list of problem filtered by given paramter
@@ -188,11 +187,11 @@ class Problem(MongoBase, engine=engine.Problem):
     @doc_required('author', 'author', User)
     @doc_required('course', 'course', Course)
     def add(
-        cls,
-        author: User,
-        course: Course,
-        tags: list = [],
-        **ks,
+            cls,
+            author: User,
+            course: Course,
+            tags: list = [],
+            **ks,
     ) -> 'Problem':
         '''
         add a problem to db
