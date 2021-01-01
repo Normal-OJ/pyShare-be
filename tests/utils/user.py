@@ -24,14 +24,8 @@ def data(
     }
 
 
-def lazy_signup(_id=None):
-    if _id is None:
-        _id = random_username()
-    return User.signup(
-        username=_id,
-        password=f'password_for_{_id}',
-        email=f'{_id}@noj.tw',
-    )
+def lazy_signup(**ks):
+    return User.signup(**data(**ks))
 
 
 def randomly_add():

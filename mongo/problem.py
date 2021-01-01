@@ -18,7 +18,7 @@ class TagNotFoundError(Exception):
 
 class Problem(MongoBase, engine=engine.Problem):
     @doc_required('user', 'user', User)
-    def permission(self, user: User, req: set):
+    def permission(self, user: User, req):
         '''
         check user's permission, `req` is a set of required
         permissions, currently accept values are {'r', 'w', 'd'}
@@ -34,13 +34,12 @@ class Problem(MongoBase, engine=engine.Problem):
                 _permission.add('r')
         elif user == self.course.teacher:
             _permission.add('r')
-
         # problem author and admin can edit, delete problem
         if user == self.author or user >= 'admin':
-            _permission.add('r')
-            _permission.add('w')
-            _permission.add('d')
-        return bool(req & _permission)
+            _permission |= {*'rwd'}
+        if isinstance(req, set):
+            return not bool(req - _permission)
+        return req in _permission
 
     @doc_required('target_course', 'target_course', Course)
     def copy(self, target_course):
