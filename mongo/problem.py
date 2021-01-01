@@ -88,11 +88,7 @@ class Problem(MongoBase, engine=engine.Problem):
         '''
         ret = self.to_mongo().to_dict()
         ret['pid'] = ret['_id']
-        ret['attachments'] = []
-        for att in self.attachments:
-            if not hasattr(att, 'filename'):
-                continue
-            ret['attachments'].append(att.filename)
+        ret['attachments'] = [att.filename for att in self.attachments]
         ret['timestamp'] = ret['timestamp'].timestamp()
         ret['author'] = self.author.info
         ret['comments'] = [str(c) for c in ret['comments']]
