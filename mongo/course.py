@@ -10,9 +10,6 @@ __all__ = ['Course']
 
 
 class Course(MongoBase, engine=engine.Course):
-    def __init__(self, name):
-        self.name = name
-
     def check_tag(self, tag):
         return (tag in self.tags)
 

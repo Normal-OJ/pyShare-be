@@ -88,6 +88,8 @@ class Submission(MongoBase, engine=engine.Submission):
     )
 
     def __init__(self, _id):
+        if isinstance(_id, self.engine):
+            _id = _id.id
         self.id = str(_id)
 
     @property
@@ -225,11 +227,11 @@ class Submission(MongoBase, engine=engine.Submission):
     @doc_required('user', User)
     @doc_required('comment', Comment, null=True)
     def add(
-        cls,
-        problem: Problem,
-        user: User,
-        comment: Union[None, Comment],
-        code: str,
+            cls,
+            problem: Problem,
+            user: User,
+            comment: Union[None, Comment],
+            code: str,
     ) -> 'Submission':
         '''
         Insert a new submission into db

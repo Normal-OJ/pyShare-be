@@ -18,9 +18,6 @@ JWT_SECRET = os.getenv('JWT_SECRET', 'SuperSecretString')
 
 
 class User(MongoBase, engine=engine.User):
-    def __init__(self, username):
-        self.username = username
-
     @classmethod
     def signup(
         cls,

@@ -6,9 +6,6 @@ __all__ = ['Attachment']
 
 
 class Attachment(MongoBase, engine=engine.Attachment):
-    def __init__(self, filename):
-        self.filename = filename
-
     def copy(self):
         '''
         copy an attachment in db

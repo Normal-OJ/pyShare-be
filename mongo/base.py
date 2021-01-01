@@ -16,13 +16,13 @@ class MongoBase:
     def __new__(cls, pk, *args, **kwargs):
         new = super().__new__(cls)
         # get a engine instance
-        if isinstance(pk, cls.engine):
+        if isinstance(pk, new.engine):
             new.obj = pk
         else:
             try:
                 new.obj = new.engine.objects(pk=pk).get()
             except engine.DoesNotExist:
-                new.obj = new.engine(pk=pk)
+                new.obj = new.engine(id=pk)
         return new
 
     def __getattr__(self, name):

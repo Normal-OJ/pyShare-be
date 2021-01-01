@@ -5,9 +5,6 @@ __all__ = ['Tag']
 
 
 class Tag(MongoBase, engine=engine.Tag):
-    def __init__(self, value):
-        self.value = value
-
     def delete(self):
         '''
         remove tag from problem if it have
