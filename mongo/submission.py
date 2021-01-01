@@ -68,8 +68,6 @@ class Token:
             return False
         # get submission token
         s_token = self._client.get(submission_id).decode('ascii')
-        current_app.logger.debug(f's_token type: {type(s_token)}')
-        current_app.logger.debug(f'val type: {type(self.val)}')
         result = secrets.compare_digest(s_token, self.val)
         # delete if success
         if result is True:
@@ -88,6 +86,8 @@ class Submission(MongoBase, engine=engine.Submission):
     )
 
     def __init__(self, _id):
+        if isinstance(_id, self.engine):
+            _id = _id.id
         self.id = str(_id)
 
     @property
@@ -157,16 +157,21 @@ class Submission(MongoBase, engine=engine.Submission):
         judge_url = f'{self.JUDGE_URL}/{self.id}'
         # send submission to snadbox for judgement
         if not current_app.config['TESTING']:
-            resp = rq.post(
-                f'{judge_url}?token={token}',
-                files=[(
-                    'attachments',
-                    (a.filename, a, None),
-                ) for a in self.problem.attachments],
-                data={
-                    'src': self.code,
-                },
-            )
+            try:
+                resp = rq.post(
+                    judge_url,
+                    params={'token': token},
+                    files=[(
+                        'attachments',
+                        (a.filename, a, None),
+                    ) for a in self.problem.attachments],
+                    data={
+                        'src': self.code,
+                    },
+                )
+            except rq.exceptions.RequestException as e:
+                self.logger.error(str(e))
+                return False
             if not resp.ok:
                 logging.warning(f'got sandbox resp: {resp.text}')
 

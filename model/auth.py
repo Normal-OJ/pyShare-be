@@ -1,6 +1,5 @@
 # Standard library
 from functools import wraps
-from random import SystemRandom
 # Related third party imports
 from flask import Blueprint, request, current_app
 # Local application
@@ -8,10 +7,7 @@ from mongo import *
 from mongo.utils import hash_id
 from .utils import *
 
-import string
-import logging
-import jwt
-import os
+import secrets
 import csv
 import io
 
@@ -172,11 +168,13 @@ def batch_signup(user, csv_string, course):
             # add to course
             new_user.update(add_to_set__courses=course.obj)
             course.update(add_to_set__students=new_user.obj)
-    return HTTPResponse('sign up finish',
-                        data={
-                            'fails': fails,
-                            'exist': list(exist),
-                        })
+    return HTTPResponse(
+        'sign up finish',
+        data={
+            'fails': fails,
+            'exist': list(exist),
+        },
+    )
 
 
 @auth_api.route('/change-password', methods=['POST'])
@@ -238,7 +236,7 @@ def active(token=None):
     @Request.json('display_name: str', 'agreement: bool')
     @Request.cookies(vars_dict={'token': 'piann'})
     def update(display_name, agreement, token):
-        '''User: active: flase -> true
+        '''User: active: false -> true
         '''
         if agreement is not True:
             return HTTPError('Not Confirm the Agreement', 403)
@@ -281,9 +279,7 @@ def password_recovery(email):
         user = User.get_by_email(email)
     except DoesNotExist:
         return HTTPError('User Not Exists', 404)
-    new_password = (lambda r: ''.join(
-        r.choice(string.hexdigits)
-        for i in range(r.randint(12, 24))))(SystemRandom())
+    new_password = secrets.token_urlsafe()
     user_id2 = hash_id(user.username, new_password)
     user.update(user_id2=user_id2)
     send_noreply(

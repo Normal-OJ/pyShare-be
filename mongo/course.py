@@ -10,14 +10,11 @@ __all__ = ['Course']
 
 
 class Course(MongoBase, engine=engine.Course):
-    def __init__(self, name):
-        self.name = name
-
     def check_tag(self, tag):
         return (tag in self.tags)
 
     @doc_required('user', 'user', User)
-    def permission(self, user: User, req: set):
+    def permission(self, user: User, req):
         '''
         check user's permission, `req` is a set of required
         permissions, currently accept values are {'r', 'p', 'w'}
@@ -36,7 +33,9 @@ class Course(MongoBase, engine=engine.Course):
             _permission |= {'r', 'p'}
         elif self.status == engine.CourseStatus.READONLY:
             _permission |= {'r'}
-        return bool(req & _permission)
+        if isinstance(req, set):
+            return not bool(req - _permission)
+        return req in _permission
 
     @classmethod
     @doc_required('teacher', User)
