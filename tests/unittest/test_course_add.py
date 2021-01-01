@@ -51,7 +51,8 @@ def test_user_permission(role):
 )
 def test_course_status(status):
     user = random_teacher()
-    Course.add(**utils.course.data(teacher=user, status=status))
+    c = Course.add(**utils.course.data(teacher=user, status=status))
+    assert c.status == status
 
 
 @pytest.mark.parametrize(
@@ -67,7 +68,8 @@ def test_course_status(status):
 def test_normal_course_name(name):
     user = random_teacher()
     data = utils.course.data(name=name, teacher=user)
-    Course.add(**data)
+    c = Course.add(**data)
+    assert c.name == name
 
 
 @pytest.mark.parametrize(
