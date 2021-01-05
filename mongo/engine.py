@@ -52,7 +52,14 @@ class CourseStatus(Enum):
 
 
 class Course(Document):
-    name = StringField(primary_key=True, required=True, max_length=64)
+    # course's name can only contain letters, numbers, underscore (_),
+    # dash (-) and dot (.), also, it can not be empty
+    name = StringField(
+        primary_key=True,
+        regex=r'^[\w\.\ _\-]+$',
+        required=True,
+        max_length=64,
+    )
     teacher = ReferenceField('User', required=True)
     tags = ListField(StringField(max_length=16), deafult=list)
     students = ListField(ReferenceField('User'), default=[])
