@@ -20,6 +20,7 @@ def course_list(user):
     cs = [{
         'name': c.name,
         'teacher': c.teacher.info,
+        'description': c.description,
         'year': c.year,
         'semester': c.semester,
         'status': c.status,
@@ -44,6 +45,7 @@ def get_single_course(user, course):
         'students': [s.info for s in course.students],
         'numOfProblems': len(comments_of_problems),
         'numOfComments': sum(map(len, comments_of_problems)),
+        'description': course.description,
         'year': course.year,
         'semester': course.semester,
         'status': course.status,
@@ -81,6 +83,7 @@ def delete_course(user, course):
 @Request.json(
     'name: str',
     'teacher: str',
+    'description: str',
     'year: int',
     'semester: int',
     'status: int',
@@ -89,20 +92,10 @@ def delete_course(user, course):
 @identity_verify(0, 1)  # only admin and teacher can call this route
 def create_course(
     user,
-    name,
-    teacher,
-    year,
-    semester,
-    status,
+    **c_ks,
 ):
     try:
-        Course.add(
-            name=name,
-            teacher=teacher,
-            year=year,
-            semester=semester,
-            status=status,
-        )
+        Course.add(**c_ks)
     except ValidationError as ve:
         return HTTPError(
             str(ve),
@@ -119,6 +112,7 @@ def create_course(
 @course_api.route('/<name>', methods=['PUT'])
 @login_required
 @Request.json(
+    'description: str',
     'year: int',
     'semester: int',
     'status: int',
@@ -127,18 +121,12 @@ def create_course(
 def update_course(
     user,
     course,
-    year,
-    semester,
-    status,
+    **c_ks,
 ):
     if not course.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
     try:
-        course.update(
-            year=year,
-            semester=semester,
-            status=status,
-        )
+        course.update(**c_ks)
     except ValidationError as ve:
         return HTTPError(
             str(ve),

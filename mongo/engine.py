@@ -66,6 +66,7 @@ class Course(Document):
     problems = ListField(ReferenceField('Problem'), default=[])
     year = IntField(required=True)
     semester = IntField(required=True)
+    description = StringField(default='', max_length=10**4)
     status = IntField(
         default=CourseStatus.PUBLIC,
         choices=CourseStatus.choices(),
