@@ -1,4 +1,4 @@
-from flask import Blueprint, send_file
+from flask import Blueprint, send_file, request
 from .utils import *
 from .auth import *
 from mongo import *
@@ -138,7 +138,8 @@ def update_course(
     return HTTPResponse('success')
 
 
-@course_api.route('/<name>/student/<action>', methods=['PATCH'])
+@course_api.route('/<name>/student/insert', methods=['PATCH'])
+@course_api.route('/<name>/student/remove', methods=['PATCH'])
 @login_required
 @Request.json('users: list')
 @Request.doc('name', 'course', Course)
@@ -148,15 +149,13 @@ def update_students(user, course, users, action):
     '''
     if not course.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
-    # preprocess action
-    if action not in {'insert', 'remove'}:
-        return HTTPError('only accept action \'insert\' or \'remove\'', 400)
     # ignore duplicated usernames
     users = [*{*users}]
     # query document
     u_users = [*map(User, users)]
     # store nonexistent usernames
     not_in_db = [u.pk for u in filter(bool, u_users)]
+    action = request.url_rule[-6:]
     if action == 'insert':
         warning = [*({*course.students} & {*[u.obj for u in u_users]})]
         course.update(push_all__students=users)
