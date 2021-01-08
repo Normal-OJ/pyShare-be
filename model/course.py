@@ -177,7 +177,10 @@ def update_students(user, course, users, action):
 
 @course_api.route('/<name>/tag', methods=['PATCH'])
 @login_required
-@Request.json('push: list', 'pop: list')
+@Request.json(
+    'push: list',
+    'pop: list',
+)
 @Request.doc('name', 'course', Course)
 def update_tags(user, course, push, pop):
     '''
@@ -185,18 +188,15 @@ def update_tags(user, course, push, pop):
     '''
     if not course.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
-    for t in push:
-        if not Tag(t):
-            return HTTPError('Push: Tag not found', 404)
-        if t in pop:
-            return HTTPError('Tag appears in both list', 400)
-    for t in pop:
-        if t not in course.tags:
-            return HTTPError('Pop: Tag not found', 404)
+    if not all(map(Tag, push)):
+        return HTTPError('Push: Tag not found', 404)
+    if {*pop} & {*push}:
+        return HTTPError('Tag appears in both list', 400)
+    if not all(t in course.tags for t in pop):
+        return HTTPError('Pop: Tag not found', 404)
     try:
-        course.tags += push
-        course.tags = list(set([tag for tag in course.tags if tag not in pop]))
-        course.save()
+        course.update(push_all__tags=push)
+        course.update(pull_all__tags=pop)
     except ValidationError as ve:
         return HTTPError(str(ve), 400, data=ve.to_dict())
     return HTTPResponse('success')
