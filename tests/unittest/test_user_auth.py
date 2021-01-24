@@ -31,4 +31,3 @@ def test_change_password():
     assert User.login(u.username, new_password) == u
     with pytest.raises(DoesNotExist):
         assert User.login(u.username, password) == u
-
