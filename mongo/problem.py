@@ -125,8 +125,9 @@ class Problem(MongoBase, engine=engine.Problem):
                 att.delete()
                 # remove attachment from problem
                 # self.update(pull__attachments=att)
-                self.attachments.pop(i)
-                self.save()
+                while att in self.attachments:
+                    self.attachments.pop(i)
+                    self.save()
                 return True
         raise FileNotFoundError(
             f'can not find a attachment named [{filename}]')
