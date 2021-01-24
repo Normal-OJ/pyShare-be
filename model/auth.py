@@ -122,9 +122,11 @@ def signup(username, password, email, course):
 @auth_api.route('/batch-signup', methods=['POST'])
 @Request.json('csv_string: str', 'course: str')
 @Request.doc('course', Course)
-@identity_verify(0, 1)
 @login_required
 def batch_signup(user, csv_string, course):
+    if not course.permission(user=user, req={'w'}):
+        return HTTPError('Not enough permission', 403)
+
     user_data = csv.DictReader(io.StringIO(csv_string))
     fails = {}
     exist = set()
