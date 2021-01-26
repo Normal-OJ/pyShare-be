@@ -12,6 +12,7 @@ connect('pyShare', host=MONGO_HOST)
 
 class User(Document):
     username = StringField(max_length=16, required=True, primary_key=True)
+    school = StringField(max_length=16)
     display_name = StringField(
         db_field='displayName',
         max_length=32,
@@ -41,6 +42,7 @@ class User(Document):
         return {
             'username': self.username,
             'displayName': self.display_name,
+            'school': self.school,
             'md5': self.md5
         }
 
