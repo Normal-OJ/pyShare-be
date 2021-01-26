@@ -92,7 +92,7 @@ class TestProblem(BaseTester):
 
         rv = client.get('/problem?offset=0&count=-1')
         json = rv.get_json()
-        assert len(json['data']) == 2
+        assert len(json['data']) == 3
         assert rv.status_code == 200
 
     def test_get_comments(self, forge_client, problem_ids, config_app):

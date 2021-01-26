@@ -1,8 +1,8 @@
 from flask import Blueprint, send_file
 from .utils import *
 from .auth import *
-from mongo import *
-from mongo import engine
+from mongo import * 
+from mongo import engine, comment
 
 __all__ = ['course_api']
 
@@ -181,6 +181,12 @@ def update_students(user, course, users, action):
             for problem in course.problems:
                 if user == problem.author:
                     problem.delete()
+            for comment in engine.Comment.objects(author=user.pk):
+                Comment(comment).delete()
+            
+
+                
+        
     # some users fail
     if len(warning):
         return HTTPError(
