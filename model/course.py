@@ -183,6 +183,9 @@ def update_students(user, course, users, action):
                     problem.delete()
             for comment in engine.Comment.objects(author=user.pk):
                 Comment(comment).delete()
+            for comment in engine.Comment.objects(liked=user.pk):
+                comment.update(**{'pull__liked': user.obj})
+                user.update(**{'pull__likes': comment})
             
 
                 
