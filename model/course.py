@@ -177,6 +177,10 @@ def update_students(user, course, users, action):
     elif action == 'remove':
         warning = [*({*[u.obj for u in u_users]} - {*course.students})]
         course.update(pull_all__students=users)
+        for user in u_users:
+            for problem in course.problems:
+                if user == problem.author:
+                    problem.delete()
     # some users fail
     if len(warning):
         return HTTPError(
