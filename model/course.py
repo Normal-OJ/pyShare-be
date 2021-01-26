@@ -209,9 +209,7 @@ def update_tags(user, course, push, pop):
         if t not in course.tags:
             return HTTPError('Pop: Tag not found', 404)
     try:
-        course.tags += push
-        course.tags = list(set([tag for tag in course.tags if tag not in pop]))
-        course.save()
+        course.patch_tag(push, pop)
     except ValidationError as ve:
         return HTTPError(str(ve), 400, data=ve.to_dict())
     return HTTPResponse('success')
