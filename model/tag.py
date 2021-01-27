@@ -2,7 +2,10 @@ from flask import Blueprint, request
 from urllib import parse
 import threading
 
+from mongo import *
 from mongo import engine
+from .auth import *
+from .course import *
 from .utils import *
 __all__ = ['tag_api']
 

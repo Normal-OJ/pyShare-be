@@ -102,9 +102,9 @@ class Course(MongoBase, engine=engine.Course):
 
     def patch_tag(self, push, pop):
         # popped tags have to be removed from problem that is using it
-        for p in self.problems
-        p.tags = list(filter(lambda x: x not in pop, p.tags))
-        p.save()
+        for p in self.problems:
+            p.tags = list(filter(lambda x: x not in pop, p.tags))
+            p.save()
         # add pushed tags
         self.tags += push
         # remove popped tags
