@@ -4,6 +4,10 @@ workflow:
   rules:
     - if: "$CI_COMMIT_BRANCH"
 
+before_script:
+  - apk update
+  - apk add build-base python3-dev libc-dev
+
 test:
   stage: test
   script:
