@@ -6,7 +6,7 @@ workflow:
 
 before_script:
   - apk update
-  - apk add build-base python3-dev libc-dev
+  - apk add build-base python3-dev gcc libc-dev
 
 test:
   stage: test
