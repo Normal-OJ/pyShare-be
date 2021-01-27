@@ -155,11 +155,11 @@ def setup_problem(problems):
                     course=problem_data['course'],
             ):
                 continue
-            keys = {'title', 'description', 'course', 'author', 'tags', 'default_code', 'status', 'allow_multiple_comments'}
-            ks = {
-                v: problem_data[v]
-                for v in problem_data.keys() & keys
+            keys = {
+                'title', 'description', 'course', 'author', 'tags',
+                'default_code', 'status', 'allow_multiple_comments'
             }
+            ks = {v: problem_data[v] for v in problem_data.keys() & keys}
             # insert problem
             problem = Problem.add(**ks)
             # add attachments

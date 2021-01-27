@@ -50,7 +50,7 @@ class TestCourse(BaseTester):
         assert rv.status_code == 404
 
     def test_remove_student_also_remove_his_like(self, forge_client,
-                                                    config_app):
+                                                 config_app):
         config_app(None, 'test')
         client = forge_client('teacher1')
 
@@ -77,7 +77,7 @@ class TestCourse(BaseTester):
                               'users': ['student1'],
                           })
         assert rv.status_code == 200
-        
+
         client = forge_client('student1')
         rv = client.get(f'/comment/{id}')
         assert len(rv.get_json()['data']['liked']) == 0
