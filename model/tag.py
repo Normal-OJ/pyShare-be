@@ -38,7 +38,7 @@ def manage_tag(user, tags):
             else:
                 Tag(tag).delete()
         except (engine.DoesNotExist, engine.ValidationError,
-                engine.NotUniqueError) as e:
+                engine.NotUniqueError, PermissionError) as e:
             fail.append({
                 'value': tag,
                 'msg': str(e),
@@ -55,3 +55,12 @@ def manage_tag(user, tags):
             },
         )
     return HTTPResponse('success')
+
+
+@tag_api.route('/check', methods=['GET'])
+@Request.json('tags')
+@login_required
+@identity_verify(0, 1)
+def check_tag_is_used(user, tags):
+    result = {t: Tag(t).used_courses() > 0 for t in tags}
+    return HTTPResponse('Checked whether the tags are used', data=result)
