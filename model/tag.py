@@ -59,8 +59,7 @@ def manage_tag(user, tags):
 
 @tag_api.route('/check', methods=['POST'])
 @Request.json('tags')
-@login_required
 @identity_verify(0, 1)
 def check_tag_is_used(user, tags):
-    result = {t: Tag(t).used_courses() > 0 for t in tags}
+    result = {t: Tag(t).used_courses_count() > 0 for t in tags}
     return HTTPResponse('Checked whether the tags are used', data=result)

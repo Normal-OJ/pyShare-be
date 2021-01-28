@@ -9,7 +9,7 @@ class Tag(MongoBase, engine=engine.Tag):
         '''
         remove tag from problem if it have
         '''
-        if self.used_courses() > 0:
+        if self.used_courses_count() > 0:
             raise PermissionError('tag is used by others')
         # remove tag from course if it has
         engine.Course.objects(tags=self.value).update(pull__tags=self.value)
@@ -17,12 +17,12 @@ class Tag(MongoBase, engine=engine.Tag):
         engine.Problem.objects(tags=self.value).update(pull__tags=self.value)
         self.obj.delete()
 
-    def used_courses(self):
+    def used_courses_count(self):
         '''
         check the tag is used by how many courses
         '''
-        used_courses = engine.Course.objects(tags=self.value)
-        return len(used_courses)
+        used_courses_count = engine.Course.objects(tags=self.value)
+        return len(used_courses_count)
 
     @classmethod
     def add(cls, value):
