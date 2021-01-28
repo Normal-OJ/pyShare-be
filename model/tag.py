@@ -57,7 +57,7 @@ def manage_tag(user, tags):
     return HTTPResponse('success')
 
 
-@tag_api.route('/check', methods=['GET'])
+@tag_api.route('/check', methods=['POST'])
 @Request.json('tags')
 @login_required
 @identity_verify(0, 1)
