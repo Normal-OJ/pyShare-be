@@ -26,7 +26,6 @@ def get_tag_list(user, course):
 
 @tag_api.route('/', methods=['POST', 'DELETE'])
 @Request.json('tags')
-@login_required
 @identity_verify(0, 1)
 def manage_tag(user, tags):
     success = []

@@ -60,7 +60,7 @@ def statistic(user, course):
     users = map(User, course.students)
     ret = []
     for u in users:
-        s = u.statistic({course.obj})
+        s = u.statistic([course.obj])
         s.update({'info': u.info})
         ret.append(s)
     return HTTPResponse('ok', data=ret)
@@ -77,7 +77,6 @@ def delete_course(user, course):
 
 
 @course_api.route('/', methods=['POST'])
-@login_required
 @Request.json(
     'name: str',
     'teacher: str',
