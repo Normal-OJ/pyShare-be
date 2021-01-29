@@ -192,11 +192,12 @@ def update_tags(user, course, push, pop):
         return HTTPError('Push: Tag not found', 404)
     if {*pop} & {*push}:
         return HTTPError('Tag appears in both list', 400)
-    if not all(t in course.tags for t in pop):
+    if {*push} & {*course.tags}:
+        return HTTPError('Push: Tag is already in course', 400)
+    if {*pop} - {*course.tags}:
         return HTTPError('Pop: Tag not found', 404)
     try:
-        course.update(push_all__tags=push)
-        course.update(pull_all__tags=pop)
+        course.patch_tag(push, pop)
     except ValidationError as ve:
         return HTTPError(str(ve), 400, data=ve.to_dict())
     return HTTPResponse('success')

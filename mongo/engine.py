@@ -61,7 +61,7 @@ class Course(Document):
         max_length=64,
     )
     teacher = ReferenceField('User', required=True)
-    tags = ListField(StringField(max_length=16), deafult=list)
+    tags = ListField(StringField(max_length=16), default=list)
     students = ListField(ReferenceField('User'), default=[])
     problems = ListField(ReferenceField('Problem'), default=[])
     year = IntField(required=True)
@@ -148,7 +148,7 @@ class Problem(Document):
     course = ReferenceField('Course', reuired=True)
     description = StringField(max_length=5000000, required=True)
     author = ReferenceField('User', requried=True)
-    tags = ListField(StringField(max_length=16), deafult=[])
+    tags = ListField(StringField(max_length=16), default=[])
     attachments = ListField(FileField(), default=[])
     comments = ListField(ReferenceField('Comment'), default=[])
     timestamp = DateTimeField(default=datetime.now)
