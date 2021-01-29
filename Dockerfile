@@ -1,11 +1,8 @@
-FROM python:3.7-alpine
+FROM python:3.7-slim
 
 WORKDIR /app
 
-COPY ./requirements.txt ./requirements.txt
-
-RUN apk update && \
-	apk add build-base python3-dev gcc libc-dev
+COPY ./requirements.txt .
 
 RUN pip install -U pip && \
     pip install -r requirements.txt
