@@ -3,6 +3,7 @@ from tests.base_tester import BaseTester
 from mongo import *
 import io
 import mongomock.gridfs
+import threading
 
 mongomock.gridfs.enable_gridfs_integration()
 
@@ -164,6 +165,35 @@ class TestProblem(BaseTester):
         if status_code == 200:
             rv = client.get(f'/problem/1/attachment/{data["attachmentName"]}')
             assert rv.status_code == 200
+
+    def test_add_multiple_attachments(self, forge_client, config_app):
+        config_app(None, 'test')
+        client = forge_client('teacher1')
+        count = 4
+
+        def job(i, client):
+            data = {
+                'attachment':
+                (io.BytesIO(f'Testing{i}'.encode('utf-8')), 'goal'),
+                'attachmentName': f'test{i}',
+            }
+
+            rv = client.post('/problem/1/attachment', data=data)
+            assert rv.status_code == 200
+
+        threads = []
+
+        for i in range(count):
+            threads.append(threading.Thread(target=job, args=(i, client)))
+            threads[i].start()
+
+        for i in range(count):
+            threads[i].join()
+
+        for i in range(count):
+            rv = client.get(f'/problem/1/attachment/test{i}')
+            assert rv.status_code == 200
+            assert rv.data == f'Testing{i}'.encode('utf-8')
 
     @pytest.mark.parametrize('key, value, status_code', [
         (None, None, 200),
