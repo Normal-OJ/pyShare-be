@@ -8,6 +8,7 @@ __all__ = ['notif_api']
 
 notif_api = Blueprint('notif_api', __name__)
 
+
 @notif_api.route('/', methods=['GET'])
 @login_required
 def get_notifs(user):

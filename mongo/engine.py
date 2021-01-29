@@ -206,9 +206,11 @@ class Notif(Document):
         class __Base__(EmbeddedDocument):
             DICT_FEILDS = {'type': 'type_name'}
             meta = {'allow_inheritance': True}
+
             @property
             def type_name(self) -> str:
-                return re.compile(r'(?<!^)(?=[A-Z])').sub('_', self.__class__.__name__).upper()
+                return re.compile(r'(?<!^)(?=[A-Z])').sub(
+                    '_', self.__class__.__name__).upper()
 
             def to_dict(self) -> dict:
                 def resolve(attrs):
@@ -218,8 +220,10 @@ class Notif(Document):
                     if isinstance(ret, ObjectId):
                         ret = str(ret)
                     return ret
+
                 return {
-                    k: resolve(self.DICT_FEILDS[k].split('.')) for k in self.DICT_FEILDS
+                    k: resolve(self.DICT_FEILDS[k].split('.'))
+                    for k in self.DICT_FEILDS
                 }
 
         class Grade(__Base__):
@@ -269,8 +273,11 @@ class Notif(Document):
         READ = 1
         HIDDEN = 2
 
-    status = IntField(default=Status.UNREAD, choices=Status.choices(),)
-    info = GenericEmbeddedDocumentField(choices=Type.choices(),)
+    status = IntField(
+        default=Status.UNREAD,
+        choices=Status.choices(),
+    )
+    info = GenericEmbeddedDocumentField(choices=Type.choices(), )
 
 
 # register delete rule. execute here to resolve `NotRegistered`

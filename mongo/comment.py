@@ -186,9 +186,7 @@ class Comment(MongoBase, engine=engine.Comment):
             inc__height=1,
         )
         # notify relevant user
-        info = Notif.types.NewComment(
-            problem=target.pk,
-        )
+        info = Notif.types.NewComment(problem=target.pk, )
         if target.author != comment.author:
             notif = Notif.new(info)
             target.author.update(**{'push__notifs': notif.obj})
@@ -218,7 +216,9 @@ class Comment(MongoBase, engine=engine.Comment):
             comment=target.pk,
             problem=target.problem,
         )
-        authors = {target.author, target.problem.author} - {comment.author,}
+        authors = {target.author, target.problem.author} - {
+            comment.author,
+        }
         if authors:
             notif = Notif.new(info)
         for author in authors:
