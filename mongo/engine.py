@@ -209,6 +209,8 @@ class Notif(Document):
 
             @property
             def type_name(self) -> str:
+                # This regular expression finds the zero-length position
+                # whose next character is an uppercase letter.
                 return re.compile(r'(?<!^)(?=[A-Z])').sub(
                     '_', self.__class__.__name__).upper()
 
@@ -277,7 +279,7 @@ class Notif(Document):
         default=Status.UNREAD,
         choices=Status.choices(),
     )
-    info = GenericEmbeddedDocumentField(choices=Type.choices(), )
+    info = GenericEmbeddedDocumentField(choices=Type.choices())
 
 
 # register delete rule. execute here to resolve `NotRegistered`

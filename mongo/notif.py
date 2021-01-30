@@ -9,9 +9,8 @@ class Notif(MongoBase, engine=engine.Notif):
 
     @classmethod
     def new(cls, info):
-        notif = cls.engine(info=info)
-        notif.save()
-        return cls(notif.id)
+        notif = cls.engine(info=info).save()
+        return cls(notif)
 
     def read(self):
         if self.status == engine.Notif.Status.UNREAD:

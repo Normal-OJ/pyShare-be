@@ -131,5 +131,5 @@ def change_state(user, submission: Submission, state):
         problem=comment.problem,
     )
     notif = Notif.new(info)
-    comment.author.update(**{'push__notifs': notif.obj})
+    comment.author.update(push__notifs=notif.pk)
     return HTTPResponse('ok')

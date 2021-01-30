@@ -96,11 +96,11 @@ class Comment(MongoBase, engine=engine.Comment):
             # notify the author of the creation
             info = Notif.types.Like(
                 comment=self.pk,
-                liked=user.username,
+                liked=user.pk,
                 problem=self.problem,
             )
             notif = Notif.new(info)
-            self.author.update(**{'push__notifs': notif.obj})
+            self.author.update(push__notifs=notif.pk)
         self.update(**{f'{action}__liked': user.obj})
         user.update(**{f'{action}__likes': self.obj})
         # reload
@@ -186,10 +186,10 @@ class Comment(MongoBase, engine=engine.Comment):
             inc__height=1,
         )
         # notify relevant user
-        info = Notif.types.NewComment(problem=target.pk, )
+        info = Notif.types.NewComment(problem=target.pk)
         if target.author != comment.author:
             notif = Notif.new(info)
-            target.author.update(**{'push__notifs': notif.obj})
+            target.author.update(push__notifs=notif.pk)
         return comment.reload()
 
     @classmethod
@@ -222,7 +222,7 @@ class Comment(MongoBase, engine=engine.Comment):
         if authors:
             notif = Notif.new(info)
         for author in authors:
-            author.update(**{'push__notifs': notif.obj})
+            author.update(push__notifs=notif.pk)
         return comment
 
     @classmethod
