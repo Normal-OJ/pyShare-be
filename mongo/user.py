@@ -29,7 +29,8 @@ class User(MongoBase, engine=engine.User):
         role=2,
     ):
         user_id = hash_id(username, password)
-        email = email.lower().strip()
+        if email is not None:
+            email = email.lower().strip()
         cls.engine(
             user_id=user_id,
             user_id2=user_id,
@@ -37,7 +38,7 @@ class User(MongoBase, engine=engine.User):
             display_name=display_name or username,
             email=email,
             role=role,
-            md5=hashlib.md5(email.encode()).hexdigest(),
+            md5=hashlib.md5((email or '').encode()).hexdigest(),
         ).save(force_insert=True)
         user = cls(username)
         # add user to course
