@@ -9,14 +9,16 @@ def setup_function(_):
 
 def test_login():
     password = 'verysecureandlongpassword'
-    u = utils.user.lazy_signup(password=password)
+    email = 'email@noj.tw'
+    u = utils.user.lazy_signup(password=password, email=email)
     assert User.login(u.username, password) == u
     assert User.login(u.email, password) == u
 
 
 def test_login_fail():
     password = 'verysecureandlongpassword'
-    u = utils.user.lazy_signup(password=password)
+    email = 'email@noj.tw'
+    u = utils.user.lazy_signup(password=password, email=email)
     with pytest.raises(DoesNotExist, match=''):
         User.login(u.username, password[::-1])
     with pytest.raises(DoesNotExist, match=''):

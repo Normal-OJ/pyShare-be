@@ -15,8 +15,6 @@ def data(
         username = random_username()
     if password is None:
         password = secrets.token_urlsafe()
-    if email is None:
-        email = f'{secrets.token_hex(8)}@noj.tw'
     return {
         'username': username,
         'password': password,
