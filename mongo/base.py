@@ -1,5 +1,5 @@
 from flask import current_app
-from functools import wraps
+from typing import Iterable
 from . import engine
 import logging
 
@@ -48,6 +48,9 @@ class MongoBase:
 
     def __repr__(self):
         return self.obj.to_json() if self else '{}'
+
+    def __dir__(self) -> Iterable[str]:
+        return (*super().__dir__(), *dir(self.obj))
 
     def reload(self):
         if self:
