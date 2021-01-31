@@ -8,6 +8,7 @@ from . import comment
 from . import course
 from . import notifier
 from . import attachment
+from . import notif
 
 from .auth import *
 from .problem import *
@@ -19,6 +20,7 @@ from .comment import *
 from .course import *
 from .notifier import *
 from .attachment import *
+from .notif import *
 
 __all__ = [
     *auth.__all__,
@@ -31,4 +33,5 @@ __all__ = [
     *course.__all__,
     *notifier.__all__,
     *attachment.__all__,
+    *notif.__all__,
 ]

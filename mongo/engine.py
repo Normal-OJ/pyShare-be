@@ -1,6 +1,8 @@
 from mongoengine import *
+from bson import ObjectId
 import mongoengine
 import os
+import re
 from datetime import datetime
 from .utils import Enum
 
@@ -36,6 +38,8 @@ class User(Document):
         default=[],
         de_field='likedComments',
     )
+    # notification list
+    notifs = ListField(ReferenceField('Notif'), default=[])
 
     @property
     def info(self):
@@ -54,13 +58,21 @@ class CourseStatus(Enum):
 
 
 class Course(Document):
-    name = StringField(primary_key=True, required=True, max_length=64)
+    # course's name can only contain letters, numbers, underscore (_),
+    # dash (-) and dot (.), also, it can not be empty
+    name = StringField(
+        primary_key=True,
+        regex=r'^[\w\.\ _\-]+$',
+        required=True,
+        max_length=64,
+    )
     teacher = ReferenceField('User', required=True)
-    tags = ListField(StringField(max_length=16), deafult=list)
+    tags = ListField(StringField(max_length=16), default=list)
     students = ListField(ReferenceField('User'), default=[])
     problems = ListField(ReferenceField('Problem'), default=[])
     year = IntField(required=True)
     semester = IntField(required=True)
+    description = StringField(default='', max_length=10**4)
     status = IntField(
         default=CourseStatus.PUBLIC,
         choices=CourseStatus.choices(),
@@ -142,7 +154,7 @@ class Problem(Document):
     course = ReferenceField('Course', reuired=True)
     description = StringField(max_length=5000000, required=True)
     author = ReferenceField('User', requried=True)
-    tags = ListField(StringField(max_length=16), deafult=[])
+    tags = ListField(StringField(max_length=16), default=[])
     attachments = ListField(FileField(), default=[])
     comments = ListField(ReferenceField('Comment'), default=[])
     timestamp = DateTimeField(default=datetime.now)
@@ -197,6 +209,87 @@ class Submission(Document):
         default=SubmissionState.PENDING,
         choices=SubmissionState.choices(),
     )
+
+
+class Notif(Document):
+    class Type(Enum):
+        class __Base__(EmbeddedDocument):
+            DICT_FEILDS = {'type': 'type_name'}
+            meta = {'allow_inheritance': True}
+
+            @property
+            def type_name(self) -> str:
+                # This regular expression finds the zero-length position
+                # whose next character is an uppercase letter.
+                return re.compile(r'(?<!^)(?=[A-Z])').sub(
+                    '_', self.__class__.__name__).upper()
+
+            def to_dict(self) -> dict:
+                def resolve(attrs):
+                    ret = self
+                    for attr in attrs:
+                        ret = ret.__getattribute__(attr)
+                    if isinstance(ret, ObjectId):
+                        ret = str(ret)
+                    return ret
+
+                return {
+                    k: resolve(self.DICT_FEILDS[k].split('.'))
+                    for k in self.DICT_FEILDS
+                }
+
+        class Grade(__Base__):
+            DICT_FEILDS = {
+                'type': 'type_name',
+                'comment_id': 'comment.id',
+                'result': 'result',
+                'problem_id': 'problem.id',
+            }
+
+            comment = ReferenceField(Comment)
+            result = IntField(required=True, choices=SubmissionState.choices())
+            problem = ReferenceField(Problem)
+
+        class Like(__Base__):
+            DICT_FEILDS = {
+                'type': 'type_name',
+                'comment_id': 'comment.id',
+                'liked': 'liked.username',
+                'problem_id': 'problem.id',
+            }
+
+            comment = ReferenceField(Comment)
+            liked = ReferenceField(User)
+            problem = ReferenceField(Problem)
+
+        class NewReply(__Base__):
+            DICT_FEILDS = {
+                'type': 'type_name',
+                'comment_id': 'comment.id',
+                'problem_id': 'problem.id',
+            }
+
+            comment = ReferenceField(Comment)
+            problem = ReferenceField(Problem)
+
+        class NewComment(__Base__):
+            DICT_FEILDS = {
+                'type': 'type_name',
+                'problem_id': 'problem.id',
+            }
+
+            problem = ReferenceField(Problem)
+
+    class Status(Enum):
+        UNREAD = 0
+        READ = 1
+        HIDDEN = 2
+
+    status = IntField(
+        default=Status.UNREAD,
+        choices=Status.choices(),
+    )
+    info = GenericEmbeddedDocumentField(choices=Type.choices())
 
 
 # register delete rule. execute here to resolve `NotRegistered`

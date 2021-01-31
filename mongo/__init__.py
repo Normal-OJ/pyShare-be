@@ -8,6 +8,7 @@ from . import comment
 from . import utils
 from . import comment
 from . import attachment
+from . import notif
 
 from .engine import *
 from .user import *
@@ -19,6 +20,7 @@ from .course import *
 from .utils import *
 from .comment import *
 from .attachment import *
+from .notif import *
 
 __all__ = [
     *engine.__all__,
@@ -31,4 +33,5 @@ __all__ = [
     *utils.__all__,
     *comment.__all__,
     *attachment.__all__,
+    *notif.__all__,
 ]

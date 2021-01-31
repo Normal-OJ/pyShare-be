@@ -76,9 +76,9 @@ def test_normal_course_name(name):
     'name, exception',
     [
         ('A' * 65, ValidationError),
-        ('@A@', ValueError),
-        ('Computer/Programming/I', ValueError),
-        ('', ValueError),
+        ('@A@', ValidationError),
+        ('Computer/Programming/I', ValidationError),
+        ('', ValidationError),
     ],
 )
 def test_invalid_course_name(name, exception):
