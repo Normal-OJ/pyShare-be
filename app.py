@@ -23,6 +23,7 @@ api2name = [
     (tag_api, '/tag'),
     (course_api, '/course'),
     (attachment_api, '/attachment'),
+    (notif_api, '/notif'),
 ]
 for api, name in api2name:
     app.register_blueprint(api, url_prefix=name)
