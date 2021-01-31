@@ -1,6 +1,5 @@
 from flask import Blueprint, request, send_file
 from urllib import parse
-import threading
 
 from mongo import *
 from mongo import engine
@@ -61,7 +60,7 @@ def get_problem_list(
         **ks,
     )
     # check whether user has read permission
-    ps = [Problem(p.pid) for p in ps]
+    ps = map(Problem, ps)
     ps = [p.to_dict() for p in ps if p.permission(
         user=user,
         req={'r'},
@@ -148,8 +147,8 @@ def modify_problem(
     # if allow_multiple_comments is False
     if user < 'teacher' and p_ks.get('allow_multiple_comments') == False:
         return HTTPError('Students have to allow multiple comments.', 403)
+    c = Course(problem.course.name)
     for tag in tags:
-        c = Course(problem.course.name)
         if not c.check_tag(tag):
             return HTTPError(
                 'Exist tag that is not allowed to use in this course', 400)

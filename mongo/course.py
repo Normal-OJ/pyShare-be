@@ -50,11 +50,10 @@ class Course(MongoBase, engine=engine.Course):
                 ' than teacher can create course', )
         # insert a new course into DB
         c = cls.engine(
-            teacher=teacher.username,
+            teacher=teacher.pk,
             name=name,
             **ks,
-        )
-        c.save(force_insert=True)
+        ).save(force_insert=True)
         # update teacher course
         teacher.update(add_to_set__courses=c)
         return cls(c.name)
@@ -76,7 +75,7 @@ class Course(MongoBase, engine=engine.Course):
         )
         writer.writeheader()
         for u in self.students:
-            stat = User(u.username).statistic({self.obj})
+            stat = User(u).statistic([self.obj])
             # extract exec info
             exec_info = stat.pop('execInfo')
             # update every other info to its length

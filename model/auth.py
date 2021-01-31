@@ -4,6 +4,7 @@ from functools import wraps
 from flask import Blueprint, request, current_app
 # Local application
 from mongo import *
+from mongo import engine
 from mongo.utils import hash_id
 from .utils import *
 
@@ -33,7 +34,7 @@ def login_required(func):
         json = jwt_decode(token)
         if json is None or not json.get('secret'):
             return HTTPError('Invalid Token', 401)
-        user = User(json['data']['username'])
+        user = User(json['data']['id'])
         if json['data'].get('userId') != user.user_id:
             return HTTPError(f'Authorization Expired', 403)
         if not user.active:
@@ -109,7 +110,7 @@ def session():
 @Request.doc('course', Course)
 def signup(username, password, email, course):
     try:
-        user = User.signup(username, password, email, course.obj)
+        User.signup(username, password, email, course.obj)
     except ValidationError as ve:
         return HTTPError('Signup Failed', 400, data=ve.to_dict())
     except NotUniqueError as ne:
@@ -136,7 +137,7 @@ def batch_signup(user, csv_string, course):
             # get role
             role = _u.get('role', 2)
             if role == '':
-                role = 2
+                role = engine.User.Role.STUDENT
             try:
                 role = int(role)
             except ValueError:
@@ -245,7 +246,7 @@ def active(token=None):
         json = jwt_decode(token)
         if json is None or not json.get('secret'):
             return HTTPError('Invalid Token.', 403)
-        user = User(json['data']['username'])
+        user = User(json['data']['id'])
         if not user:
             return HTTPError('User Not Exists', 404)
         if user.active:
@@ -266,7 +267,7 @@ def active(token=None):
         json = jwt_decode(token)
         if json is None:
             return HTTPError('Invalid Token', 403)
-        user = User(json['data']['username'])
+        user = User(json['data']['id'])
         cookies = {'piann_httponly': user.secret, 'jwt': user.cookie}
         return HTTPRedirect('/email_verify', cookies=cookies)
 
@@ -285,7 +286,9 @@ def password_recovery(email):
     user_id2 = hash_id(user.username, new_password)
     user.update(user_id2=user_id2)
     send_noreply(
-        [email], '[N-OJ] Password Recovery',
-        f'Your alternative password is {new_password}.\nPlease login and change your password.'
+        [email],
+        '[N-OJ] Password Recovery',
+        f'Your alternative password is {new_password}.\n'
+        'Please login and change your password.',
     )
     return HTTPResponse('Recovery Email Has Been Sent')

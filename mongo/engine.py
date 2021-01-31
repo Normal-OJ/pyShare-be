@@ -13,8 +13,19 @@ connect('pyShare', host=MONGO_HOST)
 
 
 class User(Document):
-    username = StringField(max_length=16, required=True, primary_key=True)
-    school = StringField(max_length=16)
+    class Role(Enum):
+        ADMIN = 0
+        TEACHER = 1
+        STUDENT = 2
+
+    username = StringField(
+        max_length=16,
+        required=True,
+    )
+    school = StringField(
+        max_length=16,
+        unique_with='username',
+    )
     display_name = StringField(
         db_field='displayName',
         max_length=32,
@@ -26,7 +37,10 @@ class User(Document):
     md5 = StringField(required=True, max_length=32)
     active = BooleanField(default=True)
     # role: 0 -> admin / 1 -> teacher / 2 -> student
-    role = IntField(default=2, choices=[0, 1, 2])
+    role = IntField(
+        default=Role.STUDENT,
+        choices=Role.choices(),
+    )
     courses = ListField(ReferenceField('Course'), default=[])
     # problems this user created
     problems = ListField(ReferenceField('Problem'), default=[])
@@ -47,7 +61,8 @@ class User(Document):
             'username': self.username,
             'displayName': self.display_name,
             'school': self.school,
-            'md5': self.md5
+            'md5': self.md5,
+            'id': str(self.id),
         }
 
 

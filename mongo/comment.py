@@ -53,8 +53,8 @@ class Comment(MongoBase, engine=engine.Comment):
         elif user == self.problem.course.teacher or user >= 'admin':
             _permission |= {'d', 'j', 's'}
         # other people can not view hidden comments or non visible problems' comments
-        elif self.hidden or not Problem(self.problem.pk).permission(user=user,
-                                                                    req={'r'}):
+        elif self.hidden or not Problem(self.problem).permission(user=user,
+                                                                 req={'r'}):
             _permission.remove('r')
         if isinstance(req, set):
             return not bool(req - _permission)
@@ -137,25 +137,21 @@ class Comment(MongoBase, engine=engine.Comment):
             self.update(inc__success=1)
 
     @classmethod
+    @doc_required('author', User)
+    @doc_required('target', Problem)
     def add_to_problem(
         cls,
-        target,
+        target: Problem,
         code: str,
-        author: str,
+        author: User,
         **ks,
     ):
         # TODO: solve circular import between submission and comment
         from .submission import Submission
-        # directly submit
-        if not isinstance(target, (Problem, engine.Problem)):
-            # try convert to document
-            target = Problem(target)
-        if not target:
-            raise engine.DoesNotExist
         # check if allow multiple comments
         if not target.allow_multiple_comments:
             comments = map(
-                lambda c: c.author.username == author,
+                lambda c: author == c.author,
                 filter(
                     lambda c: c.status == engine.CommentStatus.SHOW,
                     target.comments,
@@ -173,7 +169,7 @@ class Comment(MongoBase, engine=engine.Comment):
         )
         # try create a submission
         submission = Submission.add(
-            problem=target.pk,
+            problem=target,
             user=author,
             comment=comment,
             code=code,
@@ -198,9 +194,10 @@ class Comment(MongoBase, engine=engine.Comment):
         target,
         **ks,
     ):
-        # reply other's comment
-        if not isinstance(target, (cls, engine.Comment)):
-            target = Comment(target)
+        '''
+        add a comment to reply other's comment
+        '''
+        target = Comment(target)
         if not target:
             raise engine.DoesNotExist
         # create new comment
@@ -242,27 +239,26 @@ class Comment(MongoBase, engine=engine.Comment):
         }) or not Course(problem.course.pk).permission(user=author, req={'p'}):
             raise PermissionError('Not enough permission')
         # insert into DB
-        comment = engine.Comment(
+        comment = cls.engine(
             title=title,
             content=content,
             author=author.pk,
             floor=floor,
             depth=depth,
             problem=problem.pk,
-        )
-        comment.save()
+        ).save()
         # append to author's
         author.update(push__comments=comment)
-        return cls(comment.id)
+        return cls(comment)
 
     def add_new_submission(self, code):
         from .submission import Submission
         if not self.is_comment:
             raise NotAComment
         submission = Submission.add(
-            problem=self.problem.pk,
-            user=self.author.pk,
-            comment=self.pk,
+            problem=self.problem,
+            user=self.author,
+            comment=self,
             code=code,
         )
         submission.submit()

@@ -1,5 +1,4 @@
-import os
-import io
+from typing import List
 from functools import reduce
 from mongoengine.queryset.visitor import Q
 from . import engine
@@ -139,11 +138,11 @@ class Problem(MongoBase, engine=engine.Problem):
             count=-1,
             name: str = None,
             course: str = None,
-            tags: list = None,
-            only: list = None,
+            tags: List[str] = None,
+            only: List[str] = None,
             is_template: bool = None,
             allow_multiple_comments: bool = None,
-    ) -> 'List[engine.Problem]':
+    ) -> List[engine.Problem]:
         '''
         read a list of problem filtered by given paramter
         '''
@@ -189,7 +188,7 @@ class Problem(MongoBase, engine=engine.Problem):
             cls,
             author: User,
             course: Course,
-            tags: list = [],
+            tags: List[str] = [],
             **ks,
     ) -> 'Problem':
         '''
@@ -201,19 +200,17 @@ class Problem(MongoBase, engine=engine.Problem):
         # if allow_multiple_comments is None or False
         if author < 'teacher' and not ks.get('allow_multiple_comments'):
             raise PermissionError('Students have to allow multiple comments')
-        for tag in tags:
-            if not course.check_tag(tag):
-                raise TagNotFoundError(
-                    'Exist tag that is not allowed to use in this course')
+        if not all(course.check_tag(tag) for tag in tags):
+            raise TagNotFoundError(
+                'Exist tag that is not allowed to use in this course')
         # insert a new problem into DB
-        p = engine.Problem(
+        p = cls.engine(
             author=author.pk,
             course=course.pk,
             tags=tags,
             **ks,
-        )
-        p.save()
+        ).save()
         # update reference
         course.update(push__problems=p)
         author.update(push__problems=p)
-        return cls(p.pid)
+        return cls(p)

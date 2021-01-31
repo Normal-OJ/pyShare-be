@@ -12,8 +12,7 @@ class Attachment(MongoBase, engine=engine.Attachment):
         '''
         if not self:
             raise FileNotFoundError(
-                f'can not find a attachment named [{self.filename}] in public attachment DB'
-            )
+                f'can not find {self} in public attachment DB')
         return self.file
 
     def delete(self):
@@ -39,14 +38,15 @@ class Attachment(MongoBase, engine=engine.Attachment):
         '''
         if file_obj is None:
             raise FileNotFoundError('you need to upload a file')
-        if Attachment(filename):
-            raise FileExistsError(
-                f'A attachment named [{filename}] '
-                'already exists!', )
+        if cls(filename):
+            raise FileExistsError(f'{cls(filename)} already exists!')
+        # save file
         file = GridFSProxy()
         file.put(file_obj, filename=filename)
-
-        attachment = engine.Attachment(filename=filename,
-                                       file=file,
-                                       description=description)
-        attachment.save()
+        # save attachment
+        attachment = cls.engine(
+            filename=filename,
+            file=file,
+            description=description,
+        ).save()
+        return cls(attachment)

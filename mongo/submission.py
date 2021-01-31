@@ -1,7 +1,7 @@
 import os
 import logging
 import secrets
-from typing import Union
+from typing import Optional
 import requests as rq
 import base64
 from flask import current_app
@@ -149,7 +149,7 @@ class Submission(MongoBase, engine=engine.Submission):
         '''
         prepara data for submit code to sandbox and then send it
         '''
-        # unexisted id
+        # nonexistent id
         if not self:
             raise engine.DoesNotExist(f'{self}')
         token = Token(self.SANDBOX_TOKEN).assign(self.id)
@@ -201,7 +201,7 @@ class Submission(MongoBase, engine=engine.Submission):
             self.save()
         # notify comment
         if self.comment is not None:
-            Comment(self.comment.id).finish_submission()
+            Comment(self.comment).finish_submission()
         return True
 
     def get_file(self, filename):
@@ -210,13 +210,14 @@ class Submission(MongoBase, engine=engine.Submission):
         for f in self.result.files:
             if f.filename == filename:
                 return f
-        raise FileNotFoundError
+        raise FileNotFoundError(filename)
 
     @staticmethod
     def new_file(file_obj, filename):
         '''
         create a new file
         '''
+        # TODO: this is almost identical to Problem.new_att, may be can write this ot utils
         f = engine.GridFSProxy()
         f.put(
             file_obj,
@@ -233,7 +234,7 @@ class Submission(MongoBase, engine=engine.Submission):
             cls,
             problem: Problem,
             user: User,
-            comment: Union[None, Comment],
+            comment: Optional[Comment],
             code: str,
     ) -> 'Submission':
         '''

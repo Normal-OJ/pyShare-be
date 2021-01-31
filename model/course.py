@@ -2,7 +2,7 @@ from flask import Blueprint, send_file, request
 from .utils import *
 from .auth import *
 from mongo import *
-from mongo import engine, comment
+from mongo import engine
 
 __all__ = ['course_api']
 
@@ -15,8 +15,7 @@ def course_list(user):
     '''
     get a list of course with course name and teacher's name
     '''
-    cs = engine.Course.objects.only('name')
-    cs = [Course(c.name) for c in cs]
+    cs = map(Course, engine.Course.objects.only('name'))
     cs = [{
         'name': c.name,
         'teacher': c.teacher.info,
@@ -168,9 +167,8 @@ def update_students(user, course, users, action):
             for comment in engine.Comment.objects(author=user.pk):
                 Comment(comment).delete()
             for comment in engine.Comment.objects(liked=user.pk):
-                comment.update(**{'pull__liked': user.obj})
-                user.update(**{'pull__likes': comment})
-
+                comment.update(pull__liked=user.obj)
+                user.update(pull__likes=comment)
     # some users fail
     if len(warning):
         return HTTPError(

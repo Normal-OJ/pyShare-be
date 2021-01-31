@@ -12,12 +12,12 @@ user_api = Blueprint('user', __name__)
 @user_api.route('/', methods=['GET'])
 def get_all_user():
     users = engine.User.objects
-    # TODO: convert to MongoBase may cause unnecessary query
     users = [{
-        'username': u.username,
-        'displayName': u.display_name,
-        'star': User(u.username).liked_amount(),
-    } for u in users]
+        **u.info,
+        **{
+            'star': User(u).liked_amount(),
+        }
+    } for u in map(User, users)]
     return HTTPResponse('here you are.', data=users)
 
 

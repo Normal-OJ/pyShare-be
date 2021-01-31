@@ -30,23 +30,27 @@ class User(MongoBase, engine=engine.User):
         role=2,
     ):
         user_id = hash_id(username, password)
-        email = email.lower().strip()
-        cls.engine(
+        email = cls.formated_email(email)
+        user = cls.engine(
+            username=username,
             user_id=user_id,
             user_id2=user_id,
-            username=username,
             display_name=display_name or username,
             email=email,
             school=school,
             role=role,
             md5=hashlib.md5(email.encode()).hexdigest(),
         ).save(force_insert=True)
-        user = cls(username)
+        user = cls(user.id)
         # add user to course
         if course is not None:
             user.update(add_to_set__courses=course)
             course.update(add_to_set__students=user.obj)
         return user.reload()
+
+    @classmethod
+    def formated_email(cls, email: str):
+        return email.lower().strip()
 
     @classmethod
     def login(cls, username, password):
@@ -55,8 +59,8 @@ class User(MongoBase, engine=engine.User):
         except engine.DoesNotExist:
             user = cls.get_by_email(username)
         user_id = hash_id(user.username, password)
-        if compare_digest(user.user_id, user_id) or compare_digest(
-                user.user_id2, user_id):
+        if compare_digest(user.user_id, user_id) or \
+            compare_digest(user.user_id2, user_id):
             return user
         raise engine.DoesNotExist
 
@@ -67,12 +71,13 @@ class User(MongoBase, engine=engine.User):
 
     @classmethod
     def get_by_email(cls, email):
-        obj = cls.engine.objects.get(email=email.strip().lower())
+        obj = cls.engine.objects.get(email=cls.formated_email(email))
         return cls(obj.username)
 
     @property
     def cookie(self):
         keys = [
+            '_id',
             'username',
             'email',
             'displayName',
@@ -96,10 +101,11 @@ class User(MongoBase, engine=engine.User):
         }
 
     def get_role_id(self, role):
-        _role = self.role_ids.get(role)
-        if _role is None:
+        try:
+            return self.role_ids[role]
+        except KeyError:
             self.logger.warning(f'unknown role \'{role}\'')
-        return _role
+            return None
 
     def __eq__(self, other):
         # whether the user is the role?
@@ -133,18 +139,10 @@ class User(MongoBase, engine=engine.User):
     def __le__(self, value):
         return not self > value
 
-    def is_role(self, *roles):
-        '''
-        is this user belonging one of the required roles?
-        '''
-        roles = {r: self.get_role_id(r) for r in role}
-        return self.role in roles
-
     def jwt(self, *keys, secret=False, **kwargs):
         if not self:
             return ''
         user = self.reload().to_mongo()
-        user['username'] = user.get('_id')
         data = {k: user.get(k) for k in keys}
         data.update(kwargs)
         payload = {
@@ -153,7 +151,11 @@ class User(MongoBase, engine=engine.User):
             'secret': secret,
             'data': data
         }
-        return jwt.encode(payload, JWT_SECRET, algorithm='HS256').decode()
+        return jwt.encode(
+            payload,
+            JWT_SECRET,
+            algorithm='HS256',
+        ).decode()
 
     def change_password(self, password):
         user_id = hash_id(self.username, password)
