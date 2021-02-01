@@ -92,7 +92,7 @@ def get_single_problem(user, problem):
     'is_template: bool',
     'allow_multiple_comments: bool',
 )
-@Request.doc('course', 'course', Course)
+@Request.doc('course', Course)
 @login_required
 @fe_update('PROBLEM', 'course')
 def create_problem(
@@ -248,9 +248,9 @@ def get_attachment(user, problem, name):
     return HTTPError('file not found', 404)
 
 
-@problem_api.route('/<int:pid>/clone/<course_name>', methods=['GET'])
+@problem_api.route('/<int:pid>/clone/<course>', methods=['GET'])
 @Request.doc('pid', 'problem', Problem)
-@Request.doc('course_name', 'course', Course)
+@Request.doc('course', Course)
 @fe_update('PROBLEM', 'course')
 def clone_problem(user, problem, course):
     '''

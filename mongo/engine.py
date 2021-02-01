@@ -56,10 +56,14 @@ class CourseStatus(Enum):
 
 
 class Course(Document):
+    class Status(Enum):
+        PRIVATE = 0
+        READONLY = 1
+        PUBLIC = 2
+
     # course's name can only contain letters, numbers, underscore (_),
     # dash (-) and dot (.), also, it can not be empty
     name = StringField(
-        primary_key=True,
         regex=r'^[\w\.\ _\-]+$',
         required=True,
         max_length=64,
