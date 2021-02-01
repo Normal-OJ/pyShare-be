@@ -153,7 +153,7 @@ class Submission(MongoBase, engine=engine.Submission):
         if not self:
             raise engine.DoesNotExist(f'{self}')
         token = Token(self.SANDBOX_TOKEN).assign(self.id)
-        self.update(status=engine.SubmissionStatus.PENDING)
+        self.update(status=self.engine.Status.PENDING)
         judge_url = f'{self.JUDGE_URL}/{self.id}'
         # send submission to snadbox for judgement
         if not current_app.config['TESTING']:
@@ -187,9 +187,9 @@ class Submission(MongoBase, engine=engine.Submission):
         judgement complete
         '''
         # update status
-        self.update(status=engine.SubmissionStatus.COMPLETE)
+        self.update(status=self.engine.Status.COMPLETE)
         # update result
-        result = engine.SubmissionResult(
+        result = self.engine.Result(
             stdout=stdout,
             stderr=stderr,
         )
