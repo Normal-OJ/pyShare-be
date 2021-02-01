@@ -1,5 +1,6 @@
 # Standard library
 from functools import wraps
+from model.utils.response import HTTPError
 # Related third party imports
 from flask import Blueprint, request, current_app
 # Local application
@@ -35,8 +36,14 @@ def login_required(func):
         if json is None or not json.get('secret'):
             return HTTPError('Invalid Token', 401)
         user = User(json['data']['id'])
-        if json['data'].get('userId') != user.user_id:
-            return HTTPError(f'Authorization Expired', 403)
+        try:
+            if secrets.compare_digest(
+                    json['data'].get('userId'),
+                    user.user_id,
+            ):
+                return HTTPError(f'Authorization Expired', 403)
+        except TypeError:
+            return HTTPError('Invalid Token', 401)
         if not user.active:
             return HTTPError('Inactive User', 403)
         kwargs['user'] = user
@@ -185,7 +192,7 @@ def batch_signup(user, csv_string, course):
 @Request.json('old_password: str', 'new_password: str')
 def change_password(user, old_password, new_password):
     try:
-        User.login(user.username, old_password)
+        User.login(user.school, user.username, old_password)
     except DoesNotExist:
         return HTTPError('Wrong Password', 403)
     user.change_password(new_password)
@@ -193,28 +200,27 @@ def change_password(user, old_password, new_password):
     return HTTPResponse('Password Has Been Changed', cookies=cookies)
 
 
-@auth_api.route('/check/<item>', methods=['POST'])
-def check(item):
-    '''Checking when the user is registing.
-    '''
-    @Request.json('username: str')
-    def check_username(username):
-        try:
-            User.get_by_username(username)
-        except DoesNotExist:
-            return HTTPResponse('Username Can Be Used', data={'valid': 1})
-        return HTTPResponse('User Exists', data={'valid': 0})
+@auth_api.route('/check/email', methods=['POST'])
+@Request.json('email: str')
+def check_email(email):
+    try:
+        User.get_by_email(email)
+    except DoesNotExist:
+        return HTTPResponse('Valid email', data={'valid': 1})
+    return HTTPError('Email has been used', 400, data={'valid': 0})
 
-    @Request.json('email: str')
-    def check_email(email):
-        try:
-            User.get_by_email(email)
-        except DoesNotExist:
-            return HTTPResponse('Email Can Be Used', data={'valid': 1})
-        return HTTPResponse('Email Has Been Used', data={'valid': 0})
 
-    method = {'username': check_username, 'email': check_email}.get(item)
-    return method() if method else HTTPError('Ivalid Checking Type', 400)
+@auth_api.route('/check/user-id', methods=['POST'])
+@Request.json('school: str', 'username: str')
+def check_user_id(school, username):
+    try:
+        User.engine.objects.get(
+            username=username,
+            school=school,
+        )
+    except DoesNotExist:
+        return HTTPResponse('Valid user id', data={'valid': 1})
+    return HTTPError('User id has been used', 400, data={'valid': 0})
 
 
 @auth_api.route('/resend-email', methods=['POST'])
@@ -279,7 +285,7 @@ def active(token=None):
 @Request.json('email: str')
 def password_recovery(email):
     try:
-        user = User.get_by_email(email)
+        User.get_by_email(email)
     except DoesNotExist:
         return HTTPError('User Not Exists', 404)
     new_password = secrets.token_urlsafe()
@@ -287,7 +293,7 @@ def password_recovery(email):
     user.update(user_id2=user_id2)
     send_noreply(
         [email],
-        '[N-OJ] Password Recovery',
+        '[pyShare] Password Recovery',
         f'Your alternative password is {new_password}.\n'
         'Please login and change your password.',
     )

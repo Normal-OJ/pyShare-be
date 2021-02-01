@@ -41,38 +41,44 @@ class User(MongoBase, engine=engine.User):
             role=role,
             md5=hashlib.md5(email.encode()).hexdigest(),
         ).save(force_insert=True)
-        user = cls(user.id)
         # add user to course
         if course is not None:
             user.update(add_to_set__courses=course)
-            course.update(add_to_set__students=user.obj)
-        return user.reload()
+            course.update(add_to_set__students=user)
+        return cls(user).reload()
 
     @classmethod
     def formated_email(cls, email: str):
         return email.lower().strip()
 
     @classmethod
-    def login(cls, username, password):
-        try:
-            user = cls.get_by_username(username)
-        except engine.DoesNotExist:
-            user = cls.get_by_email(username)
+    def login(
+        cls,
+        school,
+        username,
+        password,
+    ):
+        # try to get a user by given info
+        user = cls.engine.objects.get(
+            username=username,
+            school=school,
+        )
+        # calculate user hash
         user_id = hash_id(user.username, password)
         if compare_digest(user.user_id, user_id) or \
             compare_digest(user.user_id2, user_id):
-            return user
+            return cls(user)
         raise engine.DoesNotExist
 
     @classmethod
     def get_by_username(cls, username):
         obj = cls.engine.objects.get(username=username)
-        return cls(obj.username)
+        return cls(obj)
 
     @classmethod
     def get_by_email(cls, email):
         obj = cls.engine.objects.get(email=cls.formated_email(email))
-        return cls(obj.username)
+        return cls(obj)
 
     @property
     def cookie(self):
