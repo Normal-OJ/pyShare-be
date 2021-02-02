@@ -1,6 +1,5 @@
 # Standard library
 from functools import wraps
-from model.utils.response import HTTPError
 # Related third party imports
 from flask import Blueprint, request, current_app
 # Local application
@@ -86,15 +85,19 @@ def session():
         cookies = {'jwt': None, 'piann': None}
         return HTTPResponse(f'Goodbye', cookies=cookies)
 
-    @Request.json('username: str', 'password: str')
-    def login(username, password):
+    @Request.json(
+        'school: str',
+        'username: str',
+        'password: str',
+    )
+    def login(**u_ks):
         '''Login a user.
         Returns:
             - 400 Incomplete Data
             - 401 Login Failed
         '''
         try:
-            user = User.login(username, password)
+            user = User.login(**u_ks)
         except DoesNotExist:
             return HTTPError('Login Failed', 401)
         if not user.active:
@@ -113,11 +116,15 @@ def session():
     'password: str',
     'email: str',
     'course: str',
+    'school: str',
 )
 @Request.doc('course', Course)
-def signup(username, password, email, course):
+def signup(course, **u_ks):
     try:
-        User.signup(username, password, email, course.obj)
+        User.signup(
+            course=course.obj,
+            **u_ks,
+        )
     except ValidationError as ve:
         return HTTPError('Signup Failed', 400, data=ve.to_dict())
     except NotUniqueError as ne:
