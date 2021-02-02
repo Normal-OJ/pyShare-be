@@ -146,17 +146,26 @@ def batch_signup(user, csv_string, course):
     fails = {}
     exist = set()
     for _u in user_data:
-        new_user = User(_u['username'])
-        if not new_user:
+        try:
+            new_user = User(
+                User.engine.objects.get(
+                    username=_u['username'],
+                    school=_u['school'],
+                ))
+            exist.add(_u['username'])
+            # add to course
+            new_user.update(add_to_set__courses=course.obj)
+            course.update(add_to_set__students=new_user.obj)
+        except DoesNotExist:
             # get role
-            role = _u.get('role', 2)
+            role = _u.get('role', engine.User.Role.STUDENT)
             if role == '':
                 role = engine.User.Role.STUDENT
             try:
                 role = int(role)
             except ValueError:
                 return HTTPError('Role needs to be int', 400)
-            if role < 2 and user != 'admin':
+            if role < engine.User.Role.STUDENT and user < 'admin':
                 return HTTPError('Only admins can change roles', 403)
             # sign up a new user
             err = None
@@ -166,6 +175,7 @@ def batch_signup(user, csv_string, course):
                     password=_u['password'],
                     email=_u['email'],
                     display_name=_u['displayName'],
+                    school=_u['school'],
                     course=course.obj,
                     role=role,
                 )
@@ -180,11 +190,6 @@ def batch_signup(user, csv_string, course):
                     f'fail to sign up for {new_user}\n'
                     f'error: {err[0]}\n'
                     f'data: {err[1]}', )
-        else:
-            exist.add(_u['username'])
-            # add to course
-            new_user.update(add_to_set__courses=course.obj)
-            course.update(add_to_set__students=new_user.obj)
     return HTTPResponse(
         'sign up finish',
         data={
