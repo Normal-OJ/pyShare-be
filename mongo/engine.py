@@ -61,6 +61,7 @@ class User(Document):
             'username': self.username,
             'displayName': self.display_name,
             'school': self.school,
+            'role': self.role,
             'md5': self.md5,
             'id': str(self.id),
         }
@@ -269,7 +270,7 @@ class Notif(Document):
             DICT_FEILDS = {
                 'type': 'type_name',
                 'comment_id': 'comment.id',
-                'liked': 'liked.username',
+                'liked': 'liked.info',
                 'problem_id': 'problem.id',
             }
 

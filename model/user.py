@@ -15,7 +15,7 @@ def get_all_user():
     users = [{
         **u.info,
         **{
-            'star': User(u).liked_amount(),
+            'star': u.liked_amount(),
         }
     } for u in map(User, users)]
     return HTTPResponse('here you are.', data=users)

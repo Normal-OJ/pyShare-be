@@ -209,7 +209,7 @@ class User(MongoBase, engine=engine.User):
             'course': c.problem.course.name,
             'pid': c.problem.pid,
             'floor': c.floor,
-            'staree': c.author.username,
+            'staree': c.author.info,
         } for c in filter(include_comment, self.likes)]
         # comments
         ret['comments'] = [{
@@ -228,7 +228,7 @@ class User(MongoBase, engine=engine.User):
             'course': c.problem.course.name,
             'pid': c.problem.pid,
             'floor': c.floor,
-            'starers': [u.username for u in c.liked],
+            'starers': [u.info for u in c.liked],
         } for c in filter(include_comment, self.comments)]
         # success & fail
         ret['execInfo'] = [{
