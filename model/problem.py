@@ -118,7 +118,7 @@ def create_problem(
     return HTTPResponse(
         'success',
         data={
-            'course': p_ks['course'].name,
+            'course': str(p_ks['course'].id),
             'pid': problem.pid,
         },
     )
@@ -162,10 +162,7 @@ def modify_problem(
             400,
             data=ve.to_dict(),
         )
-    return HTTPResponse(
-        'success',
-        data={'course': problem.course.name},
-    )
+    return HTTPResponse('success')
 
 
 @problem_api.route('/<int:pid>', methods=['DELETE'])
@@ -179,12 +176,8 @@ def delete_problem(user, problem):
     # student can delete only self problem
     if not problem.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
-    course = problem.course.name
     problem.delete()
-    return HTTPResponse(
-        f'{problem} deleted.',
-        data={'course': course},
-    )
+    return HTTPResponse(f'{problem} deleted.')
 
 
 @problem_api.route('/<int:pid>/attachment', methods=['POST', 'DELETE'])
@@ -264,7 +257,4 @@ def clone_problem(user, problem, course):
         return HTTPError(str(ve), 400, data=ve.to_dict())
     except PermissionError as e:
         return HTTPError(str(e), 403)
-    return HTTPResponse(
-        'Success.',
-        data={'course': course.name},
-    )
+    return HTTPResponse('Success.')

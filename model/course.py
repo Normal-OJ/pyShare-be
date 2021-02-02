@@ -96,7 +96,7 @@ def create_course(
     **c_ks,
 ):
     try:
-        Course.add(**c_ks)
+        c = Course.add(**c_ks)
     except ValidationError as ve:
         return HTTPError(
             str(ve),
@@ -107,7 +107,7 @@ def create_course(
         return HTTPError(str(e), 403)
     except NotUniqueError as e:
         return HTTPError(str(e), 422)
-    return HTTPResponse('success')
+    return HTTPResponse('success', data={'id': str(c.id)})
 
 
 @course_api.route('/<course>', methods=['PUT'])
