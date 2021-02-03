@@ -4,6 +4,7 @@ from mongo import *
 import io
 import mongomock.gridfs
 import threading
+import concurrent.futures
 
 mongomock.gridfs.enable_gridfs_integration()
 
@@ -200,8 +201,14 @@ class TestProblem(BaseTester):
         ('attachmentName', None, 400),
         ('attachmentName', 'non-exist', 404),
     ])
-    def test_delete_attachment(self, forge_client, config_app, key, value,
-                               status_code):
+    def test_delete_attachment(
+        self,
+        forge_client,
+        config_app,
+        key,
+        value,
+        status_code,
+    ):
         config_app(None, 'test')
         client = forge_client('teacher1')
         data = {
@@ -219,6 +226,35 @@ class TestProblem(BaseTester):
         if status_code == 200:
             rv = client.get('/problem/1/attachment/att')
             assert rv.status_code == 404
+
+    def test_concurrently_delete_attachments(self, forge_client, config_app):
+        config_app(None, 'test')
+        client = forge_client('teacher1')
+        cnt = 10
+
+        make_name = lambda i: f'test-{i}'
+        # create attachments
+        p = Problem(1)
+        # copy original attachments
+        original_attachments = p.attachments[:]
+        for i in range(cnt):
+            p.insert_attachment(
+                io.BytesIO(b'AAAAA'),
+                make_name(i),
+            )
+        # delete attachments
+        def delete_one(i):
+            rv = client.delete(
+                '/problem/1/attachment',
+                data={'attachmentName': make_name(i)},
+            )
+            assert rv.status_code == 200
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            for i in range(cnt):
+                executor.submit(delete_one, i)
+        p.reload()
+        assert p.attachments == original_attachments
 
     def test_get_an_attachment(self, forge_client, config_app):
         config_app(None, 'test')
