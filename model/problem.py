@@ -1,3 +1,4 @@
+import threading
 from flask import Blueprint, request, send_file
 from urllib import parse
 import threading
@@ -213,19 +214,15 @@ def patch_attachment(
             if attachment is None:
                 attachment = Attachment(attachment_name).copy()
                 use_db = True
-            lock.acquire()
-            problem.insert_attachment(
-                attachment,
-                filename=attachment_name,
-            )
-            lock.release()
+            with lock:
+                problem.reload()
+                problem.insert_attachment(
+                    attachment,
+                    filename=attachment_name,
+                )
         except FileExistsError as e:
-            if lock.locked():
-                lock.release()
             return HTTPError(str(e), 400)
         except FileNotFoundError as e:
-            if lock.locked():
-                lock.release()
             return HTTPError(str(e), 404)
         return HTTPResponse(
             f'successfully update from {"db file" if use_db else "your file"}')
