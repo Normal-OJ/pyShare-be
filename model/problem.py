@@ -228,7 +228,8 @@ def patch_attachment(
             f'successfully update from {"db file" if use_db else "your file"}')
     elif request.method == 'DELETE':
         try:
-            problem.remove_attachment(attachment_name)
+            with lock:
+                problem.remove_attachment(attachment_name)
         except FileNotFoundError as e:
             return HTTPError(str(e), 404)
         return HTTPResponse('successfully delete')
