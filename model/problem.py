@@ -1,3 +1,4 @@
+import threading
 from flask import Blueprint, request, send_file
 from urllib import parse
 import threading
@@ -11,6 +12,7 @@ from .utils import *
 __all__ = ['problem_api']
 
 problem_api = Blueprint('problem_api', __name__)
+lock = threading.Lock()
 
 
 @problem_api.route('/', methods=['GET'])
@@ -212,10 +214,12 @@ def patch_attachment(
             if attachment is None:
                 attachment = Attachment(attachment_name).copy()
                 use_db = True
-            problem.insert_attachment(
-                attachment,
-                filename=attachment_name,
-            )
+            with lock:
+                problem.reload()
+                problem.insert_attachment(
+                    attachment,
+                    filename=attachment_name,
+                )
         except FileExistsError as e:
             return HTTPError(str(e), 400)
         except FileNotFoundError as e:
@@ -224,7 +228,8 @@ def patch_attachment(
             f'successfully update from {"db file" if use_db else "your file"}')
     elif request.method == 'DELETE':
         try:
-            problem.remove_attachment(attachment_name)
+            with lock:
+                problem.remove_attachment(attachment_name)
         except FileNotFoundError as e:
             return HTTPError(str(e), 404)
         return HTTPResponse('successfully delete')
