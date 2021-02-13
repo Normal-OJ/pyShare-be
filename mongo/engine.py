@@ -2,6 +2,7 @@ from mongoengine import *
 import mongoengine
 import os
 from datetime import datetime
+
 from .utils import Enum
 
 __all__ = [*mongoengine.__all__]
@@ -19,7 +20,7 @@ class User(Document):
     )
     user_id = StringField(db_field='userId', max_length=24, required=True)
     user_id2 = StringField(db_field='userId2', max_length=24, default='')
-    email = EmailField(max_length=320, default=None, unique=True)
+    email = EmailField(max_length=320)
     md5 = StringField(required=True, max_length=32)
     active = BooleanField(default=True)
     # role: 0 -> admin / 1 -> teacher / 2 -> student
@@ -35,6 +36,13 @@ class User(Document):
         default=[],
         de_field='likedComments',
     )
+
+    def save(self, *args, **ks):
+        if self.email is not None and User.objects(email=self.email):
+            print(self.email)
+            raise NotUniqueError('Duplicated not-null email field')
+        super().save(*args, **ks)
+        return self.reload()
 
     @property
     def info(self):

@@ -31,16 +31,16 @@ class User(MongoBase, engine=engine.User):
         user_id = hash_id(username, password)
         if email is not None:
             email = email.lower().strip()
-        cls.engine(
+        user = cls.engine(
             user_id=user_id,
             user_id2=user_id,
             username=username,
-            display_name=display_name or username,
             email=email,
+            display_name=display_name or username,
             role=role,
             md5=hashlib.md5((email or '').encode()).hexdigest(),
         ).save(force_insert=True)
-        user = cls(username)
+        user = cls(user)
         # add user to course
         if course is not None:
             user.update(add_to_set__courses=course)
