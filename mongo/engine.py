@@ -37,10 +37,18 @@ class User(Document):
         de_field='likedComments',
     )
 
-    def save(self, *args, **ks):
-        if self.email is not None and User.objects(email=self.email):
-            print(self.email)
+    def check_email(self, email):
+        if email is not None and User.objects(email=email):
+            print(email)
             raise NotUniqueError('Duplicated not-null email field')
+
+    def update(self, **ks):
+        if 'email' in ks:
+            self.check_email(ks['email'])
+        super().update(**ks)
+
+    def save(self, *args, **ks):
+        self.check_email(self.email)
         super().save(*args, **ks)
         return self.reload()
 

@@ -86,6 +86,6 @@ def test_update_email_uniqueness():
     u = utils.user.lazy_signup()
     with pytest.raises(
             NotUniqueError,
-            match=r'.*Dulicate.*',
+            match=r'.*Duplicate.*',
     ):
         u.update(email=email)
