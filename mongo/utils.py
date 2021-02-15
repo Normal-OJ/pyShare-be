@@ -1,5 +1,7 @@
 import hashlib
+import json
 from functools import wraps
+from bson import ObjectId
 from . import engine
 
 __all__ = [
@@ -7,6 +9,7 @@ __all__ = [
     'doc_required',
     'Enum',
     'to_bool',
+    'ObjectIdEncoder',
 ]
 
 
@@ -96,3 +99,10 @@ def doc_required(
         return wrapper
 
     return deco
+
+
+class ObjectIdEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, ObjectId):
+            return str(o)
+        return super().default(o)

@@ -161,6 +161,7 @@ class User(MongoBase, engine=engine.User):
             payload,
             JWT_SECRET,
             algorithm='HS256',
+            json_encoder=ObjectIdEncoder,
         ).decode()
 
     def change_password(self, password):
