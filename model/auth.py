@@ -34,7 +34,7 @@ def login_required(func):
         json = jwt_decode(token)
         if json is None or not json.get('secret'):
             return HTTPError('Invalid Token', 401)
-        user = User(json['data']['id'])
+        user = User(json['data']['_id'])
         try:
             if secrets.compare_digest(
                     json['data'].get('userId'),
