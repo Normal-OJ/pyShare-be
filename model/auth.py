@@ -36,7 +36,7 @@ def login_required(func):
             return HTTPError('Invalid Token', 401)
         user = User(json['data']['_id'])
         try:
-            if secrets.compare_digest(
+            if not secrets.compare_digest(
                     json['data'].get('userId'),
                     user.user_id,
             ):
