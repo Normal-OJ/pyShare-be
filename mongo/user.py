@@ -95,7 +95,11 @@ class User(MongoBase, engine=engine.User):
 
     @property
     def secret(self):
-        keys = ['username', 'userId']
+        keys = [
+            '_id',
+            'username',
+            'userId',
+        ]
         return self.jwt(*keys, secret=True)
 
     @property
