@@ -22,9 +22,11 @@ class User(Document):
         max_length=16,
         required=True,
     )
+    # empty string means "no school"
     school = StringField(
         max_length=16,
         unique_with='username',
+        default='',
     )
     display_name = StringField(
         db_field='displayName',
