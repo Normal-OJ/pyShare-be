@@ -147,7 +147,7 @@ def modify_problem(
     # if allow_multiple_comments is False
     if user < 'teacher' and p_ks.get('allow_multiple_comments') == False:
         return HTTPError('Students have to allow multiple comments.', 403)
-    c = Course(problem.course.name)
+    c = Course(problem.course)
     for tag in tags:
         if not c.check_tag(tag):
             return HTTPError(

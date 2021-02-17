@@ -83,6 +83,7 @@ class Problem(MongoBase, engine=engine.Problem):
         '''
         ret = self.to_mongo().to_dict()
         ret['pid'] = ret['_id']
+        ret['course'] = str(ret['course'])
         ret['attachments'] = [att.filename for att in self.attachments]
         ret['timestamp'] = ret['timestamp'].timestamp()
         ret['author'] = self.author.info
