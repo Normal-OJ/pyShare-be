@@ -157,7 +157,7 @@ def update_students(user, course, users):
     u_users = [*map(User, users)]
     # store nonexistent user ids
     not_in_db = [str(u.pk) for u in filter(bool, u_users)]
-    action = request.url_rule[-6:]
+    action = request.url[-6:]
     if action == 'insert':
         warning = [*({*course.students} & {*[u.obj for u in u_users]})]
         course.update(push_all__students=users)
