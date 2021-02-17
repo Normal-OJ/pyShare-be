@@ -16,10 +16,10 @@ def test_normally_signup():
     [
         {
             'username': 'bogay',
-            'school': 'NTNU'
+            'school': 'NTNU',
         },
         {
-            'email': 'bogay@noj.tw'
+            'email': 'bogay@noj.tw',
         },
         # password can be the same
         pytest.param(
