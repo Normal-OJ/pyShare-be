@@ -141,7 +141,7 @@ def update_course(
 @login_required
 @Request.json('users: list')
 @Request.doc('name', 'course', Course)
-def update_students(user, course, users, action):
+def update_students(user, course, users):
     '''
     update course students, action should be `insert` or `remove`
     '''
