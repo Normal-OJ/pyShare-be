@@ -28,9 +28,9 @@ class Course(MongoBase, engine=engine.Course):
         if user == self.teacher or user >= 'admin':
             _permission |= {'r', 'p', 'w'}
         # course's students can participate, or everyone can participate if the course is public
-        elif user in self.students or self.status == engine.CourseStatus.PUBLIC:
+        elif user in self.students or self.status == self.engine.Status.PUBLIC:
             _permission |= {'r', 'p'}
-        elif self.status == engine.CourseStatus.READONLY:
+        elif self.status == self.engine.Status.READONLY:
             _permission |= {'r'}
         if isinstance(req, set):
             return not bool(req - _permission)

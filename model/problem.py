@@ -91,7 +91,7 @@ def get_single_problem(user, problem):
     'is_template: bool',
     'allow_multiple_comments: bool',
 )
-@Request.doc('course', 'course', Course)
+@Request.doc('course', Course)
 @login_required
 @fe_update('PROBLEM', 'course')
 def create_problem(
@@ -117,7 +117,7 @@ def create_problem(
     return HTTPResponse(
         'success',
         data={
-            'course': p_ks['course'].name,
+            'course': str(p_ks['course'].id),
             'pid': problem.pid,
         },
     )
@@ -161,10 +161,7 @@ def modify_problem(
             400,
             data=ve.to_dict(),
         )
-    return HTTPResponse(
-        'success',
-        data={'course': problem.course.name},
-    )
+    return HTTPResponse('success')
 
 
 @problem_api.route('/<int:pid>', methods=['DELETE'])
@@ -178,12 +175,8 @@ def delete_problem(user, problem):
     # student can delete only self problem
     if not problem.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
-    course = problem.course.name
     problem.delete()
-    return HTTPResponse(
-        f'{problem} deleted.',
-        data={'course': course},
-    )
+    return HTTPResponse(f'{problem} deleted.')
 
 
 @problem_api.route('/<int:pid>/attachment', methods=['POST', 'DELETE'])
@@ -247,9 +240,9 @@ def get_attachment(user, problem, name):
     return HTTPError('file not found', 404)
 
 
-@problem_api.route('/<int:pid>/clone/<course_name>', methods=['GET'])
+@problem_api.route('/<int:pid>/clone/<course>', methods=['GET'])
 @Request.doc('pid', 'problem', Problem)
-@Request.doc('course_name', 'course', Course)
+@Request.doc('course', Course)
 @fe_update('PROBLEM', 'course')
 def clone_problem(user, problem, course):
     '''
@@ -263,7 +256,4 @@ def clone_problem(user, problem, course):
         return HTTPError(str(ve), 400, data=ve.to_dict())
     except PermissionError as e:
         return HTTPError(str(e), 403)
-    return HTTPResponse(
-        'Success.',
-        data={'course': course.name},
-    )
+    return HTTPResponse('Success.')

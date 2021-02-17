@@ -15,8 +15,9 @@ def course_list(user):
     '''
     get a list of course with course name and teacher's name
     '''
-    cs = map(Course, engine.Course.objects.only('name'))
+    cs = map(Course, engine.Course.objects.only('id'))
     cs = [{
+        'id': str(c.id),
         'name': c.name,
         'teacher': c.teacher.info,
         'description': c.description,
@@ -30,9 +31,9 @@ def course_list(user):
     return HTTPResponse('here you are', data=cs)
 
 
-@course_api.route('/<name>', methods=['GET'])
+@course_api.route('/<course>', methods=['GET'])
 @login_required
-@Request.doc('name', 'course', Course)
+@Request.doc('course', Course)
 def get_single_course(user, course):
     if not course.permission(user=user, req={'r'}):
         return HTTPError('Not enough permission', 403)
@@ -52,9 +53,9 @@ def get_single_course(user, course):
     return HTTPResponse('here you are', data=ret)
 
 
-@course_api.route('/<name>/statistic', methods=['GET'])
+@course_api.route('/<course>/statistic', methods=['GET'])
 @login_required
-@Request.doc('name', 'course', Course)
+@Request.doc('course', Course)
 def statistic(user, course):
     if not course.permission(user=user, req={'r'}):
         return HTTPError('Not enough permission', 403)
@@ -67,9 +68,9 @@ def statistic(user, course):
     return HTTPResponse('ok', data=ret)
 
 
-@course_api.route('/<name>', methods=['DELETE'])
+@course_api.route('/<course>', methods=['DELETE'])
 @login_required
-@Request.doc('name', 'course', Course)
+@Request.doc('course', Course)
 def delete_course(user, course):
     if not course.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
@@ -93,7 +94,7 @@ def create_course(
     **c_ks,
 ):
     try:
-        Course.add(**c_ks)
+        c = Course.add(**c_ks)
     except ValidationError as ve:
         return HTTPError(
             str(ve),
@@ -104,18 +105,19 @@ def create_course(
         return HTTPError(str(e), 403)
     except NotUniqueError as e:
         return HTTPError(str(e), 422)
-    return HTTPResponse('success')
+    return HTTPResponse('success', data={'id': str(c.id)})
 
 
-@course_api.route('/<name>', methods=['PUT'])
+@course_api.route('/<course>', methods=['PUT'])
 @login_required
 @Request.json(
+    'name: str',
     'description: str',
     'year: int',
     'semester: int',
     'status: int',
 )
-@Request.doc('name', 'course', Course)
+@Request.doc('course', Course)
 def update_course(
     user,
     course,
@@ -136,23 +138,23 @@ def update_course(
     return HTTPResponse('success')
 
 
-@course_api.route('/<name>/student/insert', methods=['PATCH'])
-@course_api.route('/<name>/student/remove', methods=['PATCH'])
+@course_api.route('/<course>/student/insert', methods=['PATCH'])
+@course_api.route('/<course>/student/remove', methods=['PATCH'])
 @login_required
 @Request.json('users: list')
-@Request.doc('name', 'course', Course)
+@Request.doc('course', Course)
 def update_students(user, course, users):
     '''
     update course students, action should be `insert` or `remove`
     '''
     if not course.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
-    # ignore duplicated usernames
+    # ignore duplicated user ids
     users = [*{*users}]
     # query document
     u_users = [*map(User, users)]
-    # store nonexistent usernames
-    not_in_db = [u.pk for u in filter(bool, u_users)]
+    # store nonexistent user ids
+    not_in_db = [str(u.pk) for u in filter(bool, u_users)]
     action = request.url_rule[-6:]
     if action == 'insert':
         warning = [*({*course.students} & {*[u.obj for u in u_users]})]
@@ -182,13 +184,13 @@ def update_students(user, course, users):
     return HTTPResponse('success')
 
 
-@course_api.route('/<name>/tag', methods=['PATCH'])
+@course_api.route('/<course>/tag', methods=['PATCH'])
 @login_required
 @Request.json(
     'push: list',
     'pop: list',
 )
-@Request.doc('name', 'course', Course)
+@Request.doc('course', Course)
 def update_tags(user, course, push, pop):
     '''
     push/pop tags to/from course
@@ -210,9 +212,9 @@ def update_tags(user, course, push, pop):
     return HTTPResponse('success')
 
 
-@course_api.route('/<name>/statistic-file', methods=['GET'])
+@course_api.route('/<course>/statistic-file', methods=['GET'])
 @login_required
-@Request.doc('name', 'course', Course)
+@Request.doc('course', Course)
 def get_statistic_file(user, course: Course):
     if not course.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
