@@ -41,6 +41,8 @@ def get_single_course(user, course):
         p.comments for p in course.problems if not p.is_template
     ]
     ret = {
+        'name': course.name,
+        'id': str(course.id),
         'teacher': course.teacher.info,
         'students': [s.info for s in course.students],
         'numOfProblems': len(comments_of_problems),

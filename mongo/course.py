@@ -56,7 +56,7 @@ class Course(MongoBase, engine=engine.Course):
         ).save(force_insert=True)
         # update teacher course
         teacher.update(add_to_set__courses=c)
-        return cls(c.name)
+        return cls(c)
 
     def statistic_file(self):
         f = tempfile.TemporaryFile('w+')
