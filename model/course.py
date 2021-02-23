@@ -67,6 +67,12 @@ def statistic(user, course):
         ret.append(s)
     return HTTPResponse('ok', data=ret)
 
+@course_api.route('/<name>/permission', methods=['GET'])
+@login_required
+@Request.doc('name', 'course', Course)
+def permission(user, course):
+    return HTTPResponse('ok', data=list(course.permission(user=user)))
+
 
 @course_api.route('/<name>', methods=['DELETE'])
 @login_required
