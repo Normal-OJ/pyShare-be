@@ -3,10 +3,7 @@ import random
 from typing import Union
 from mongo import *
 from mongo import engine
-
-
-def none_or(val, or_val):
-    return val if val is not None else or_val
+from .utils import none_or
 
 
 def data(
@@ -32,3 +29,7 @@ def data(
         none_or(status, engine.CourseStatus.PUBLIC),
     }
     return ret
+
+
+def random_add(**ks):
+    return Course.add(**data(**ks))
