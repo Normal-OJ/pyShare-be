@@ -67,6 +67,7 @@ def get_comment(user, comment: Comment):
         return HTTPError('permission denied', 403)
     return HTTPResponse('success', data=comment.to_dict())
 
+
 @comment_api.route('/<_id>/permission', methods=['GET'])
 @login_required
 @Request.doc('_id', 'comment', Comment)

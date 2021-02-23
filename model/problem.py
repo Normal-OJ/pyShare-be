@@ -82,6 +82,7 @@ def get_single_problem(user, problem):
         data=problem.to_dict(),
     )
 
+
 @problem_api.route('/<int:pid>/permission', methods=['GET'])
 @login_required
 @Request.doc('pid', 'problem', Problem)
