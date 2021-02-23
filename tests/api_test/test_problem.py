@@ -5,6 +5,7 @@ import io
 import mongomock.gridfs
 import threading
 import concurrent.futures
+from tests import utils
 
 mongomock.gridfs.enable_gridfs_integration()
 
@@ -196,11 +197,14 @@ class TestProblem(BaseTester):
             assert rv.status_code == 200
             assert rv.data == f'Testing{i}'.encode('utf-8')
 
-    @pytest.mark.parametrize('key, value, status_code', [
-        (None, None, 200),
-        ('attachmentName', None, 400),
-        ('attachmentName', 'non-exist', 404),
-    ])
+    @pytest.mark.parametrize(
+        'key, value, status_code',
+        [
+            (None, None, 200),
+            ('attachmentName', None, 400),
+            ('attachmentName', 'non-exist', 404),
+        ],
+    )
     def test_delete_attachment(
         self,
         forge_client,
@@ -234,7 +238,8 @@ class TestProblem(BaseTester):
 
         make_name = lambda i: f'test-{i}'
         # create attachments
-        p = Problem(1)
+        p = utils.problem.lazy_add(author='teacher1')
+        pid = p.pid
         # copy original attachments
         original_attachments = p.attachments[:]
         for i in range(cnt):
@@ -245,7 +250,7 @@ class TestProblem(BaseTester):
         # delete attachments
         def delete_one(i):
             rv = client.delete(
-                '/problem/1/attachment',
+                f'/problem/{pid}/attachment',
                 data={'attachmentName': make_name(i)},
             )
             assert rv.status_code == 200

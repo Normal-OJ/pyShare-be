@@ -229,6 +229,7 @@ def patch_attachment(
     elif request.method == 'DELETE':
         try:
             with lock:
+                problem.reload()
                 problem.remove_attachment(attachment_name)
         except FileNotFoundError as e:
             return HTTPError(str(e), 404)
