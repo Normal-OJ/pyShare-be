@@ -18,11 +18,13 @@ class TagNotFoundError(Exception):
 
 class Problem(MongoBase, engine=engine.Problem):
     @doc_required('user', 'user', User)
-    def permission(self, user: User, req):
+    def permission(self, user: User, req=None):
         '''
         check user's permission, `req` is a set of required
         permissions, currently accept values are {'r', 'w', 'd'}
         represent read and write respectively
+        
+        if req is None, return the user's permissions instead
 
         Returns:
             a `bool` value denotes whether user has these
@@ -37,6 +39,8 @@ class Problem(MongoBase, engine=engine.Problem):
         # problem author and admin can edit, delete problem
         if user == self.author or user >= 'admin':
             _permission |= {*'rwd'}
+        if req is None:
+            return _permission
         if isinstance(req, set):
             return not bool(req - _permission)
         return req in _permission
