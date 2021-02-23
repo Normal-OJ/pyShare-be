@@ -23,10 +23,12 @@ def data(
     if teacher is not None:
         ret['teacher'] = teacher
     else:
+        # TODO: use enum to define role
         try:
-            u = engine.User.objects(role__lt=2).first()
-        except DoesNotExist:
-            # TODO: use enum to define role
+            # randomly pick one teacher or admin
+            pipeline = [{'$sample': {'size': 1}}]
+            u = next(engine.User.objects(role__lt=2).aggregate(pipeline))
+        except StopIteration:
             u = user.lazy_signup(role=1)
         ret['teacher'] = u.pk
     return ret
