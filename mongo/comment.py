@@ -34,13 +34,15 @@ class Comment(MongoBase, engine=engine.Comment):
         self.id = str(_id)
 
     @doc_required('user', 'user', User)
-    def permission(self, user: User, req):
+    def permission(self, user: User, req=None):
         '''
         require 'j' for rejudge
         require 's' for changing state
         require 'd' for deletion
         require 'w' for writing
         require 'r' for reading
+        
+        if req is None, return the user's permissions instead
         '''
         _permission = {'r'}
         # author have all permissions except changing state
@@ -56,6 +58,8 @@ class Comment(MongoBase, engine=engine.Comment):
         elif self.hidden or not Problem(self.problem.pk).permission(user=user,
                                                                     req={'r'}):
             _permission.remove('r')
+        if req is None:
+            return _permission
         if isinstance(req, set):
             return not bool(req - _permission)
         return req in _permission
