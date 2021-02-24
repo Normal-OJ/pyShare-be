@@ -3,6 +3,8 @@ from typing import Optional
 from mongo import *
 from .utils import drop_none
 
+__all__ = ('data', 'lazy_signup')
+
 
 def random_username():
     return secrets.token_hex(8)
@@ -30,7 +32,3 @@ def data(
 
 def lazy_signup(**ks):
     return User.signup(**data(**ks))
-
-
-def randomly_add():
-    return lazy_signup()
