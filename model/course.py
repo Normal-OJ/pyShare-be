@@ -1,4 +1,4 @@
-from flask import Blueprint, send_file
+from flask import Blueprint, send_file, request
 from .utils import *
 from .auth import *
 from mongo import *
@@ -20,6 +20,7 @@ def course_list(user):
     cs = [{
         'name': c.name,
         'teacher': c.teacher.info,
+        'description': c.description,
         'year': c.year,
         'semester': c.semester,
         'status': c.status,
@@ -44,6 +45,7 @@ def get_single_course(user, course):
         'students': [s.info for s in course.students],
         'numOfProblems': len(comments_of_problems),
         'numOfComments': sum(map(len, comments_of_problems)),
+        'description': course.description,
         'year': course.year,
         'semester': course.semester,
         'status': course.status,
@@ -81,6 +83,7 @@ def delete_course(user, course):
 @Request.json(
     'name: str',
     'teacher: str',
+    'description: str',
     'year: int',
     'semester: int',
     'status: int',
@@ -89,28 +92,16 @@ def delete_course(user, course):
 @identity_verify(0, 1)  # only admin and teacher can call this route
 def create_course(
     user,
-    name,
-    teacher,
-    year,
-    semester,
-    status,
+    **c_ks,
 ):
     try:
-        Course.add(
-            name=name,
-            teacher=teacher,
-            year=year,
-            semester=semester,
-            status=status,
-        )
+        Course.add(**c_ks)
     except ValidationError as ve:
         return HTTPError(
             str(ve),
             400,
             data=ve.to_dict(),
         )
-    except ValueError as e:
-        return HTTPError(str(e), 400)
     except PermissionError as e:
         return HTTPError(str(e), 403)
     except NotUniqueError as e:
@@ -121,6 +112,7 @@ def create_course(
 @course_api.route('/<name>', methods=['PUT'])
 @login_required
 @Request.json(
+    'description: str',
     'year: int',
     'semester: int',
     'status: int',
@@ -129,18 +121,12 @@ def create_course(
 def update_course(
     user,
     course,
-    year,
-    semester,
-    status,
+    **c_ks,
 ):
     if not course.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
     try:
-        course.update(
-            year=year,
-            semester=semester,
-            status=status,
-        )
+        course.update(**c_ks)
     except ValidationError as ve:
         return HTTPError(
             str(ve),
@@ -152,7 +138,8 @@ def update_course(
     return HTTPResponse('success')
 
 
-@course_api.route('/<name>/student/<action>', methods=['PATCH'])
+@course_api.route('/<name>/student/insert', methods=['PATCH'])
+@course_api.route('/<name>/student/remove', methods=['PATCH'])
 @login_required
 @Request.json('users: list')
 @Request.doc('name', 'course', Course)
@@ -162,15 +149,13 @@ def update_students(user, course, users, action):
     '''
     if not course.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
-    # preprocess action
-    if action not in {'insert', 'remove'}:
-        return HTTPError('only accept action \'insert\' or \'remove\'', 400)
     # ignore duplicated usernames
     users = [*{*users}]
     # query document
     u_users = [*map(User, users)]
     # store nonexistent usernames
     not_in_db = [u.pk for u in filter(bool, u_users)]
+    action = request.url_rule[-6:]
     if action == 'insert':
         warning = [*({*course.students} & {*[u.obj for u in u_users]})]
         course.update(push_all__students=users)
@@ -192,7 +177,10 @@ def update_students(user, course, users, action):
 
 @course_api.route('/<name>/tag', methods=['PATCH'])
 @login_required
-@Request.json('push: list', 'pop: list')
+@Request.json(
+    'push: list',
+    'pop: list',
+)
 @Request.doc('name', 'course', Course)
 def update_tags(user, course, push, pop):
     '''
@@ -200,16 +188,14 @@ def update_tags(user, course, push, pop):
     '''
     if not course.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
-    for t in push:
-        if not Tag(t):
-            return HTTPError('Push: Tag not found', 404)
-        if t in pop:
-            return HTTPError('Tag appears in both list', 400)
-        if t in course.tags:
-            return HTTPError('Push: Tag is already in course', 400)
-    for t in pop:
-        if t not in course.tags:
-            return HTTPError('Pop: Tag not found', 404)
+    if not all(map(Tag, push)):
+        return HTTPError('Push: Tag not found', 404)
+    if {*pop} & {*push}:
+        return HTTPError('Tag appears in both list', 400)
+    if {*push} & {*course.tags}:
+        return HTTPError('Push: Tag is already in course', 400)
+    if {*pop} - {*course.tags}:
+        return HTTPError('Pop: Tag not found', 404)
     try:
         course.patch_tag(push, pop)
     except ValidationError as ve:

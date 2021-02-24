@@ -124,4 +124,12 @@ def change_state(user, submission: Submission, state):
                 is_accepted,
                 comment.submissions,
             )))
+    # notify the author of the creation
+    info = Notif.types.Grade(
+        comment=comment.pk,
+        result=state,
+        problem=comment.problem,
+    )
+    notif = Notif.new(info)
+    comment.author.update(push__notifs=notif.pk)
     return HTTPResponse('ok')

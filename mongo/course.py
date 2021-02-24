@@ -1,9 +1,8 @@
-import re
 import csv
 import tempfile
+from . import engine
 from .base import MongoBase
 from .user import User
-from . import engine
 from .utils import *
 
 __all__ = ['Course']
@@ -49,11 +48,6 @@ class Course(MongoBase, engine=engine.Course):
             raise PermissionError(
                 'only those who has more permission'
                 ' than teacher can create course', )
-        # check course name
-        # it can only contain letters, numbers, underscore (_),
-        # dash (-) and dot (.), also, it can not be empty
-        if not re.match(r'[\w\.\ _\-]+$', name):
-            raise ValueError(f'course name ({name}) is invalid')
         # insert a new course into DB
         c = cls.engine(
             teacher=teacher.username,

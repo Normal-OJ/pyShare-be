@@ -9,10 +9,8 @@ def setup_function(_):
 
 
 def random_teacher():
-    user = utils.user.randomly_add()
-    # change its role to teacher
-    user.update(role=1)
-    return user.reload()
+    # 1 is role id for teacher
+    return utils.user.lazy_signup(role=1)
 
 
 @pytest.mark.parametrize(
@@ -30,7 +28,7 @@ def test_user_permission(role):
     user = utils.user.lazy_signup()
     user.update(role=role)
     user = user.reload()
-    Course.add(**utils.course.data(teacher=user))
+    utils.course.lazy_add(teacher=user)
 
 
 @pytest.mark.parametrize(
@@ -51,7 +49,7 @@ def test_user_permission(role):
 )
 def test_course_status(status):
     user = random_teacher()
-    c = Course.add(**utils.course.data(teacher=user, status=status))
+    c = utils.course.lazy_add(teacher=user, status=status)
     assert c.status == status
 
 
@@ -67,8 +65,7 @@ def test_course_status(status):
 )
 def test_normal_course_name(name):
     user = random_teacher()
-    data = utils.course.data(name=name, teacher=user)
-    c = Course.add(**data)
+    c = utils.course.lazy_add(name=name, teacher=user)
     assert c.name == name
 
 
@@ -76,13 +73,12 @@ def test_normal_course_name(name):
     'name, exception',
     [
         ('A' * 65, ValidationError),
-        ('@A@', ValueError),
-        ('Computer/Programming/I', ValueError),
-        ('', ValueError),
+        ('@A@', ValidationError),
+        ('Computer/Programming/I', ValidationError),
+        ('', ValidationError),
     ],
 )
 def test_invalid_course_name(name, exception):
     user = random_teacher()
     with pytest.raises(exception, match=r'.*name.*'):
-        data = utils.course.data(name=name, teacher=user)
-        Course.add(**data)
+        utils.course.lazy_add(name=name, teacher=user)

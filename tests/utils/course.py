@@ -3,10 +3,8 @@ import random
 from typing import Union
 from mongo import *
 from mongo import engine
-
-
-def none_or(val, or_val):
-    return val if val is not None else or_val
+from .utils import none_or
+from . import user
 
 
 def data(
@@ -17,18 +15,20 @@ def data(
     status: int = None,
 ):
     ret = {
-        'name':
-        none_or(name, secrets.token_hex(16)),
-        'teacher':
-        none_or(
-            teacher,
-            engine.User.objects(role__lt=2).first().username,
-        ),
-        'year':
-        none_or(year, random.randint(109, 115)),
-        'semester':
-        none_or(semester, random.randint(1, 2)),
-        'status':
-        none_or(status, engine.CourseStatus.PUBLIC),
+        'name': none_or(name, secrets.token_hex(16)),
+        'year': none_or(year, random.randint(109, 115)),
+        'semester': none_or(semester, random.randint(1, 2)),
+        'status': none_or(status, engine.CourseStatus.PUBLIC),
     }
+    # save teacher's pk
+    if teacher is not None:
+        ret['teacher'] = getattr(teacher, 'pk', teacher)
+    else:
+        # TODO: use enum to define role
+        u = user.lazy_signup(role=1)
+        ret['teacher'] = u.pk
     return ret
+
+
+def lazy_add(**ks):
+    return Course.add(**data(**ks))
