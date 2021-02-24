@@ -8,7 +8,7 @@ def setup_function(_):
 
 
 def test_normally_signup():
-    utils.user.randomly_add()
+    utils.user.lazy_signup()
 
 
 @pytest.mark.parametrize(
