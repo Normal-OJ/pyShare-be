@@ -20,16 +20,12 @@ def data(
         'semester': none_or(semester, random.randint(1, 2)),
         'status': none_or(status, engine.CourseStatus.PUBLIC),
     }
+    # save teacher's pk
     if teacher is not None:
-        ret['teacher'] = teacher
+        ret['teacher'] = getattr(teacher, 'pk', teacher)
     else:
         # TODO: use enum to define role
-        try:
-            # randomly pick one teacher or admin
-            pipeline = [{'$sample': {'size': 1}}]
-            u = next(engine.User.objects(role__lt=2).aggregate(pipeline))
-        except StopIteration:
-            u = user.lazy_signup(role=1)
+        u = user.lazy_signup(role=1)
         ret['teacher'] = u.pk
     return ret
 
