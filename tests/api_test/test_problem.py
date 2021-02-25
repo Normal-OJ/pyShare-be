@@ -132,6 +132,35 @@ class TestProblem(BaseTester):
         assert len(json['data']['replies']) == 3
         assert rv.status_code == 200
 
+    def test_get_permission(self, forge_client, config_app):
+        config_app(None, 'test')
+        client = forge_client('teacher1')
+
+        rv = client.get(f'/problem/1/permission')
+        json = rv.get_json()
+        assert rv.status_code == 200
+        assert set(json['data']) == set([*'rwd'])
+
+    def test_get_comment_permission(self, forge_client, config_app):
+        config_app(None, 'test')
+        client = forge_client('teacher1')
+
+        rv = client.post('/comment',
+                         json={
+                             'target': 'problem',
+                             'id': 1,
+                             'title': 'comment',
+                             'content': '',
+                             'code': ''
+                         })
+        json = rv.get_json()
+        id = json['data']['id']
+
+        rv = client.get(f'/comment/{id}/permission')
+        json = rv.get_json()
+        assert rv.status_code == 200
+        assert set(json['data']) == set([*'wjdsr'])
+
     @pytest.mark.parametrize('key, value, status_code, message', [
         (None, None, 200, 'your file'),
         (['attachmentName', 'attachment'], ['atta1', None], 200, 'db file'),

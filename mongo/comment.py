@@ -58,7 +58,6 @@ class Comment(MongoBase, engine=engine.Comment):
             _permission.remove('r')
         return _permission
 
-
     @doc_required('user', 'user', User)
     def permission(self, user: User, req):
         _permission = self.own_permission(user=user)

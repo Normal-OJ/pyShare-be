@@ -34,7 +34,6 @@ class Problem(MongoBase, engine=engine.Problem):
             _permission |= {*'rwd'}
         return _permission
 
-    
     @doc_required('user', 'user', User)
     def permission(self, user: User, req):
         '''
