@@ -89,7 +89,7 @@ def get_single_problem(user, problem):
 def get_problem_permission(user, problem):
     return HTTPResponse(
         'here you are, bro',
-        data=list(problem.permission(user=user)),
+        data=list(problem.own_permission(user=user)),
     )
 
 

@@ -72,7 +72,7 @@ def statistic(user, course):
 @login_required
 @Request.doc('name', 'course', Course)
 def permission(user, course):
-    return HTTPResponse('ok', data=list(course.permission(user=user)))
+    return HTTPResponse('ok', data=list(course.own_permission(user=user)))
 
 
 @course_api.route('/<name>', methods=['DELETE'])

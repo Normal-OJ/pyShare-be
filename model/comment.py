@@ -72,7 +72,7 @@ def get_comment(user, comment: Comment):
 @login_required
 @Request.doc('_id', 'comment', Comment)
 def get_comment_permission(user, comment: Comment):
-    return HTTPResponse('success', data=list(comment.permission(user=user)))
+    return HTTPResponse('success', data=list(comment.own_permission(user=user)))
 
 
 @comment_api.route('/<_id>', methods=['PUT'])

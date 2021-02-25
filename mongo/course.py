@@ -13,17 +13,10 @@ class Course(MongoBase, engine=engine.Course):
         return (tag in self.tags)
 
     @doc_required('user', 'user', User)
-    def permission(self, user: User, req=None):
+    def own_permission(self, user: User):
         '''
-        check user's permission, `req` is a set of required
-        permissions, currently accept values are {'r', 'p', 'w'}
+        {'r', 'p', 'w'}
         stand for read, participate, modify
-        
-        if req is None, return the user's permissions instead
-
-        Returns:
-            a `bool` value denotes whether user has these
-            permissions 
         '''
         _permission = set()
         # course's teacher and admins can do anything
@@ -34,8 +27,19 @@ class Course(MongoBase, engine=engine.Course):
             _permission |= {'r', 'p'}
         elif self.status == engine.CourseStatus.READONLY:
             _permission |= {'r'}
-        if req is None:
-            return _permission
+        return _permission
+
+    @doc_required('user', 'user', User)
+    def permission(self, user: User, req):
+        '''
+        check user's permission, `req` is a set of required
+        permissions
+        
+        Returns:
+            a `bool` value denotes whether user has these
+            permissions 
+        '''
+        _permission = self.own_permission(user=user)
         if isinstance(req, set):
             return not bool(req - _permission)
         return req in _permission
