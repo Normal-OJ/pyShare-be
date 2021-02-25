@@ -206,38 +206,38 @@ class User(MongoBase, engine=engine.User):
         ret = {}
         # all problems
         ret['problems'] = [{
-            'course': p.course.name,
+            'course': { 'name': p.course.name, 'id': str(p.course.id) },
             'pid': p.pid,
         } for p in filter(include_problem, self.problems)]
         # liked comments
         ret['likes'] = [{
-            'course': c.problem.course.name,
+            'course': { 'name': c.problem.course.name, 'id': str(c.problem.course.id) },
             'pid': c.problem.pid,
             'floor': c.floor,
             'staree': c.author.info,
         } for c in filter(include_comment, self.likes)]
         # comments
         ret['comments'] = [{
-            'course': c.problem.course.name,
+            'course': { 'name': c.problem.course.name, 'id': str(c.problem.course.id) },
             'pid': c.problem.pid,
             'floor': c.floor,
             'accepted': c.has_accepted,
         } for c in filter(include_comment, self.comments)]
         ret['replies'] = [{
-            'course': c.problem.course.name,
+            'course': { 'name': c.problem.course.name, 'id': str(c.problem.course.id) },
             'pid': c.problem.pid,
             'floor': c.floor,
         } for c in filter(include_reply, self.comments)]
         # comments be liked
         ret['liked'] = [{
-            'course': c.problem.course.name,
+            'course': { 'name': c.problem.course.name, 'id': str(c.problem.course.id) },
             'pid': c.problem.pid,
             'floor': c.floor,
             'starers': [u.info for u in c.liked],
         } for c in filter(include_comment, self.comments)]
         # success & fail
         ret['execInfo'] = [{
-            'course': c.problem.course.name,
+            'course': { 'name': c.problem.course.name, 'id': str(c.problem.course.id) },
             'pid': c.problem.pid,
             'floor': c.floor,
             'success': c.success,
