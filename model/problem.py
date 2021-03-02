@@ -83,6 +83,16 @@ def get_single_problem(user, problem):
     )
 
 
+@problem_api.route('/<int:pid>/permission', methods=['GET'])
+@login_required
+@Request.doc('pid', 'problem', Problem)
+def get_problem_permission(user, problem):
+    return HTTPResponse(
+        'here you are, bro',
+        data=list(problem.own_permission(user=user)),
+    )
+
+
 @problem_api.route('/', methods=['POST'])
 @Request.json(
     'title: str',

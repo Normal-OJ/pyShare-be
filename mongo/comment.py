@@ -34,7 +34,7 @@ class Comment(MongoBase, engine=engine.Comment):
         self.id = str(_id)
 
     @doc_required('user', 'user', User)
-    def permission(self, user: User, req):
+    def own_permission(self, user: User):
         '''
         require 'j' for rejudge
         require 's' for changing state
@@ -56,6 +56,11 @@ class Comment(MongoBase, engine=engine.Comment):
         elif self.hidden or not Problem(self.problem.pk).permission(user=user,
                                                                     req={'r'}):
             _permission.remove('r')
+        return _permission
+
+    @doc_required('user', 'user', User)
+    def permission(self, user: User, req):
+        _permission = self.own_permission(user=user)
         if isinstance(req, set):
             return not bool(req - _permission)
         return req in _permission
