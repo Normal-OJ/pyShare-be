@@ -139,7 +139,7 @@ class TestProblem(BaseTester):
         rv = client.get(f'/problem/1/permission')
         json = rv.get_json()
         assert rv.status_code == 200
-        assert set(json['data']) == set([*'rwd'])
+        assert set(json['data']) == {*'rwd'}
 
     def test_get_comment_permission(self, forge_client, config_app):
         config_app(None, 'test')
@@ -159,7 +159,7 @@ class TestProblem(BaseTester):
         rv = client.get(f'/comment/{id}/permission')
         json = rv.get_json()
         assert rv.status_code == 200
-        assert set(json['data']) == set([*'wjdsr'])
+        assert set(json['data']) == {*'wjdsr'}
 
     @pytest.mark.parametrize('key, value, status_code, message', [
         (None, None, 200, 'your file'),

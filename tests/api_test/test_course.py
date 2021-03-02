@@ -10,4 +10,4 @@ class TestCourse(BaseTester):
         rv = client.get(f'/course/course_108-1/permission')
         json = rv.get_json()
         assert rv.status_code == 200
-        assert set(json['data']) == set([*'rwp'])
+        assert set(json['data']) == {*'rwp'}
