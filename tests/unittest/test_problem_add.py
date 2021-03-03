@@ -1,3 +1,4 @@
+from attr import Factory
 import pytest
 from mongo import engine
 from tests import utils
@@ -25,23 +26,17 @@ def test_auto_increment_id():
     'user, course, valid',
     [
         (
-            {
-                'role': 0,
-            },
+            utils.user.Factory.admin,
             {},
             True,
         ),
         (
-            {
-                'role': 1
-            },
+            utils.user.Factory.teacher,
             {},
             True,
         ),
         (
-            {
-                'role': 1
-            },
+            utils.user.Factory.teacher,
             {
                 'status': engine.CourseStatus.PRIVATE,
             },
@@ -50,7 +45,7 @@ def test_auto_increment_id():
     ],
 )
 def test_problem_add_permission(user, course, valid):
-    user = utils.user.lazy_signup(**user)
+    user = user()
     course = utils.course.lazy_add(**course)
     if valid:
         utils.problem.lazy_add(author=user, course=course)
