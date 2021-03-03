@@ -27,26 +27,24 @@ def test_auto_increment_id():
     [
         (
             utils.user.Factory.admin,
-            {},
+            utils.course.Factory.default,
             True,
         ),
         (
             utils.user.Factory.teacher,
-            {},
+            utils.course.Factory.default,
             True,
         ),
         (
             utils.user.Factory.teacher,
-            {
-                'status': engine.CourseStatus.PRIVATE,
-            },
+            utils.course.Factory.private,
             False,
         ),
     ],
 )
 def test_problem_add_permission(user, course, valid):
     user = user()
-    course = utils.course.lazy_add(**course)
+    course = course()
     if valid:
         utils.problem.lazy_add(author=user, course=course)
     else:

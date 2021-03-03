@@ -6,6 +6,8 @@ from mongo import engine
 from .utils import none_or
 from . import user
 
+__all__ = ('data', 'lazy_add', 'Factory')
+
 
 def data(
     name: str = None,
@@ -32,3 +34,21 @@ def data(
 
 def lazy_add(**ks):
     return Course.add(**data(**ks))
+
+
+class Factory:
+    @classmethod
+    def public(cls):
+        return lazy_add(status=engine.CourseStatus.PUBLIC)
+
+    @classmethod
+    def readonly(cls):
+        return lazy_add(status=engine.CourseStatus.READONLY)
+
+    @classmethod
+    def private(cls):
+        return lazy_add(status=engine.CourseStatus.PRIVATE)
+
+    @classmethod
+    def default(cls):
+        return lazy_add()
