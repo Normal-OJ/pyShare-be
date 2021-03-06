@@ -25,18 +25,19 @@ def get_attachment(user, attachment):
 @attachment_api.route('/', methods=['GET'])
 @login_required
 def get_attachment_list(user):
-    return HTTPResponse('get all attachments\' names',
-                        data=[{
-                            'filename': a.filename,
-                            'description': a.description
-                        } for a in engine.Attachment.objects])
+    return HTTPResponse(
+        'get all attachments\' names',
+        data=[{
+            'filename': a.filename,
+            'description': a.description
+        } for a in engine.Attachment.objects],
+    )
 
 
 @attachment_api.route('/', methods=['POST'])
 @Request.files('file_obj')
 @Request.form('filename')
 @Request.form('description')
-@login_required
 @identity_verify(0, 1)
 def add_attachment(
     user,
@@ -61,7 +62,6 @@ def add_attachment(
 @attachment_api.route('/<filename>', methods=['PUT'])
 @Request.files('file_obj')
 @Request.form('description')
-@login_required
 @identity_verify(0, 1)
 @Request.doc('filename', 'atta', Attachment)
 def edit_attachment(
@@ -81,7 +81,6 @@ def edit_attachment(
 
 
 @attachment_api.route('/<filename>', methods=['DELETE'])
-@login_required
 @identity_verify(0, 1)
 @Request.doc('filename', 'atta', Attachment)
 def delete_attachment(

@@ -2,6 +2,6 @@
     "user": ["admin", "teacher1", "student1", "student2"],
     "course": ["course_108-1"],
     "tag": ["tag2"],
-    "problem": ["p1"],
+    "problem": ["p1", "p2"],
     "attachment": ["atta1"]
 }

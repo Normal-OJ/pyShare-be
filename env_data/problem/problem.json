@@ -17,5 +17,16 @@
         "default_code": "",
         "status": 1,
         "attachments": ["att"]
+    },
+    "p2": {
+        "title": "p2",
+        "description": "haha",
+        "course": "course_108-1",
+        "author": "student1",
+        "tags": [],
+        "default_code": "",
+        "status": 1,
+        "allow_multiple_comments": true,
+        "attachments": ["att"]
     }
 }

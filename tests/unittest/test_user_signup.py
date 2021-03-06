@@ -12,25 +12,29 @@ def test_normally_signup():
 
 
 @pytest.mark.parametrize(
-    'field, value',
+    'payload',
     [
-        ('username', 'bogay'),
-        ('email', 'bogay@noj.tw'),
+        {
+            'username': 'bogay',
+            'school': 'NTNU',
+        },
+        {
+            'email': 'bogay@noj.tw',
+        },
         # password can be the same
         pytest.param(
-            'password',
-            'A_v3ry_l0Ng_And_Str0NG_passw0rd',
+            {'password': 'A_v3ry_l0Ng_And_Str0NG_passw0rd'},
             marks=pytest.mark.xfail,
         )
     ],
 )
-def test_not_unique(field, value):
-    User.signup(**utils.user.data(**{field: value}))
+def test_not_unique(payload):
+    User.signup(**utils.user.data(**payload))
     with pytest.raises(
             NotUniqueError,
-            match=r'.*duplicate.*',
+            match=r'.*Duplicate.*',
     ):
-        User.signup(**utils.user.data(**{field: value}))
+        User.signup(**utils.user.data(**payload))
 
 
 @pytest.mark.parametrize(
@@ -49,21 +53,21 @@ def test_invalid_email(email):
             ValidationError,
             match=r'.*email.*',
     ):
-        User.signup(**utils.user.data(email=email))
+        utils.user.lazy_signup(email=email)
 
 
 def test_email_case_sensitivity():
     User.signup(**utils.user.data(email='bogay@noj.tw'))
     with pytest.raises(
             NotUniqueError,
-            match=r'.*duplicate.*',
+            match=r'.*Duplicate.*',
     ):
-        User.signup(**utils.user.data(email='BogAy@nOj.tw'))
+        utils.user.lazy_signup(email='BogAy@nOj.tw')
 
 
 def test_email_strip_space():
     email = ' email@with.space  '
-    u = User.signup(**utils.user.data(email=email))
+    u = utils.user.lazy_signup(email=email)
     assert u.email == email.strip()
 
 
@@ -72,4 +76,20 @@ def test_long_username():
             ValidationError,
             match=r'.*long.*',
     ):
-        User.signup(**utils.user.data(username='a' * 32))
+        utils.user.lazy_signup(username='a' * 32)
+
+
+def test_multiple_users_have_no_email():
+    users = [utils.user.lazy_signup(has_email=False) for _ in range(5)]
+    assert all(u.email is None for u in users)
+
+
+def test_update_email_uniqueness():
+    email = 'bogay@noj.tw'
+    utils.user.lazy_signup(email=email)
+    u = utils.user.lazy_signup()
+    with pytest.raises(
+            NotUniqueError,
+            match=r'.*Duplicate.*',
+    ):
+        u.update(email=email)
