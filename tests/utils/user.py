@@ -14,14 +14,15 @@ def data(
     username: Optional[str] = None,
     password: Optional[str] = None,
     email: Optional[str] = None,
+    has_email=True,
     role: Optional[int] = None,
 ):
     if username is None:
         username = random_username()
     if password is None:
         password = secrets.token_urlsafe()
-    if email is None:
-        email = f'{secrets.token_hex(8)}@noj.tw'
+    if email is None and has_email:
+        email = f'{random_username()}@pyshare.noj.tw'
     return drop_none({
         'username': username,
         'password': password,

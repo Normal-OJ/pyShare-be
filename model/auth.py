@@ -103,11 +103,11 @@ def session():
 @Request.json(
     'username: str',
     'password: str',
-    'email: str',
+    'email',
     'course: str',
 )
 @Request.doc('course', Course)
-def signup(username, password, email, course):
+def signup(username, password, course, email=None):
     try:
         user = User.signup(username, password, email, course.obj)
     except ValidationError as ve:
@@ -149,7 +149,7 @@ def batch_signup(user, csv_string, course):
                 new_user = User.signup(
                     username=_u['username'],
                     password=_u['password'],
-                    email=_u['email'],
+                    email=_u.get('email', None),
                     display_name=_u['displayName'],
                     course=course.obj,
                     role=role,

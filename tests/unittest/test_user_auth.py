@@ -17,9 +17,9 @@ def test_login():
 def test_login_fail():
     password = 'verysecureandlongpassword'
     u = utils.user.lazy_signup(password=password)
-    with pytest.raises(DoesNotExist, match=''):
+    with pytest.raises(DoesNotExist):
         User.login(u.username, password[::-1])
-    with pytest.raises(DoesNotExist, match=''):
+    with pytest.raises(DoesNotExist):
         User.login(u.email, password[::-1])
 
 
@@ -27,7 +27,7 @@ def test_change_password():
     password = 'verysecureandlongpassword'
     new_password = 'unsafepassword'
     u = utils.user.lazy_signup(password=password)
-    u.change_password('unsafepassword')
+    u.change_password(new_password)
     assert User.login(u.username, new_password) == u
     with pytest.raises(DoesNotExist):
         assert User.login(u.username, password) == u

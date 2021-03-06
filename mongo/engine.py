@@ -4,6 +4,7 @@ import mongoengine
 import os
 import re
 from datetime import datetime
+
 from .utils import Enum
 
 __all__ = [*mongoengine.__all__]
@@ -21,7 +22,7 @@ class User(Document):
     )
     user_id = StringField(db_field='userId', max_length=24, required=True)
     user_id2 = StringField(db_field='userId2', max_length=24, default='')
-    email = EmailField(max_length=320, required=True, unique=True)
+    email = EmailField(max_length=320)
     md5 = StringField(required=True, max_length=32)
     active = BooleanField(default=True)
     # role: 0 -> admin / 1 -> teacher / 2 -> student
@@ -39,6 +40,21 @@ class User(Document):
     )
     # notification list
     notifs = ListField(ReferenceField('Notif'), default=[])
+
+    def check_email(self, email):
+        if email is not None and User.objects(email=email):
+            print(email)
+            raise NotUniqueError('Duplicated not-null email field')
+
+    def update(self, **ks):
+        if 'email' in ks:
+            self.check_email(ks['email'])
+        super().update(**ks)
+
+    def save(self, *args, **ks):
+        self.check_email(self.email)
+        super().save(*args, **ks)
+        return self.reload()
 
     @property
     def info(self):
