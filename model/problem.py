@@ -1,7 +1,6 @@
 import threading
 from flask import Blueprint, request, send_file
 from urllib import parse
-import threading
 
 from mongo import *
 from mongo import engine
@@ -63,7 +62,7 @@ def get_problem_list(
         **ks,
     )
     # check whether user has read permission
-    ps = [Problem(p.pid) for p in ps]
+    ps = map(Problem, ps)
     ps = [p.to_dict() for p in ps if p.permission(
         user=user,
         req={'r'},
@@ -104,7 +103,7 @@ def get_problem_permission(user, problem):
     'is_template: bool',
     'allow_multiple_comments: bool',
 )
-@Request.doc('course', 'course', Course)
+@Request.doc('course', Course)
 @login_required
 @fe_update('PROBLEM', 'course')
 def create_problem(
@@ -130,7 +129,7 @@ def create_problem(
     return HTTPResponse(
         'success',
         data={
-            'course': p_ks['course'].name,
+            'course': str(p_ks['course'].id),
             'pid': problem.pid,
         },
     )
@@ -160,8 +159,8 @@ def modify_problem(
     # if allow_multiple_comments is False
     if user < 'teacher' and p_ks.get('allow_multiple_comments') == False:
         return HTTPError('Students have to allow multiple comments.', 403)
+    c = Course(problem.course)
     for tag in tags:
-        c = Course(problem.course.name)
         if not c.check_tag(tag):
             return HTTPError(
                 'Exist tag that is not allowed to use in this course', 400)
@@ -174,10 +173,7 @@ def modify_problem(
             400,
             data=ve.to_dict(),
         )
-    return HTTPResponse(
-        'success',
-        data={'course': problem.course.name},
-    )
+    return HTTPResponse('success')
 
 
 @problem_api.route('/<int:pid>', methods=['DELETE'])
@@ -191,12 +187,8 @@ def delete_problem(user, problem):
     # student can delete only self problem
     if not problem.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
-    course = problem.course.name
     problem.delete()
-    return HTTPResponse(
-        f'{problem} deleted.',
-        data={'course': course},
-    )
+    return HTTPResponse(f'{problem} deleted.')
 
 
 @problem_api.route('/<int:pid>/attachment', methods=['POST', 'DELETE'])
@@ -264,9 +256,9 @@ def get_attachment(user, problem, name):
     return HTTPError('file not found', 404)
 
 
-@problem_api.route('/<int:pid>/clone/<course_name>', methods=['GET'])
+@problem_api.route('/<int:pid>/clone/<course>', methods=['GET'])
 @Request.doc('pid', 'problem', Problem)
-@Request.doc('course_name', 'course', Course)
+@Request.doc('course', Course)
 @fe_update('PROBLEM', 'course')
 def clone_problem(user, problem, course):
     '''
@@ -280,7 +272,4 @@ def clone_problem(user, problem, course):
         return HTTPError(str(ve), 400, data=ve.to_dict())
     except PermissionError as e:
         return HTTPError(str(e), 403)
-    return HTTPResponse(
-        'Success.',
-        data={'course': course.name},
-    )
+    return HTTPResponse('Success.')

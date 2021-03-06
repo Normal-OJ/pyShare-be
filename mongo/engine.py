@@ -14,7 +14,21 @@ connect('pyShare', host=MONGO_HOST)
 
 
 class User(Document):
-    username = StringField(max_length=16, required=True, primary_key=True)
+    class Role(Enum):
+        ADMIN = 0
+        TEACHER = 1
+        STUDENT = 2
+
+    username = StringField(
+        max_length=16,
+        required=True,
+    )
+    # empty string means "no school"
+    school = StringField(
+        max_length=16,
+        unique_with='username',
+        default='',
+    )
     display_name = StringField(
         db_field='displayName',
         max_length=32,
@@ -26,7 +40,10 @@ class User(Document):
     md5 = StringField(required=True, max_length=32)
     active = BooleanField(default=True)
     # role: 0 -> admin / 1 -> teacher / 2 -> student
-    role = IntField(default=2, choices=[0, 1, 2])
+    role = IntField(
+        default=Role.STUDENT,
+        choices=Role.choices(),
+    )
     courses = ListField(ReferenceField('Course'), default=[])
     # problems this user created
     problems = ListField(ReferenceField('Problem'), default=[])
@@ -61,7 +78,10 @@ class User(Document):
         return {
             'username': self.username,
             'displayName': self.display_name,
-            'md5': self.md5
+            'school': self.school,
+            'role': self.role,
+            'md5': self.md5,
+            'id': str(self.id),
         }
 
 
@@ -72,11 +92,15 @@ class CourseStatus(Enum):
 
 
 class Course(Document):
+    class Status(Enum):
+        PRIVATE = 0
+        READONLY = 1
+        PUBLIC = 2
+
     # course's name can only contain letters, numbers, underscore (_),
     # dash (-) and dot (.), also, it can not be empty
     name = StringField(
-        primary_key=True,
-        regex=r'^[\w\.\ _\-]+$',
+        regex=r'^[\w\._\-]+$',
         required=True,
         max_length=64,
     )
@@ -190,38 +214,35 @@ class Problem(Document):
         return self.status == ProblemStatus.ONLINE
 
 
-class SubmissionStatus(Enum):
-    PENDING = 0
-    COMPLETE = 1
-    OUTPUT_LIMIT_EXCEED = 2
-
-
-class SubmissionState(Enum):
-    PENDING = 0
-    ACCEPT = 1
-    DENIED = 2
-
-
-class SubmissionResult(EmbeddedDocument):
-    files = ListField(FileField(), default=[])
-    stdout = StringField(max_length=10**6, default='')
-    stderr = StringField(max_length=10**6, default='')
-
-
 class Submission(Document):
+    class Result(EmbeddedDocument):
+        files = ListField(FileField(), default=[])
+        stdout = StringField(max_length=10**6, default='')
+        stderr = StringField(max_length=10**6, default='')
+
+    class Status(Enum):
+        PENDING = 0
+        COMPLETE = 1
+        OUTPUT_LIMIT_EXCEED = 2
+
+    class State(Enum):
+        PENDING = 0
+        ACCEPT = 1
+        DENIED = 2
+
     problem = ReferenceField(Problem, null=True, required=True)
     comment = ReferenceField(Comment, null=True)
     user = ReferenceField(User, null=True, required=True)
     code = StringField(max_length=10**6, default='')
     timestamp = DateTimeField(default=datetime.now)
-    result = EmbeddedDocumentField(SubmissionResult, default=None)
+    result = EmbeddedDocumentField(Result, default=None)
     status = IntField(
-        default=SubmissionStatus.PENDING,
-        choices=SubmissionStatus.choices(),
+        default=Status.PENDING,
+        choices=Status.choices(),
     )
     state = IntField(
-        default=SubmissionState.PENDING,
-        choices=SubmissionState.choices(),
+        default=State.PENDING,
+        choices=State.choices(),
     )
 
 
@@ -261,14 +282,17 @@ class Notif(Document):
             }
 
             comment = ReferenceField(Comment)
-            result = IntField(required=True, choices=SubmissionState.choices())
+            result = IntField(
+                required=True,
+                choices=Submission.State.choices(),
+            )
             problem = ReferenceField(Problem)
 
         class Like(__Base__):
             DICT_FEILDS = {
                 'type': 'type_name',
                 'comment_id': 'comment.id',
-                'liked': 'liked.username',
+                'liked': 'liked.info',
                 'problem_id': 'problem.id',
             }
 

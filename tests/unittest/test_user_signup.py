@@ -12,25 +12,29 @@ def test_normally_signup():
 
 
 @pytest.mark.parametrize(
-    'field, value',
+    'payload',
     [
-        ('username', 'bogay'),
-        ('email', 'bogay@noj.tw'),
+        {
+            'username': 'bogay',
+            'school': 'NTNU',
+        },
+        {
+            'email': 'bogay@noj.tw',
+        },
         # password can be the same
         pytest.param(
-            'password',
-            'A_v3ry_l0Ng_And_Str0NG_passw0rd',
+            {'password': 'A_v3ry_l0Ng_And_Str0NG_passw0rd'},
             marks=pytest.mark.xfail,
         )
     ],
 )
-def test_not_unique(field, value):
-    utils.user.lazy_signup(**{field: value})
+def test_not_unique(payload):
+    User.signup(**utils.user.data(**payload))
     with pytest.raises(
             NotUniqueError,
             match=r'.*Duplicate.*',
     ):
-        utils.user.lazy_signup(**{field: value})
+        User.signup(**utils.user.data(**payload))
 
 
 @pytest.mark.parametrize(

@@ -10,17 +10,19 @@ def setup_function(_):
 def test_login():
     password = 'verysecureandlongpassword'
     u = utils.user.lazy_signup(password=password)
-    assert User.login(u.username, password) == u
-    assert User.login(u.email, password) == u
+    assert User.login(u.school, u.username, password) == u
 
 
 def test_login_fail():
     password = 'verysecureandlongpassword'
     u = utils.user.lazy_signup(password=password)
+    # TODO: test email login
     with pytest.raises(DoesNotExist):
-        User.login(u.username, password[::-1])
-    with pytest.raises(DoesNotExist):
-        User.login(u.email, password[::-1])
+        User.login(
+            u.school,
+            u.username,
+            password[::-1],
+        )
 
 
 def test_change_password():
@@ -28,6 +30,14 @@ def test_change_password():
     new_password = 'unsafepassword'
     u = utils.user.lazy_signup(password=password)
     u.change_password(new_password)
-    assert User.login(u.username, new_password) == u
+    assert User.login(
+        u.school,
+        u.username,
+        new_password,
+    ) == u
     with pytest.raises(DoesNotExist):
-        assert User.login(u.username, password) == u
+        assert User.login(
+            u.school,
+            u.username,
+            password,
+        ) == u

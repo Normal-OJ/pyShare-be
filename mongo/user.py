@@ -23,55 +23,68 @@ class User(MongoBase, engine=engine.User):
         cls,
         username,
         password,
-        email,
+        email=None,
         course=None,
         display_name=None,
+        school=None,
         role=2,
     ):
         user_id = hash_id(username, password)
         if email is not None:
-            email = email.lower().strip()
+            email = cls.formated_email(email)
         user = cls.engine(
+            username=username,
             user_id=user_id,
             user_id2=user_id,
-            username=username,
-            email=email,
             display_name=display_name or username,
+            email=email,
+            school=school or '',
             role=role,
             md5=hashlib.md5((email or '').encode()).hexdigest(),
         ).save(force_insert=True)
-        user = cls(user)
         # add user to course
         if course is not None:
             user.update(add_to_set__courses=course)
-            course.update(add_to_set__students=user.obj)
-        return user.reload()
+            course.update(add_to_set__students=user)
+        return cls(user).reload()
 
     @classmethod
-    def login(cls, username, password):
-        try:
-            user = cls.get_by_username(username)
-        except engine.DoesNotExist:
-            user = cls.get_by_email(username)
+    def formated_email(cls, email: str):
+        return email.lower().strip()
+
+    @classmethod
+    def login(
+        cls,
+        school,
+        username,
+        password,
+    ):
+        # try to get a user by given info
+        user = cls.engine.objects.get(
+            username=username,
+            school=school,
+        )
+        # calculate user hash
         user_id = hash_id(user.username, password)
-        if compare_digest(user.user_id, user_id) or compare_digest(
-                user.user_id2, user_id):
-            return user
+        if compare_digest(user.user_id, user_id) or \
+            compare_digest(user.user_id2, user_id):
+            return cls(user)
         raise engine.DoesNotExist
 
     @classmethod
     def get_by_username(cls, username):
         obj = cls.engine.objects.get(username=username)
-        return cls(obj.username)
+        return cls(obj)
 
     @classmethod
     def get_by_email(cls, email):
-        obj = cls.engine.objects.get(email=email.strip().lower())
-        return cls(obj.username)
+        obj = cls.engine.objects.get(email=cls.formated_email(email))
+        return cls(obj)
 
     @property
     def cookie(self):
         keys = [
+            '_id',
             'username',
             'email',
             'displayName',
@@ -83,7 +96,11 @@ class User(MongoBase, engine=engine.User):
 
     @property
     def secret(self):
-        keys = ['username', 'userId']
+        keys = [
+            '_id',
+            'username',
+            'userId',
+        ]
         return self.jwt(*keys, secret=True)
 
     @property
@@ -95,10 +112,11 @@ class User(MongoBase, engine=engine.User):
         }
 
     def get_role_id(self, role):
-        _role = self.role_ids.get(role)
-        if _role is None:
+        try:
+            return self.role_ids[role]
+        except KeyError:
             self.logger.warning(f'unknown role \'{role}\'')
-        return _role
+            return None
 
     def __eq__(self, other):
         # whether the user is the role?
@@ -132,18 +150,10 @@ class User(MongoBase, engine=engine.User):
     def __le__(self, value):
         return not self > value
 
-    def is_role(self, *roles):
-        '''
-        is this user belonging one of the required roles?
-        '''
-        roles = {r: self.get_role_id(r) for r in role}
-        return self.role in roles
-
     def jwt(self, *keys, secret=False, **kwargs):
         if not self:
             return ''
         user = self.reload().to_mongo()
-        user['username'] = user.get('_id')
         data = {k: user.get(k) for k in keys}
         data.update(kwargs)
         payload = {
@@ -152,7 +162,12 @@ class User(MongoBase, engine=engine.User):
             'secret': secret,
             'data': data
         }
-        return jwt.encode(payload, JWT_SECRET, algorithm='HS256').decode()
+        return jwt.encode(
+            payload,
+            JWT_SECRET,
+            algorithm='HS256',
+            json_encoder=ObjectIdEncoder,
+        ).decode()
 
     def change_password(self, password):
         user_id = hash_id(self.username, password)
@@ -192,38 +207,56 @@ class User(MongoBase, engine=engine.User):
         ret = {}
         # all problems
         ret['problems'] = [{
-            'course': p.course.name,
+            'course': {
+                'name': p.course.name,
+                'id': str(p.course.id)
+            },
             'pid': p.pid,
         } for p in filter(include_problem, self.problems)]
         # liked comments
         ret['likes'] = [{
-            'course': c.problem.course.name,
+            'course': {
+                'name': c.problem.course.name,
+                'id': str(c.problem.course.id)
+            },
             'pid': c.problem.pid,
             'floor': c.floor,
-            'staree': c.author.username,
+            'staree': c.author.info,
         } for c in filter(include_comment, self.likes)]
         # comments
         ret['comments'] = [{
-            'course': c.problem.course.name,
+            'course': {
+                'name': c.problem.course.name,
+                'id': str(c.problem.course.id)
+            },
             'pid': c.problem.pid,
             'floor': c.floor,
             'accepted': c.has_accepted,
         } for c in filter(include_comment, self.comments)]
         ret['replies'] = [{
-            'course': c.problem.course.name,
+            'course': {
+                'name': c.problem.course.name,
+                'id': str(c.problem.course.id)
+            },
             'pid': c.problem.pid,
             'floor': c.floor,
         } for c in filter(include_reply, self.comments)]
         # comments be liked
         ret['liked'] = [{
-            'course': c.problem.course.name,
+            'course': {
+                'name': c.problem.course.name,
+                'id': str(c.problem.course.id)
+            },
             'pid': c.problem.pid,
             'floor': c.floor,
-            'starers': [u.username for u in c.liked],
+            'starers': [u.info for u in c.liked],
         } for c in filter(include_comment, self.comments)]
         # success & fail
         ret['execInfo'] = [{
-            'course': c.problem.course.name,
+            'course': {
+                'name': c.problem.course.name,
+                'id': str(c.problem.course.id)
+            },
             'pid': c.problem.pid,
             'floor': c.floor,
             'success': c.success,

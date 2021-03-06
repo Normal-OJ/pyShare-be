@@ -1,4 +1,4 @@
-from flask import Blueprint, send_file
+from flask import Blueprint
 from .utils import *
 from .auth import *
 from .notifier import *
@@ -26,7 +26,7 @@ def create_comment(user, target, code, id_, **ks):
         try:
             comment = Comment.add_to_comment(
                 target=id_,
-                author=user.pk,
+                author=user,
                 **ks,
             )
         except engine.DoesNotExist:
@@ -38,7 +38,7 @@ def create_comment(user, target, code, id_, **ks):
             comment = Comment.add_to_problem(
                 target=id_,
                 code=code,
-                author=user.pk,
+                author=user,
                 **ks,
             )
         except TooManyComments:
@@ -65,6 +65,8 @@ def create_comment(user, target, code, id_, **ks):
 def get_comment(user, comment: Comment):
     if not comment.permission(user=user, req={'r'}):
         return HTTPError('permission denied', 403)
+    if comment.hidden:
+        return HTTPError('the comment has been removed', 404)
     return HTTPResponse('success', data=comment.to_dict())
 
 
@@ -187,7 +189,7 @@ def like_comment(user, comment: Comment):
 @login_required
 @Request.doc('_id', 'comment', Comment)
 def rejudge(user, comment: Comment):
-    if comment.depth != 0:
+    if not comment.is_comment:
         return HTTPError('Not a submission', 400)
     if not comment.permission(user=user, req={'j'}):
         return HTTPError('Forbidden', 403)

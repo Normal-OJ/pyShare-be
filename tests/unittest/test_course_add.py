@@ -60,7 +60,7 @@ def test_course_status(status):
         'Data_Analysis',
         'Object.Oreiented.Analysis.and.Design',
         '資訊安全',
-        'Algorithm in Daliy Lives',
+        'Algorithm-in-Daliy-Lives',
     ],
 )
 def test_normal_course_name(name):

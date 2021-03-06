@@ -16,8 +16,8 @@ tag_api = Blueprint('tag_api', __name__)
 @Request.args('course')
 @login_required
 def get_tag_list(user, course):
-    c = Course(course)
-    if course is None or c is None:
+    c = Course(course) if course else None
+    if c is None:
         return HTTPResponse('get all tags',
                             data=[t.value for t in engine.Tag.objects])
     else:
@@ -26,7 +26,6 @@ def get_tag_list(user, course):
 
 @tag_api.route('/', methods=['POST', 'DELETE'])
 @Request.json('tags')
-@login_required
 @identity_verify(0, 1)
 def manage_tag(user, tags):
     success = []

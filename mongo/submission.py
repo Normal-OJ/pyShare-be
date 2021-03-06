@@ -1,7 +1,7 @@
 import os
 import logging
 import secrets
-from typing import Union
+from typing import Optional
 import requests as rq
 import base64
 from flask import current_app
@@ -149,11 +149,11 @@ class Submission(MongoBase, engine=engine.Submission):
         '''
         prepara data for submit code to sandbox and then send it
         '''
-        # unexisted id
+        # nonexistent id
         if not self:
             raise engine.DoesNotExist(f'{self}')
         token = Token(self.SANDBOX_TOKEN).assign(self.id)
-        self.update(status=engine.SubmissionStatus.PENDING)
+        self.update(status=self.engine.Status.PENDING)
         judge_url = f'{self.JUDGE_URL}/{self.id}'
         # send submission to snadbox for judgement
         if not current_app.config['TESTING']:
@@ -187,9 +187,9 @@ class Submission(MongoBase, engine=engine.Submission):
         judgement complete
         '''
         # update status
-        self.update(status=engine.SubmissionStatus.COMPLETE)
+        self.update(status=self.engine.Status.COMPLETE)
         # update result
-        result = engine.SubmissionResult(
+        result = self.engine.Result(
             stdout=stdout,
             stderr=stderr,
         )
@@ -201,7 +201,7 @@ class Submission(MongoBase, engine=engine.Submission):
             self.save()
         # notify comment
         if self.comment is not None:
-            Comment(self.comment.id).finish_submission()
+            Comment(self.comment).finish_submission()
         return True
 
     def get_file(self, filename):
@@ -210,13 +210,14 @@ class Submission(MongoBase, engine=engine.Submission):
         for f in self.result.files:
             if f.filename == filename:
                 return f
-        raise FileNotFoundError
+        raise FileNotFoundError(filename)
 
     @staticmethod
     def new_file(file_obj, filename):
         '''
         create a new file
         '''
+        # TODO: this is almost identical to Problem.new_att, may be can write this ot utils
         f = engine.GridFSProxy()
         f.put(
             file_obj,
@@ -230,11 +231,11 @@ class Submission(MongoBase, engine=engine.Submission):
     @doc_required('user', User)
     @doc_required('comment', Comment, null=True)
     def add(
-        cls,
-        problem: Problem,
-        user: User,
-        comment: Union[None, Comment],
-        code: str,
+            cls,
+            problem: Problem,
+            user: User,
+            comment: Optional[Comment],
+            code: str,
     ) -> 'Submission':
         '''
         Insert a new submission into db
