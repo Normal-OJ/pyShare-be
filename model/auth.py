@@ -114,16 +114,25 @@ def session():
 @Request.json(
     'username: str',
     'password: str',
-    'email: str',
+    'email',
     'course: str',
     'school: str',
 )
 @Request.doc('course', Course)
-def signup(course, **u_ks):
+def signup(
+    username,
+    password,
+    email,
+    school,
+    course,
+):
     try:
         User.signup(
+            username=username,
+            password=password,
+            email=email,
+            school=school,
             course=course.obj,
-            **u_ks,
         )
     except ValidationError as ve:
         return HTTPError('Signup Failed', 400, data=ve.to_dict())
@@ -173,7 +182,7 @@ def batch_signup(user, csv_string, course):
                 new_user = User.signup(
                     username=_u['username'],
                     password=_u['password'],
-                    email=_u['email'],
+                    email=_u.get('email', None),
                     display_name=_u['displayName'],
                     school=_u['school'],
                     course=course.obj,

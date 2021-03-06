@@ -1,6 +1,10 @@
 import secrets
 import random
+from typing import Optional
 from mongo import *
+from .utils import drop_none
+
+__all__ = ('data', 'lazy_signup')
 
 SCHOOLS = [
     'NTU',
@@ -14,30 +18,29 @@ def random_username():
 
 
 def data(
-    username=None,
-    password=None,
-    email=None,
+    username: Optional[str] = None,
+    password: Optional[str] = None,
     school=None,
+    email: Optional[str] = None,
+    has_email=True,
+    role: Optional[int] = None,
 ):
     if username is None:
         username = random_username()
     if password is None:
         password = secrets.token_urlsafe()
-    if email is None:
-        email = f'{secrets.token_hex(8)}@noj.tw'
+    if email is None and has_email:
+        email = f'{random_username()}@pyshare.noj.tw'
     if school is None:
         school = random.choice(SCHOOLS)
-    return {
+    return drop_none({
         'username': username,
         'password': password,
         'email': email,
         'school': school,
-    }
+        'role': role,
+    })
 
 
 def lazy_signup(**ks):
     return User.signup(**data(**ks))
-
-
-def randomly_add():
-    return lazy_signup()

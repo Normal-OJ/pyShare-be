@@ -70,9 +70,16 @@ def statistic(user, course):
     return HTTPResponse('ok', data=ret)
 
 
-@course_api.route('/<course>', methods=['DELETE'])
+@course_api.route('/<name>/permission', methods=['GET'])
 @login_required
-@Request.doc('course', Course)
+@Request.doc('name', 'course', Course)
+def permission(user, course):
+    return HTTPResponse('ok', data=list(course.own_permission(user=user)))
+
+
+@course_api.route('/<name>', methods=['DELETE'])
+@login_required
+@Request.doc('name', 'course', Course)
 def delete_course(user, course):
     if not course.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)

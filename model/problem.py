@@ -1,3 +1,4 @@
+import threading
 from flask import Blueprint, request, send_file
 from urllib import parse
 
@@ -10,6 +11,7 @@ from .utils import *
 __all__ = ['problem_api']
 
 problem_api = Blueprint('problem_api', __name__)
+lock = threading.Lock()
 
 
 @problem_api.route('/', methods=['GET'])
@@ -77,6 +79,16 @@ def get_single_problem(user, problem):
     return HTTPResponse(
         'here you are, bro',
         data=problem.to_dict(),
+    )
+
+
+@problem_api.route('/<int:pid>/permission', methods=['GET'])
+@login_required
+@Request.doc('pid', 'problem', Problem)
+def get_problem_permission(user, problem):
+    return HTTPResponse(
+        'here you are, bro',
+        data=list(problem.own_permission(user=user)),
     )
 
 
@@ -204,10 +216,12 @@ def patch_attachment(
             if attachment is None:
                 attachment = Attachment(attachment_name).copy()
                 use_db = True
-            problem.insert_attachment(
-                attachment,
-                filename=attachment_name,
-            )
+            with lock:
+                problem.reload()
+                problem.insert_attachment(
+                    attachment,
+                    filename=attachment_name,
+                )
         except FileExistsError as e:
             return HTTPError(str(e), 400)
         except FileNotFoundError as e:
@@ -216,7 +230,9 @@ def patch_attachment(
             f'successfully update from {"db file" if use_db else "your file"}')
     elif request.method == 'DELETE':
         try:
-            problem.remove_attachment(attachment_name)
+            with lock:
+                problem.reload()
+                problem.remove_attachment(attachment_name)
         except FileNotFoundError as e:
             return HTTPError(str(e), 404)
         return HTTPResponse('successfully delete')

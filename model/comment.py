@@ -70,6 +70,14 @@ def get_comment(user, comment: Comment):
     return HTTPResponse('success', data=comment.to_dict())
 
 
+@comment_api.route('/<_id>/permission', methods=['GET'])
+@login_required
+@Request.doc('_id', 'comment', Comment)
+def get_comment_permission(user, comment: Comment):
+    return HTTPResponse('success',
+                        data=list(comment.own_permission(user=user)))
+
+
 @comment_api.route('/<_id>', methods=['PUT'])
 @Request.json(
     'content: str',

@@ -16,7 +16,8 @@ def test_login():
 def test_login_fail():
     password = 'verysecureandlongpassword'
     u = utils.user.lazy_signup(password=password)
-    with pytest.raises(DoesNotExist, match=''):
+    # TODO: test email login
+    with pytest.raises(DoesNotExist):
         User.login(
             u.school,
             u.username,

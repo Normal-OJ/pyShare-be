@@ -23,23 +23,24 @@ class User(MongoBase, engine=engine.User):
         cls,
         username,
         password,
-        email,
+        email=None,
         course=None,
         display_name=None,
         school=None,
         role=2,
     ):
         user_id = hash_id(username, password)
-        email = cls.formated_email(email)
+        if email is not None:
+            email = cls.formated_email(email)
         user = cls.engine(
             username=username,
             user_id=user_id,
             user_id2=user_id,
             display_name=display_name or username,
             email=email,
-            school=school,
+            school=school or '',
             role=role,
-            md5=hashlib.md5(email.encode()).hexdigest(),
+            md5=hashlib.md5((email or '').encode()).hexdigest(),
         ).save(force_insert=True)
         # add user to course
         if course is not None:
@@ -206,38 +207,56 @@ class User(MongoBase, engine=engine.User):
         ret = {}
         # all problems
         ret['problems'] = [{
-            'course': { 'name': p.course.name, 'id': str(p.course.id) },
+            'course': {
+                'name': p.course.name,
+                'id': str(p.course.id)
+            },
             'pid': p.pid,
         } for p in filter(include_problem, self.problems)]
         # liked comments
         ret['likes'] = [{
-            'course': { 'name': c.problem.course.name, 'id': str(c.problem.course.id) },
+            'course': {
+                'name': c.problem.course.name,
+                'id': str(c.problem.course.id)
+            },
             'pid': c.problem.pid,
             'floor': c.floor,
             'staree': c.author.info,
         } for c in filter(include_comment, self.likes)]
         # comments
         ret['comments'] = [{
-            'course': { 'name': c.problem.course.name, 'id': str(c.problem.course.id) },
+            'course': {
+                'name': c.problem.course.name,
+                'id': str(c.problem.course.id)
+            },
             'pid': c.problem.pid,
             'floor': c.floor,
             'accepted': c.has_accepted,
         } for c in filter(include_comment, self.comments)]
         ret['replies'] = [{
-            'course': { 'name': c.problem.course.name, 'id': str(c.problem.course.id) },
+            'course': {
+                'name': c.problem.course.name,
+                'id': str(c.problem.course.id)
+            },
             'pid': c.problem.pid,
             'floor': c.floor,
         } for c in filter(include_reply, self.comments)]
         # comments be liked
         ret['liked'] = [{
-            'course': { 'name': c.problem.course.name, 'id': str(c.problem.course.id) },
+            'course': {
+                'name': c.problem.course.name,
+                'id': str(c.problem.course.id)
+            },
             'pid': c.problem.pid,
             'floor': c.floor,
             'starers': [u.info for u in c.liked],
         } for c in filter(include_comment, self.comments)]
         # success & fail
         ret['execInfo'] = [{
-            'course': { 'name': c.problem.course.name, 'id': str(c.problem.course.id) },
+            'course': {
+                'name': c.problem.course.name,
+                'id': str(c.problem.course.id)
+            },
             'pid': c.problem.pid,
             'floor': c.floor,
             'success': c.success,
