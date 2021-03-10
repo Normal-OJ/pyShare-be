@@ -86,12 +86,6 @@ class User(Document):
         }
 
 
-class CourseStatus(Enum):
-    PRIVATE = 0
-    READONLY = 1
-    PUBLIC = 2
-
-
 class Course(Document):
     class Status(Enum):
         PRIVATE = 0
@@ -113,8 +107,8 @@ class Course(Document):
     semester = IntField(required=True)
     description = StringField(default='', max_length=10**4)
     status = IntField(
-        default=CourseStatus.PUBLIC,
-        choices=CourseStatus.choices(),
+        default=Status.PUBLIC,
+        choices=Status.choices(),
     )
 
 
@@ -179,12 +173,11 @@ class Attachment(Document):
     file = FileField(required=True)
 
 
-class ProblemStatus(Enum):
-    ONLINE = 1
-    OFFLINE = 0
-
-
 class Problem(Document):
+    class Status(Enum):
+        ONLINE = 1
+        OFFLINE = 0
+
     meta = {'indexes': [{'fields': ['$title']}, 'timestamp']}
     pid = SequenceField(required=True, primary_key=True)
     height = IntField(default=0)
@@ -197,8 +190,8 @@ class Problem(Document):
     comments = ListField(ReferenceField('Comment'), default=[])
     timestamp = DateTimeField(default=datetime.now)
     status = IntField(
-        default=ProblemStatus.ONLINE,
-        choices=ProblemStatus.choices(),
+        default=Status.ONLINE,
+        choices=Status.choices(),
     )
     default_code = StringField(
         default='',
@@ -211,7 +204,7 @@ class Problem(Document):
 
     @property
     def online(self):
-        return self.status == ProblemStatus.ONLINE
+        return self.status == self.Status.ONLINE
 
 
 class Submission(Document):
@@ -236,6 +229,7 @@ class Submission(Document):
     code = StringField(max_length=10**6, default='')
     timestamp = DateTimeField(default=datetime.now)
     result = EmbeddedDocumentField(Result, default=None)
+    # TODO: use a more meaningful name
     status = IntField(
         default=Status.PENDING,
         choices=Status.choices(),

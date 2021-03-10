@@ -20,7 +20,7 @@ def data(
         'name': none_or(name, secrets.token_hex(16)),
         'year': none_or(year, random.randint(109, 115)),
         'semester': none_or(semester, random.randint(1, 2)),
-        'status': none_or(status, engine.CourseStatus.PUBLIC),
+        'status': none_or(status, engine.Course.Status.PUBLIC),
     }
     # save teacher's pk
     if teacher is not None:
@@ -39,15 +39,15 @@ def lazy_add(**ks):
 class Factory:
     @classmethod
     def public(cls):
-        return lazy_add(status=engine.CourseStatus.PUBLIC)
+        return lazy_add(status=engine.Course.Status.PUBLIC)
 
     @classmethod
     def readonly(cls):
-        return lazy_add(status=engine.CourseStatus.READONLY)
+        return lazy_add(status=engine.Course.Status.READONLY)
 
     @classmethod
     def private(cls):
-        return lazy_add(status=engine.CourseStatus.PRIVATE)
+        return lazy_add(status=engine.Course.Status.PRIVATE)
 
     @classmethod
     def default(cls):
