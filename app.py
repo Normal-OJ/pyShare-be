@@ -4,8 +4,7 @@ from flask import Flask
 from flask_socketio import SocketIO
 from model import *
 from mongo import *
-from mongo import engine
-from mongo import problem
+from mongo import engine, config
 import io
 
 # Create a flask app
@@ -197,15 +196,15 @@ def setup_env(env):
             func(j[key])
 
 
-def setup_app(config=None, env=None, testing=True):
+def setup_app(
+    config: str = 'mongo.config.Config',
+    env=None,
+):
     '''
     setup flask app from config and pre-configured env
     '''
-    # force testing, can be overwritten
-    app.config['TESTING'] = testing
-    # read flask app config from pyfile
-    if config:
-        app.config.from_pyfile(config)
+    # read flask app config from module
+    app.config.from_object(config)
     # setup environment for testing
     if env:
         setup_env(env)
@@ -214,7 +213,11 @@ def setup_app(config=None, env=None, testing=True):
 
 def gunicorn_prod_app():
     # get production app
-    app = setup_app(env='prod', testing=False)
+    app = setup_app(
+        config='mongo.config.ProdConfig',
+        env='prod',
+    )
+    config.ConfigLoader.load(config.ProdConfig)
     # let flask app user gunicorn error logger
     g_logger = logging.getLogger('gunicorn.error')
     app.logger.handlers = g_logger.handlers
