@@ -59,6 +59,7 @@ class User(Document):
     notifs = ListField(ReferenceField('Notif'), default=[])
 
     def check_email(self, email):
+        # TODO: solve race condition
         if email is not None and User.objects(email=email):
             print(email)
             raise NotUniqueError('Duplicated not-null email field')
@@ -121,12 +122,11 @@ class Tag(Document):
     value = StringField(primary_key=True, required=True, max_length=16)
 
 
-class CommentStatus(Enum):
-    HIDDEN = 0
-    SHOW = 1
-
-
 class Comment(Document):
+    class Status(Enum):
+        HIDDEN = 0
+        SHOW = 1
+
     meta = {'indexes': ['floor', 'created', 'updated']}
     title = StringField(required=True, max_length=128)
     floor = IntField(required=True)
@@ -139,8 +139,8 @@ class Comment(Document):
     # those who like this comment
     liked = ListField(ReferenceField('User'), default=[])
     status = IntField(
-        default=CommentStatus.SHOW,
-        choices=CommentStatus.choices(),
+        default=Status.SHOW,
+        choices=Status.choices(),
     )
     created = DateTimeField(default=datetime.now)
     updated = DateTimeField(default=datetime.now)
@@ -159,7 +159,7 @@ class Comment(Document):
 
     @property
     def show(self):
-        return self.status == CommentStatus.SHOW
+        return self.status == self.Status.SHOW
 
     @property
     def hidden(self):
