@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from functools import reduce
 from mongoengine.queryset.visitor import Q
 from . import engine
@@ -49,7 +49,7 @@ class Problem(MongoBase, engine=engine.Problem):
         return req in _permission
 
     @doc_required('target_course', 'target_course', Course)
-    def copy(self, target_course):
+    def copy(self, target_course: Course):
         '''
         copy the problem to another course, and drop all comments & replies
         '''
@@ -126,31 +126,34 @@ class Problem(MongoBase, engine=engine.Problem):
         self.save()
 
     def remove_attachment(self, filename):
+        '''
+        Remove a attachment by filename.
+        Due to the mongoengine's bug, we can not use pull
+        operator here, this may cause race condition. DON'T
+        call this concurrently.
+        '''
         # search by name
         for i, att in enumerate(self.attachments):
             if att.filename == filename:
-                # delete it
+                # delete it and pop from list
                 att.delete()
-                # remove attachment from problem
-                # self.update(pull__attachments=att)
-                while att in self.attachments:
-                    self.attachments.pop(i)
-                    self.save()
+                self.attachments.pop(i)
+                self.save()
                 return True
         raise FileNotFoundError(
             f'can not find a attachment named [{filename}]')
 
     @classmethod
     def filter(
-            cls,
-            offset=0,
-            count=-1,
-            name: str = None,
-            course: str = None,
-            tags: List[str] = None,
-            only: List[str] = None,
-            is_template: bool = None,
-            allow_multiple_comments: bool = None,
+        cls,
+        offset=0,
+        count=-1,
+        name: Optional[str] = None,
+        course: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        only: Optional[List[str]] = None,
+        is_template: Optional[bool] = None,
+        allow_multiple_comments: Optional[bool] = None,
     ) -> List[engine.Problem]:
         '''
         read a list of problem filtered by given paramter

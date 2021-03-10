@@ -156,25 +156,25 @@ class Submission(MongoBase, engine=engine.Submission):
         self.update(status=self.engine.Status.PENDING)
         judge_url = f'{self.JUDGE_URL}/{self.id}'
         # send submission to snadbox for judgement
-        if not current_app.config['TESTING']:
-            try:
-                resp = rq.post(
-                    judge_url,
-                    params={'token': token},
-                    files=[(
-                        'attachments',
-                        (a.filename, a, None),
-                    ) for a in self.problem.attachments],
-                    data={
-                        'src': self.code,
-                    },
-                )
-            except rq.exceptions.RequestException as e:
-                self.logger.error(str(e))
-                return False
-            if not resp.ok:
-                logging.warning(f'got sandbox resp: {resp.text}')
-
+        if current_app.config['TESTING']:
+            return True
+        try:
+            resp = rq.post(
+                judge_url,
+                params={'token': token},
+                files=[(
+                    'attachments',
+                    (a.filename, a, None),
+                ) for a in self.problem.attachments],
+                data={
+                    'src': self.code,
+                },
+            )
+        except rq.exceptions.RequestException as e:
+            self.logger.error(str(e))
+            return False
+        if not resp.ok:
+            logging.warning(f'got sandbox resp: {resp.text}')
         return True
 
     def complete(
