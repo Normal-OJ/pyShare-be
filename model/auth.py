@@ -218,8 +218,8 @@ def batch_signup(user, csv_string, course):
 @Request.json('old_password: str', 'new_password: str')
 def change_password(user, old_password, new_password):
     try:
-        User.login(user.school, user.username, old_password)
-    except DoesNotExist:
+        assert user == User.login(user.school, user.username, old_password)
+    except (DoesNotExist, AssertionError):
         return HTTPError('Wrong Password', 403)
     user.change_password(new_password)
     cookies = {'piann_httponly': user.secret}
