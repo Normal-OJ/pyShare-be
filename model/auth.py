@@ -89,15 +89,21 @@ def session():
         'school: str',
         'username: str',
         'password: str',
+        'email: str',
     )
-    def login(**u_ks):
+    def login(email, **u_ks):
         '''Login a user.
         Returns:
             - 400 Incomplete Data
             - 401 Login Failed
         '''
         try:
-            user = User.login(**u_ks)
+            # login by email
+            if email is not None:
+                user = User.login_via_email(email, u_ks['password'])
+            # login by username and school
+            else:
+                user = User.login(**u_ks)
         except DoesNotExist:
             return HTTPError('Login Failed', 401)
         if not user.active:
@@ -106,7 +112,6 @@ def session():
         return HTTPResponse('Login Success', cookies=cookies)
 
     methods = {'GET': logout, 'POST': login}
-
     return methods[request.method]()
 
 
