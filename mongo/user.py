@@ -101,7 +101,6 @@ class User(MongoBase, engine=engine.User):
             'displayName',
             'md5',
             'role',
-            'courses',
         ]
         return self.jwt(*keys)
 
