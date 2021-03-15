@@ -226,6 +226,18 @@ def change_password(user, old_password, new_password):
     return HTTPResponse('Password Has Been Changed', cookies=cookies)
 
 
+@auth_api.route('/change/email', methods=['POST'])
+@login_required
+@Request.json('password: str', 'email: str')
+def change_email(user, email, password):
+    try:
+        assert user == User.login_by_email(email, password)
+    except (DoesNotExist, AssertionError):
+        return HTTPError('Invalid email or wrong password', 400)
+    user.update(email=email)
+    return HTTPResponse('Email has been changed', cookies={'jwt': user.jwt})
+
+
 @auth_api.route('/check/email', methods=['POST'])
 @Request.json('email: str')
 def check_email(email):
