@@ -86,10 +86,10 @@ def session():
         return HTTPResponse(f'Goodbye', cookies=cookies)
 
     @Request.json(
-        'school: str',
-        'username: str',
+        'school',
+        'username',
         'password: str',
-        'email: str',
+        'email',
     )
     def login(email, **u_ks):
         '''Login a user.
@@ -100,7 +100,7 @@ def session():
         try:
             # login by email
             if email is not None:
-                user = User.login_via_email(email, u_ks['password'])
+                user = User.login_by_email(email, u_ks['password'])
             # login by username and school
             else:
                 user = User.login(**u_ks)
@@ -201,7 +201,7 @@ def batch_signup(user, csv_string, course):
                 fails[_u['username']] = 'email'
             if err is not None:
                 current_app.logger.error(
-                    f'fail to sign up for {new_user}\n'
+                    f'fail to sign up for {_u["username"]}\n'
                     f'error: {err[0]}\n'
                     f'data: {err[1]}', )
     return HTTPResponse(
