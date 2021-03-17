@@ -2,6 +2,7 @@
 from functools import wraps
 # Related third party imports
 from flask import Blueprint, request, current_app
+from mongoengine.errors import ValidationError
 # Local application
 from mongo import *
 from mongo import engine
@@ -228,13 +229,20 @@ def change_password(user, old_password, new_password):
 
 @auth_api.route('/change/email', methods=['POST'])
 @login_required
-@Request.json('password: str', 'email: str')
-def change_email(user, email, password):
+@Request.json(
+    'password: str',
+    'email: str',
+    'new_email: str',
+)
+def change_email(user, email, password, new_email):
     try:
         assert user == User.login_by_email(email, password)
     except (DoesNotExist, AssertionError):
         return HTTPError('Invalid email or wrong password', 400)
-    user.update(email=email)
+    try:
+        user.update(email=new_email)
+    except ValidationError:
+        HTTPError('Invalid or duplicated email.', 400)
     return HTTPResponse('Email has been changed', cookies={'jwt': user.jwt})
 
 
