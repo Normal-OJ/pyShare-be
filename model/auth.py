@@ -248,7 +248,7 @@ def change_email(user, email, password):
     try:
         assert user == User.login(user.school, user.username, password)
     except (DoesNotExist, AssertionError):
-        return HTTPError('Invalid email or wrong password', 400)
+        return HTTPError('Wrong password', 400)
     try:
         user.update(email=email)
     except ValidationError:
