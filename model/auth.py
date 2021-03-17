@@ -214,6 +214,7 @@ def batch_signup(user, csv_string, course):
     )
 
 
+@auth_api.route('/change/password', methods=['POST'])
 @auth_api.route('/change-password', methods=['POST'])
 @login_required
 @Request.json('old_password: str', 'new_password: str')
