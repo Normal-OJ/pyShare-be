@@ -2,11 +2,9 @@
 from functools import wraps
 # Related third party imports
 from flask import Blueprint, request, current_app
-from mongoengine.errors import ValidationError
 # Local application
 from mongo import *
 from mongo import engine
-from mongo.utils import hash_id
 from .utils import *
 
 import secrets
@@ -156,10 +154,19 @@ def signup(
 def batch_signup(user, csv_string, course):
     if not course.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
-
     user_data = csv.DictReader(io.StringIO(csv_string))
-    fails = {}
-    exist = set()
+    if len(user_data) == 0:
+        return HTTPError('Invalid csv format', 400)
+    required_keys = {
+        'username',
+        'school',
+        'password',
+        'displayName',
+    }
+    if required_keys - {*user_data[0].keys()}:
+        return HTTPError('Invalid csv format', 400)
+    fails = []
+    exists = set()
     for _u in user_data:
         try:
             new_user = User(
@@ -167,7 +174,7 @@ def batch_signup(user, csv_string, course):
                     username=_u['username'],
                     school=_u['school'],
                 ))
-            exist.add(_u['username'])
+            exists.add((_u['username'], _u['school']))
             # add to course
             new_user.update(add_to_set__courses=course.obj)
             course.update(add_to_set__students=new_user.obj)
@@ -183,35 +190,38 @@ def batch_signup(user, csv_string, course):
             if role < engine.User.Role.STUDENT and user < 'admin':
                 return HTTPError('Only admins can change roles', 403)
             # sign up a new user
-            err = None
             try:
                 new_user = User.signup(
                     username=_u['username'],
                     password=_u['password'],
-                    email=_u.get('email', None),
                     display_name=_u['displayName'],
                     school=_u['school'],
                     course=course.obj,
                     role=role,
                 )
             except ValidationError as ve:
-                err = str(ve), ve.to_dict()
-                fails[_u['username']] = [*ve.to_dict().keys()][0]
-            except NotUniqueError as ne:
-                err = str(ne), 'EMAIL_DUPLICATED'
-                fails[_u['username']] = 'email'
-            if err is not None:
+                fails.append({
+                    'username': _u['username'],
+                    'school': _u['school'],
+                    'err': ve.to_dict(),
+                })
                 current_app.logger.error(
                     f'fail to sign up for {_u["username"]}\n'
-                    f'error: {err[0]}\n'
-                    f'data: {err[1]}', )
-    return HTTPResponse(
-        'sign up finish',
-        data={
-            'fails': fails,
-            'exist': list(exist),
-        },
-    )
+                    f'error: {ve}\n'
+                    f'data: {ve.to_dict()}', )
+    if exists or fails:
+        exists = [{
+            'username': e[0],
+            'school': e[1],
+        } for e in exists]
+        return HTTPError(
+            'sign up finish',
+            data={
+                'fails': fails,
+                'exist': exists,
+            },
+        )
+    return HTTPResponse('Ok.')
 
 
 @auth_api.route('/change/password', methods=['POST'])
@@ -233,15 +243,14 @@ def change_password(user, old_password, new_password):
 @Request.json(
     'password: str',
     'email: str',
-    'new_email: str',
 )
-def change_email(user, email, password, new_email):
+def change_email(user, email, password):
     try:
-        assert user == User.login_by_email(email, password)
+        assert user == User.login(user.school, user.username, password)
     except (DoesNotExist, AssertionError):
         return HTTPError('Invalid email or wrong password', 400)
     try:
-        user.update(email=new_email)
+        user.update(email=email)
     except ValidationError:
         HTTPError('Invalid or duplicated email.', 400)
     return HTTPResponse('Email has been changed', cookies={'jwt': user.jwt})
