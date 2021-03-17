@@ -260,9 +260,11 @@ def change_email(user, email, password):
 @Request.json('email: str')
 def check_email(email):
     try:
-        User.get_by_email(email)
+        engine.User.check_email(email)
     except DoesNotExist:
         return HTTPResponse('Valid email', data={'valid': 1})
+    except ValidationError:
+        pass
     return HTTPError('Email has been used', 400, data={'valid': 0})
 
 

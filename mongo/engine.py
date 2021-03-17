@@ -58,10 +58,11 @@ class User(Document):
     # notification list
     notifs = ListField(ReferenceField('Notif'), default=[])
 
-    def check_email(self, email):
+    @classmethod
+    def check_email(cls, email):
         # TODO: solve race condition
         if email is not None and User.objects(email=email):
-            print(email)
+            cls.email.validate(email)
             raise NotUniqueError('Duplicated not-null email field')
 
     def update(self, **ks):
