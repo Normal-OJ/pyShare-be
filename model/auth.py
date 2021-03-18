@@ -261,11 +261,11 @@ def change_email(user, email, password):
 def check_email(email):
     try:
         engine.User.check_email(email)
-    except DoesNotExist:
-        return HTTPResponse('Valid email', data={'valid': 1})
     except ValidationError:
-        pass
-    return HTTPError('Email has been used', 400, data={'valid': 0})
+        return HTTPError('Invalid email', 400, data={'valid': 0})
+    except NotUniqueError:
+        return HTTPError('Duplicated email', 400, data={'valid': 0})
+    return HTTPResponse('Valid email', data={'valid': 1})
 
 
 @auth_api.route('/check/user-id', methods=['POST'])
