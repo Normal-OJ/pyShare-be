@@ -154,7 +154,7 @@ def signup(
 def batch_signup(user, csv_string, course):
     if not course.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
-    user_data = csv.DictReader(io.StringIO(csv_string))
+    user_data = [*csv.DictReader(io.StringIO(csv_string))]
     if len(user_data) == 0:
         return HTTPError('Invalid csv format', 400)
     required_keys = {
@@ -215,7 +215,8 @@ def batch_signup(user, csv_string, course):
             'school': e[1],
         } for e in exists]
         return HTTPError(
-            'sign up finish',
+            'Sign up finish, but some issues occurred.',
+            400,
             data={
                 'fails': fails,
                 'exist': exists,
