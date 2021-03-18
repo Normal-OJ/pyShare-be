@@ -99,44 +99,50 @@ def setup_course(courses):
     for course in courses:
         # if we can find the pre defined course and it is not exist
         if course in COURSE_DATA:
-            if not Course(course):
-                course_data = COURSE_DATA[course]
+            course_data = COURSE_DATA[course]
+            teacher = User.get_by_username(course_data['teacher'])
+            try:
                 c = Course.add(
                     name=course_data['name'],
-                    teacher=course_data['teacher'],
+                    teacher=teacher,
                     year=course_data['year'],
                     semester=course_data['semester'],
                 )
-                # add tags if specified
-                tags = course_data.get('tags')
-                if tags is not None:
-                    tags = [*map(Tag, tags)]
-                    for t in filter(lambda t: not t, tags):
-                        logging.error(f'No Such Tag: {t} in {c}')
-                    c.update(tags=[t.value for t in filter(bool, tags)])
-                # add students if specified
-                students = course_data.get('students')
-                if students is not None:
-                    # convert to MongoBase
-                    students = [*map(User, students)]
-                    # log non-exist user
-                    for s in filter(lambda s: not s, students):
-                        logging.error(f'No Such User: {s} in {c}')
-                    # filter valid users
-                    students = [s.obj for s in filter(bool, students)]
-                    # update references
-                    for s in students:
-                        s.update(add_to_set__courses=c.obj)
-                    c.update(push_all__students=students)
-                # add problems if specified !!! TODO !!!
-                problems = course_data.get('problems')
-                if problems is not None:
-                    problems = [*map(Problem, problems)]
-                    for p in filter(lambda p: not p, problems):
-                        logging.error(f'No Such Problem: {p} in {c}')
-                    c.update(push_all__problems=[
-                        p.obj for p in filter(bool, problems)
-                    ])
+            except NotUniqueError:
+                logging.info(f'Course {course} already exists.')
+                continue
+            except ValidationError as ve:
+                logging.info(f'Invalid data. err: {ve.to_dict()}')
+                continue
+            # add tags if specified
+            tags = course_data.get('tags')
+            if tags is not None:
+                tags = [*map(Tag, tags)]
+                for t in filter(lambda t: not t, tags):
+                    logging.error(f'No Such Tag: {t} in {c}')
+                c.update(tags=[t.value for t in filter(bool, tags)])
+            # add students if specified
+            students = course_data.get('students')
+            if students is not None:
+                # convert to MongoBase
+                students = [*map(User.get_by_username, students)]
+                # log non-exist user
+                for s in filter(lambda s: not s, students):
+                    logging.error(f'No Such User: {s} in {c}')
+                # filter valid users
+                students = [s.obj for s in filter(bool, students)]
+                # update references
+                for s in students:
+                    s.update(add_to_set__courses=c.obj)
+                c.update(push_all__students=students)
+            # add problems if specified !!! TODO !!!
+            problems = course_data.get('problems')
+            if problems is not None:
+                problems = [*map(Problem, problems)]
+                for p in filter(lambda p: not p, problems):
+                    logging.error(f'No Such Problem: {p} in {c}')
+                c.update(
+                    push_all__problems=[p.obj for p in filter(bool, problems)])
         else:
             logging.error(
                 f'Try to setup with course that is not in course.json: {course}'
@@ -149,17 +155,28 @@ def setup_problem(problems):
     for problem in problems:
         if problem in PROBLEM_DATA:
             problem_data = PROBLEM_DATA[problem]
+            try:
+                course = Course.get_by_name(problem_data['course']).obj
+            except DoesNotExist:
+                logging.error(
+                    f'Course {problem_data["course"]} '
+                    'doesn\'t exist.', )
+                continue
             # check existence
             if Problem.filter(
                     name=problem_data['title'],
-                    course=problem_data['course'],
+                    course=course,
             ):
+                logging.info(f'Problem {problem} has been registered.')
                 continue
             keys = {
                 'title', 'description', 'course', 'author', 'tags',
                 'default_code', 'status', 'allow_multiple_comments'
             }
             ks = {v: problem_data[v] for v in problem_data.keys() & keys}
+            ks['course'] = course
+            if 'author' in ks:
+                ks['author'] = User.get_by_username(ks['author'])
             # insert problem
             problem = Problem.add(**ks)
             # add attachments

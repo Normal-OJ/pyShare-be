@@ -80,8 +80,15 @@ class User(MongoBase, engine=engine.User):
         raise engine.DoesNotExist
 
     @classmethod
-    def get_by_username(cls, username: str):
-        obj = cls.engine.objects.get(username=username)
+    def get_by_username(
+        cls,
+        username: str,
+        school: str = '',
+    ):
+        obj = cls.engine.objects.get(
+            username=username,
+            school=school,
+        )
         return cls(obj)
 
     @classmethod

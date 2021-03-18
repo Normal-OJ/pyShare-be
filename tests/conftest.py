@@ -2,11 +2,8 @@ from app import setup_app
 from mongo import *
 from mongo import engine
 
-import os
 import pytest
 import random
-import json
-import secrets
 from datetime import datetime
 from zipfile import ZipFile
 from collections import defaultdict
@@ -21,7 +18,11 @@ DB = 'normal-oj'
 @pytest.fixture
 def config_app():
     def config_app(config=None, env=None):
-        return setup_app(config, env)
+        ks = {
+            'config': config,
+            'env': env,
+        }
+        return setup_app(**ks)
 
     yield config_app
     # clean db
@@ -45,8 +46,12 @@ def client(config_client):
 
 @pytest.fixture
 def forge_client(client):
-    def cookied(username):
-        client.set_cookie('test.test', 'piann', User(username).secret)
+    def cookied(username: str, school: str = ''):
+        user = User.get_by_username(
+            username=username,
+            school=school,
+        )
+        client.set_cookie('test.test', 'piann', user.secret)
         return client
 
     return cookied

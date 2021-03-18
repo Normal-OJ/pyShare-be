@@ -66,6 +66,10 @@ class Course(MongoBase, engine=engine.Course):
         teacher.update(add_to_set__courses=c)
         return cls(c)
 
+    @classmethod
+    def get_by_name(cls, name: str) -> 'Course':
+        return cls(cls.engine.objects.get(name=name))
+
     def statistic_file(self):
         f = tempfile.TemporaryFile('w+')
         statistic_fields = [
