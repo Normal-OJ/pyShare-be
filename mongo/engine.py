@@ -82,6 +82,7 @@ class User(Document):
             'displayName': self.display_name,
             'school': self.school,
             'role': self.role,
+            'email': self.email,
             'md5': self.md5,
             'id': str(self.id),
         }
