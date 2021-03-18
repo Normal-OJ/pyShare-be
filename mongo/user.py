@@ -40,7 +40,6 @@ class User(MongoBase, engine=engine.User):
             email=email,
             school=school or '',
             role=role,
-            md5=hashlib.md5((email or '').encode()).hexdigest(),
         ).save(force_insert=True)
         # add user to course
         if course is not None:

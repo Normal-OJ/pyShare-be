@@ -3,6 +3,7 @@ from bson import ObjectId
 import mongoengine
 import os
 import re
+import hashlib
 from datetime import datetime
 
 from .utils import Enum
@@ -68,10 +69,12 @@ class User(Document):
     def update(self, **ks):
         if 'email' in ks:
             self.check_email(ks['email'])
+            self.md5 = hashlib.md5((ks['email'] or '').encode()).hexdigest()
         super().update(**ks)
 
     def save(self, *args, **ks):
         self.check_email(self.email)
+        self.md5 = hashlib.md5((self.email or '').encode()).hexdigest()
         super().save(*args, **ks)
         return self.reload()
 
