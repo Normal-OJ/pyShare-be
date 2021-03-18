@@ -251,9 +251,9 @@ def change_email(user, email, password):
         return HTTPError('Wrong password', 400)
     try:
         user.update(email=email)
-    except ValidationError:
+    except (ValidationError, NotUniqueError):
         HTTPError('Invalid or duplicated email.', 400)
-    return HTTPResponse('Email has been changed', cookies={'jwt': user.jwt})
+    return HTTPResponse('Email has been changed', cookies={'jwt': user.cookie})
 
 
 @auth_api.route('/check/email', methods=['POST'])
