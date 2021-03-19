@@ -1,10 +1,20 @@
+from mongo.utils import hash_id
 import pytest
+import secrets
 from mongo import *
 from tests import utils
 
 
 def setup_function(_):
     utils.mongo.drop_db()
+
+
+def test_hash_id():
+    username = secrets.token_urlsafe()
+    password = secrets.token_urlsafe()
+    assert hash_id(username, password) == hash_id(username, password)
+    password2 = secrets.token_urlsafe()
+    assert hash_id(username, password) != hash_id(username, password2)
 
 
 def test_login():

@@ -17,7 +17,7 @@ def setup_function(_):
     ],
 )
 def test_get_by_username(username, query):
-    u = User.signup(**utils.user.data(username=username))
+    u = utils.user.lazy_signup(username=username)
     try:
         assert User.get_by_username(query) == u
     except DoesNotExist:
@@ -36,8 +36,14 @@ def test_get_by_username(username, query):
     ],
 )
 def test_get_by_email(email, query, equal):
-    u = User.signup(**utils.user.data(email=email))
+    u = utils.user.lazy_signup(email=email)
     try:
         assert User.get_by_email(query) == u
     except DoesNotExist:
         assert not equal
+
+
+def test_can_not_get_email_with_none():
+    utils.user.lazy_signup(has_email=False)
+    with pytest.raises(DoesNotExist):
+        User.get_by_email(None)
