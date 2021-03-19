@@ -3,6 +3,7 @@ from bson import ObjectId
 import mongoengine
 import os
 import re
+import hashlib
 from datetime import datetime
 
 from .utils import Enum
@@ -58,18 +59,22 @@ class User(Document):
     # notification list
     notifs = ListField(ReferenceField('Notif'), default=[])
 
-    def check_email(self, email):
+    @classmethod
+    def check_email(cls, email):
+        # TODO: solve race condition
         if email is not None and User.objects(email=email):
-            print(email)
+            cls.email.validate(email)
             raise NotUniqueError('Duplicated not-null email field')
 
     def update(self, **ks):
         if 'email' in ks:
             self.check_email(ks['email'])
+            self.md5 = hashlib.md5((ks['email'] or '').encode()).hexdigest()
         super().update(**ks)
 
     def save(self, *args, **ks):
         self.check_email(self.email)
+        self.md5 = hashlib.md5((self.email or '').encode()).hexdigest()
         super().save(*args, **ks)
         return self.reload()
 
@@ -80,15 +85,10 @@ class User(Document):
             'displayName': self.display_name,
             'school': self.school,
             'role': self.role,
+            'email': self.email,
             'md5': self.md5,
             'id': str(self.id),
         }
-
-
-class CourseStatus(Enum):
-    PRIVATE = 0
-    READONLY = 1
-    PUBLIC = 2
 
 
 class Course(Document):
@@ -112,8 +112,8 @@ class Course(Document):
     semester = IntField(required=True)
     description = StringField(default='', max_length=10**4)
     status = IntField(
-        default=CourseStatus.PUBLIC,
-        choices=CourseStatus.choices(),
+        default=Status.PUBLIC,
+        choices=Status.choices(),
     )
 
 
@@ -121,12 +121,11 @@ class Tag(Document):
     value = StringField(primary_key=True, required=True, max_length=16)
 
 
-class CommentStatus(Enum):
-    HIDDEN = 0
-    SHOW = 1
-
-
 class Comment(Document):
+    class Status(Enum):
+        HIDDEN = 0
+        SHOW = 1
+
     meta = {'indexes': ['floor', 'created', 'updated']}
     title = StringField(required=True, max_length=128)
     floor = IntField(required=True)
@@ -139,8 +138,8 @@ class Comment(Document):
     # those who like this comment
     liked = ListField(ReferenceField('User'), default=[])
     status = IntField(
-        default=CommentStatus.SHOW,
-        choices=CommentStatus.choices(),
+        default=Status.SHOW,
+        choices=Status.choices(),
     )
     created = DateTimeField(default=datetime.now)
     updated = DateTimeField(default=datetime.now)
@@ -159,7 +158,7 @@ class Comment(Document):
 
     @property
     def show(self):
-        return self.status == CommentStatus.SHOW
+        return self.status == self.Status.SHOW
 
     @property
     def hidden(self):
@@ -179,12 +178,11 @@ class Attachment(Document):
     file = FileField(required=True)
 
 
-class ProblemStatus(Enum):
-    ONLINE = 1
-    OFFLINE = 0
-
-
 class Problem(Document):
+    class Status(Enum):
+        ONLINE = 1
+        OFFLINE = 0
+
     meta = {'indexes': [{'fields': ['$title']}, 'timestamp']}
     pid = SequenceField(required=True, primary_key=True)
     height = IntField(default=0)
@@ -197,8 +195,8 @@ class Problem(Document):
     comments = ListField(ReferenceField('Comment'), default=[])
     timestamp = DateTimeField(default=datetime.now)
     status = IntField(
-        default=ProblemStatus.ONLINE,
-        choices=ProblemStatus.choices(),
+        default=Status.ONLINE,
+        choices=Status.choices(),
     )
     default_code = StringField(
         default='',
@@ -211,7 +209,7 @@ class Problem(Document):
 
     @property
     def online(self):
-        return self.status == ProblemStatus.ONLINE
+        return self.status == self.Status.ONLINE
 
 
 class Submission(Document):
@@ -236,6 +234,7 @@ class Submission(Document):
     code = StringField(max_length=10**6, default='')
     timestamp = DateTimeField(default=datetime.now)
     result = EmbeddedDocumentField(Result, default=None)
+    # TODO: use a more meaningful name
     status = IntField(
         default=Status.PENDING,
         choices=Status.choices(),

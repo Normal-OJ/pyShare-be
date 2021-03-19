@@ -9,6 +9,7 @@ import redis
 import fakeredis
 
 from . import engine
+from .config import ConfigLoader
 from .base import MongoBase
 from .user import User
 from .problem import Problem
@@ -29,7 +30,7 @@ REDIS_POOL = redis.ConnectionPool(
 
 
 def get_redis_client():
-    if current_app.config['TESTING']:
+    if ConfigLoader.get('TESTING') == True:
         return fakeredis.FakeStrictRedis()
     else:
         return redis.Redis(connection_pool=REDIS_POOL)
@@ -156,25 +157,25 @@ class Submission(MongoBase, engine=engine.Submission):
         self.update(status=self.engine.Status.PENDING)
         judge_url = f'{self.JUDGE_URL}/{self.id}'
         # send submission to snadbox for judgement
-        if not current_app.config['TESTING']:
-            try:
-                resp = rq.post(
-                    judge_url,
-                    params={'token': token},
-                    files=[(
-                        'attachments',
-                        (a.filename, a, None),
-                    ) for a in self.problem.attachments],
-                    data={
-                        'src': self.code,
-                    },
-                )
-            except rq.exceptions.RequestException as e:
-                self.logger.error(str(e))
-                return False
-            if not resp.ok:
-                logging.warning(f'got sandbox resp: {resp.text}')
-
+        if ConfigLoader.get('TESTING') == True:
+            return True
+        try:
+            resp = rq.post(
+                judge_url,
+                params={'token': token},
+                files=[(
+                    'attachments',
+                    (a.filename, a, None),
+                ) for a in self.problem.attachments],
+                data={
+                    'src': self.code,
+                },
+            )
+        except rq.exceptions.RequestException as e:
+            self.logger.error(str(e))
+            return False
+        if not resp.ok:
+            logging.warning(f'got sandbox resp: {resp.text}')
         return True
 
     def complete(

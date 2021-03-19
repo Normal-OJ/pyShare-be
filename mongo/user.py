@@ -40,7 +40,6 @@ class User(MongoBase, engine=engine.User):
             email=email,
             school=school or '',
             role=role,
-            md5=hashlib.md5((email or '').encode()).hexdigest(),
         ).save(force_insert=True)
         # add user to course
         if course is not None:
@@ -72,12 +71,30 @@ class User(MongoBase, engine=engine.User):
         raise engine.DoesNotExist
 
     @classmethod
-    def get_by_username(cls, username):
-        obj = cls.engine.objects.get(username=username)
+    def login_by_email(cls, email: str, password: str):
+        user = cls.get_by_email(email)
+        user_id = hash_id(user.username, password)
+        if compare_digest(user.user_id, user_id) or \
+            compare_digest(user.user_id2, user_id):
+            return user
+        raise engine.DoesNotExist
+
+    @classmethod
+    def get_by_username(
+        cls,
+        username: str,
+        school: str = '',
+    ):
+        obj = cls.engine.objects.get(
+            username=username,
+            school=school,
+        )
         return cls(obj)
 
     @classmethod
-    def get_by_email(cls, email):
+    def get_by_email(cls, email: str):
+        if email is None:
+            raise engine.DoesNotExist
         obj = cls.engine.objects.get(email=cls.formated_email(email))
         return cls(obj)
 
@@ -90,7 +107,6 @@ class User(MongoBase, engine=engine.User):
             'displayName',
             'md5',
             'role',
-            'courses',
         ]
         return self.jwt(*keys)
 

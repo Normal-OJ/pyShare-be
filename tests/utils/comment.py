@@ -24,7 +24,7 @@ def comment_data(
     if author is None:
         # generate a user has write permission to the problem
         course = problem.course
-        if course.status == engine.CourseStatus.PUBLIC:
+        if course.status == engine.Course.Status.PUBLIC:
             author = user_lib.Factory.student()
         else:
             # TODO: add student to course, it should not be admin here

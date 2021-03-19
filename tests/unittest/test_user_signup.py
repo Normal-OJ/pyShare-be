@@ -1,3 +1,4 @@
+import hashlib
 import pytest
 from mongo import *
 from tests import utils
@@ -90,6 +91,15 @@ def test_update_email_uniqueness():
     u = utils.user.lazy_signup()
     with pytest.raises(
             NotUniqueError,
-            match=r'.*Duplicate.*',
+            match=r'.*Duplicate.*email.*',
     ):
         u.update(email=email)
+
+
+def test_update_email_also_change_email():
+    email = 'bogay@noj.tw'
+    u = utils.user.lazy_signup(email=email)
+    assert u.md5 == hashlib.md5(email.encode()).hexdigest()
+    email = 'not.bogay@noj.tw'
+    u.update(email=email)
+    assert u.md5 == hashlib.md5(email.encode()).hexdigest()

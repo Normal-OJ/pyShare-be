@@ -158,7 +158,7 @@ class Comment(MongoBase, engine=engine.Comment):
             comments = map(
                 lambda c: author == c.author,
                 filter(
-                    lambda c: c.status == engine.CommentStatus.SHOW,
+                    lambda c: c.status == engine.Comment.Status.SHOW,
                     target.comments,
                 ),
             )

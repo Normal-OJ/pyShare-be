@@ -34,9 +34,9 @@ def test_user_permission(role):
 @pytest.mark.parametrize(
     'status',
     [
-        engine.CourseStatus.PRIVATE,
-        engine.CourseStatus.PUBLIC,
-        engine.CourseStatus.READONLY,
+        engine.Course.Status.PRIVATE,
+        engine.Course.Status.PUBLIC,
+        engine.Course.Status.READONLY,
         pytest.param(
             -10086,
             marks=pytest.mark.xfail,

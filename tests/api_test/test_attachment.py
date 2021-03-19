@@ -8,15 +8,24 @@ mongomock.gridfs.enable_gridfs_integration()
 
 
 class TestAttachment(BaseTester):
-    @pytest.mark.parametrize('key, value, status_code', [
-        (None, None, 200),
-        ('filename', 'atta1', 400),
-        ('filename', 'a' * 65, 400),
-        ('fileObj', None, 404),
-    ])
-    def test_create_attachment(self, forge_client, config_app, key, value,
-                               status_code):
-        config_app(None, 'test')
+    @pytest.mark.parametrize(
+        'key, value, status_code',
+        [
+            (None, None, 200),
+            ('filename', 'atta1', 400),
+            ('filename', 'a' * 65, 400),
+            ('fileObj', None, 404),
+        ],
+    )
+    def test_create_attachment(
+        self,
+        forge_client,
+        config_app,
+        key,
+        value,
+        status_code,
+    ):
+        config_app(env='test')
         client = forge_client('teacher1')
         data = {
             'filename': 'test',
@@ -25,15 +34,13 @@ class TestAttachment(BaseTester):
         }
         if key:
             data[key] = value
-
         rv = client.post('/attachment', data=data)
         assert rv.status_code == status_code
-
         if status_code == 200:
             assert Attachment('test').description == 'haha'
 
     def test_get_attachments(self, forge_client, config_app):
-        config_app(None, 'test')
+        config_app(env='test')
         client = forge_client('teacher1')
 
         rv = client.get('/attachment')
@@ -44,7 +51,7 @@ class TestAttachment(BaseTester):
         }]
 
     def test_get_an_attachment(self, forge_client, config_app):
-        config_app(None, 'test')
+        config_app(env='test')
         client = forge_client('teacher1')
 
         rv = client.get('/attachment/atta1')
@@ -52,7 +59,7 @@ class TestAttachment(BaseTester):
         assert rv.data == b'Hmm.'
 
     def test_update_attachment(self, forge_client, config_app):
-        config_app(None, 'test')
+        config_app(env='test')
         client = forge_client('teacher1')
         data = {
             'description': 'haha',
@@ -70,7 +77,7 @@ class TestAttachment(BaseTester):
     ])
     def test_delete_attachment(self, forge_client, config_app, key, value,
                                status_code):
-        config_app(None, 'test')
+        config_app(env='test')
         data = {'user': 'teacher1', 'filename': 'atta1'}
         if key:
             data[key] = value

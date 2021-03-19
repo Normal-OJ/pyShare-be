@@ -9,6 +9,7 @@ from . import utils
 from . import comment
 from . import attachment
 from . import notif
+from . import config
 
 from .engine import *
 from .user import *

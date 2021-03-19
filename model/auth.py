@@ -5,7 +5,6 @@ from flask import Blueprint, request, current_app
 # Local application
 from mongo import *
 from mongo import engine
-from mongo.utils import hash_id
 from .utils import *
 
 import secrets
@@ -86,18 +85,24 @@ def session():
         return HTTPResponse(f'Goodbye', cookies=cookies)
 
     @Request.json(
-        'school: str',
-        'username: str',
+        'school',
+        'username',
         'password: str',
+        'email',
     )
-    def login(**u_ks):
+    def login(email, **u_ks):
         '''Login a user.
         Returns:
             - 400 Incomplete Data
             - 401 Login Failed
         '''
         try:
-            user = User.login(**u_ks)
+            # login by email
+            if email is not None:
+                user = User.login_by_email(email, u_ks['password'])
+            # login by username and school
+            else:
+                user = User.login(**u_ks)
         except DoesNotExist:
             return HTTPError('Login Failed', 401)
         if not user.active:
@@ -106,7 +111,6 @@ def session():
         return HTTPResponse('Login Success', cookies=cookies)
 
     methods = {'GET': logout, 'POST': login}
-
     return methods[request.method]()
 
 
@@ -150,10 +154,19 @@ def signup(
 def batch_signup(user, csv_string, course):
     if not course.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
-
-    user_data = csv.DictReader(io.StringIO(csv_string))
-    fails = {}
-    exist = set()
+    user_data = [*csv.DictReader(io.StringIO(csv_string))]
+    if len(user_data) == 0:
+        return HTTPError('Invalid csv format', 400)
+    required_keys = {
+        'username',
+        'school',
+        'password',
+        'displayName',
+    }
+    if required_keys - {*user_data[0].keys()}:
+        return HTTPError('Invalid csv format', 400)
+    fails = []
+    exists = set()
     for _u in user_data:
         try:
             new_user = User(
@@ -161,7 +174,7 @@ def batch_signup(user, csv_string, course):
                     username=_u['username'],
                     school=_u['school'],
                 ))
-            exist.add(_u['username'])
+            exists.add((_u['username'], _u['school']))
             # add to course
             new_user.update(add_to_set__courses=course.obj)
             course.update(add_to_set__students=new_user.obj)
@@ -177,58 +190,83 @@ def batch_signup(user, csv_string, course):
             if role < engine.User.Role.STUDENT and user < 'admin':
                 return HTTPError('Only admins can change roles', 403)
             # sign up a new user
-            err = None
             try:
                 new_user = User.signup(
                     username=_u['username'],
                     password=_u['password'],
-                    email=_u.get('email', None),
                     display_name=_u['displayName'],
                     school=_u['school'],
                     course=course.obj,
                     role=role,
                 )
             except ValidationError as ve:
-                err = str(ve), ve.to_dict()
-                fails[_u['username']] = [*ve.to_dict().keys()][0]
-            except NotUniqueError as ne:
-                err = str(ne), 'EMAIL_DUPLICATED'
-                fails[_u['username']] = 'email'
-            if err is not None:
+                fails.append({
+                    'username': _u['username'],
+                    'school': _u['school'],
+                    'err': ve.to_dict(),
+                })
                 current_app.logger.error(
-                    f'fail to sign up for {new_user}\n'
-                    f'error: {err[0]}\n'
-                    f'data: {err[1]}', )
-    return HTTPResponse(
-        'sign up finish',
-        data={
-            'fails': fails,
-            'exist': list(exist),
-        },
-    )
+                    f'fail to sign up for {_u["username"]}\n'
+                    f'error: {ve}\n'
+                    f'data: {ve.to_dict()}', )
+    if exists or fails:
+        exists = [{
+            'username': e[0],
+            'school': e[1],
+        } for e in exists]
+        return HTTPError(
+            'Sign up finish, but some issues occurred.',
+            400,
+            data={
+                'fails': fails,
+                'exist': exists,
+            },
+        )
+    return HTTPResponse('Ok.')
 
 
+@auth_api.route('/change/password', methods=['POST'])
 @auth_api.route('/change-password', methods=['POST'])
 @login_required
 @Request.json('old_password: str', 'new_password: str')
 def change_password(user, old_password, new_password):
     try:
-        User.login(user.school, user.username, old_password)
-    except DoesNotExist:
+        assert user == User.login(user.school, user.username, old_password)
+    except (DoesNotExist, AssertionError):
         return HTTPError('Wrong Password', 403)
     user.change_password(new_password)
     cookies = {'piann_httponly': user.secret}
     return HTTPResponse('Password Has Been Changed', cookies=cookies)
 
 
+@auth_api.route('/change/email', methods=['POST'])
+@login_required
+@Request.json(
+    'password: str',
+    'email: str',
+)
+def change_email(user, email, password):
+    try:
+        assert user == User.login(user.school, user.username, password)
+    except (DoesNotExist, AssertionError):
+        return HTTPError('Wrong password', 400)
+    try:
+        user.update(email=email)
+    except (ValidationError, NotUniqueError):
+        HTTPError('Invalid or duplicated email.', 400)
+    return HTTPResponse('Email has been changed', cookies={'jwt': user.cookie})
+
+
 @auth_api.route('/check/email', methods=['POST'])
 @Request.json('email: str')
 def check_email(email):
     try:
-        User.get_by_email(email)
-    except DoesNotExist:
-        return HTTPResponse('Valid email', data={'valid': 1})
-    return HTTPError('Email has been used', 400, data={'valid': 0})
+        engine.User.check_email(email)
+    except ValidationError:
+        return HTTPError('Invalid email', 400, data={'valid': 0})
+    except NotUniqueError:
+        return HTTPError('Duplicated email', 400, data={'valid': 0})
+    return HTTPResponse('Valid email', data={'valid': 1})
 
 
 @auth_api.route('/check/user-id', methods=['POST'])
