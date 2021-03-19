@@ -75,20 +75,21 @@ def another_problem(request, problem_data):
 class TestProblem(BaseTester):
     def test_get_problems(self, forge_client, config_app):
         # Get problems
-        config_app(None, 'test')
+        config_app(env='test')
         client = forge_client('teacher1')
-
-        rv = client.post('/problem',
-                         json={
-                             'title': 'test',
-                             'description': '',
-                             'tags': [],
-                             'course': 'course_108-1',
-                             'defaultCode': '',
-                             'status': 1,
-                             'isTemplate': False,
-                             'allowMultipleComments': True,
-                         })
+        rv = client.post(
+            '/problem',
+            json={
+                'title': 'test',
+                'description': '',
+                'tags': [],
+                'course': str(Course.get_by_name('course_108-1').id),
+                'defaultCode': '',
+                'status': 1,
+                'isTemplate': False,
+                'allowMultipleComments': True,
+            },
+        )
         json = rv.get_json()
         print(json)
         assert rv.status_code == 200
@@ -100,7 +101,7 @@ class TestProblem(BaseTester):
 
     def test_get_comments(self, forge_client, problem_ids, config_app):
         # Get comments
-        config_app(None, 'test')
+        config_app(env='test')
         client = forge_client('teacher1')
 
         rv = client.post('/comment',
@@ -134,7 +135,7 @@ class TestProblem(BaseTester):
         assert rv.status_code == 200
 
     def test_get_permission(self, forge_client, config_app):
-        config_app(None, 'test')
+        config_app(env='test')
         client = forge_client('teacher1')
 
         rv = client.get(f'/problem/1/permission')
@@ -143,7 +144,7 @@ class TestProblem(BaseTester):
         assert set(json['data']) == {*'rwd'}
 
     def test_get_comment_permission(self, forge_client, config_app):
-        config_app(None, 'test')
+        config_app(env='test')
         client = forge_client('teacher1')
 
         rv = client.post('/comment',
@@ -171,7 +172,7 @@ class TestProblem(BaseTester):
     ])
     def test_add_attachment(self, forge_client, config_app, key, value,
                             status_code, message):
-        config_app(None, 'test')
+        config_app(env='test')
         client = forge_client('teacher1')
         data = {
             'attachment': (io.BytesIO(b'Win'), 'goal'),
@@ -198,7 +199,7 @@ class TestProblem(BaseTester):
             assert rv.status_code == 200
 
     def test_add_multiple_attachments(self, forge_client, config_app):
-        config_app(None, 'test')
+        config_app(env='test')
         client = forge_client('teacher1')
         count = 4
 
@@ -242,7 +243,7 @@ class TestProblem(BaseTester):
         value,
         status_code,
     ):
-        config_app(None, 'test')
+        config_app(env='test')
         client = forge_client('teacher1')
         data = {
             'attachmentName': 'att',
@@ -261,13 +262,13 @@ class TestProblem(BaseTester):
             assert rv.status_code == 404
 
     def test_concurrently_delete_attachments(self, forge_client, config_app):
-        config_app(None, 'test')
+        config_app(env='test')
         client = forge_client('teacher1')
         cnt = 10
 
         make_name = lambda i: f'test-{i}'
         # create attachments
-        p = utils.problem.lazy_add(author='teacher1')
+        p = utils.problem.lazy_add(author=User.get_by_username('teacher1'))
         pid = p.pid
         # copy original attachments
         original_attachments = p.attachments[:]
@@ -291,7 +292,7 @@ class TestProblem(BaseTester):
         assert p.attachments == original_attachments
 
     def test_get_an_attachment(self, forge_client, config_app):
-        config_app(None, 'test')
+        config_app(env='test')
         client = forge_client('teacher1')
 
         rv = client.get('/problem/1/attachment/att')
