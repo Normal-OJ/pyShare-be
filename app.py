@@ -195,6 +195,7 @@ def setup_problem(problems):
             )
 
 
+# TODO: revise setup process
 def setup_env(env):
     '''
     setup environment (insert document into DB)
