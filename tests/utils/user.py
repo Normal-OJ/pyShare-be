@@ -1,16 +1,10 @@
 import secrets
-import random
 from typing import Optional
 from mongo import *
+from mongo import engine
 from .utils import drop_none
 
 __all__ = ('data', 'lazy_signup', 'Factory')
-
-SCHOOLS = [
-    'NTU',
-    'NTNU',
-    'NTUST',
-]
 
 
 def random_username():
@@ -32,8 +26,6 @@ def data(
         password = secrets.token_urlsafe()
     if email is None and has_email:
         email = f'{random_username()}@pyshare.noj.tw'
-    if school is None:
-        school = random.choice(SCHOOLS)
     return drop_none({
         'username': username,
         'password': password,
@@ -51,11 +43,11 @@ def lazy_signup(**ks):
 class Factory:
     @staticmethod
     def admin():
-        return lazy_signup(role=0)
+        return lazy_signup(role=User.engine.Role.ADMIN)
 
     @staticmethod
     def teacher():
-        return lazy_signup(role=1)
+        return lazy_signup(role=User.engine.Role.TEACHER)
 
     @staticmethod
     def student():
