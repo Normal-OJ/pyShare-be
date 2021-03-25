@@ -17,4 +17,4 @@ def test(user):
 @test_api.route('/role')
 @identity_verify(0, 1, ...)
 def role(user):
-    return HTTPResponse(str(user.obj.role))
+    return HTTPResponse(user.obj.role)

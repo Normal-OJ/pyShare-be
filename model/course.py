@@ -106,14 +106,14 @@ def create_course(
         c = Course.add(**c_ks)
     except ValidationError as ve:
         return HTTPError(
-            str(ve),
+            ve,
             400,
             data=ve.to_dict(),
         )
     except PermissionError as e:
-        return HTTPError(str(e), 403)
+        return HTTPError(e, 403)
     except NotUniqueError as e:
-        return HTTPError(str(e), 422)
+        return HTTPError(e, 422)
     return HTTPResponse('success', data={'id': c.id})
 
 
@@ -138,12 +138,12 @@ def update_course(
         course.update(**c_ks)
     except ValidationError as ve:
         return HTTPError(
-            str(ve),
+            ve,
             400,
             data=ve.to_dict(),
         )
     except ValueError as e:
-        return HTTPError(str(e), 400)
+        return HTTPError(e, 400)
     return HTTPResponse('success')
 
 
@@ -217,7 +217,7 @@ def update_tags(user, course, push, pop):
     try:
         course.patch_tag(push, pop)
     except ValidationError as ve:
-        return HTTPError(str(ve), 400, data=ve.to_dict())
+        return HTTPError(ve, 400, data=ve.to_dict())
     return HTTPResponse('success')
 
 

@@ -32,7 +32,7 @@ def create_comment(user, target, code, id_, **ks):
         except engine.DoesNotExist:
             return HTTPError('Can not find some docuemnt', 404)
         except PermissionError as e:
-            return HTTPError(str(e), 403)
+            return HTTPError(e, 403)
     elif target == 'problem':
         try:
             comment = Comment.add_to_problem(
@@ -46,7 +46,7 @@ def create_comment(user, target, code, id_, **ks):
         except engine.DoesNotExist:
             return HTTPError('Can not find some docuemnt', 404)
         except PermissionError as e:
-            return HTTPError(str(e), 403)
+            return HTTPError(e, 403)
     else:
         return HTTPError('Unknown target', 400)
     return HTTPResponse(
@@ -194,5 +194,5 @@ def rejudge(user, comment: Comment):
     try:
         comment.submit()
     except SubmissionPending as e:
-        return HTTPError(str(e), 503)
+        return HTTPError(e, 503)
     return HTTPResponse('success')
