@@ -225,7 +225,7 @@ class User(MongoBase, engine=engine.User):
         ret['problems'] = [{
             'course': {
                 'name': p.course.name,
-                'id': str(p.course.id)
+                'id': p.course.id
             },
             'pid': p.pid,
         } for p in filter(include_problem, self.problems)]
@@ -233,7 +233,7 @@ class User(MongoBase, engine=engine.User):
         ret['likes'] = [{
             'course': {
                 'name': c.problem.course.name,
-                'id': str(c.problem.course.id)
+                'id': c.problem.course.id
             },
             'pid': c.problem.pid,
             'floor': c.floor,
@@ -243,7 +243,7 @@ class User(MongoBase, engine=engine.User):
         ret['comments'] = [{
             'course': {
                 'name': c.problem.course.name,
-                'id': str(c.problem.course.id)
+                'id': c.problem.course.id
             },
             'pid': c.problem.pid,
             'floor': c.floor,
@@ -252,7 +252,7 @@ class User(MongoBase, engine=engine.User):
         ret['replies'] = [{
             'course': {
                 'name': c.problem.course.name,
-                'id': str(c.problem.course.id)
+                'id': c.problem.course.id
             },
             'pid': c.problem.pid,
             'floor': c.floor,
@@ -261,7 +261,7 @@ class User(MongoBase, engine=engine.User):
         ret['liked'] = [{
             'course': {
                 'name': c.problem.course.name,
-                'id': str(c.problem.course.id)
+                'id': c.problem.course.id
             },
             'pid': c.problem.pid,
             'floor': c.floor,
@@ -271,7 +271,7 @@ class User(MongoBase, engine=engine.User):
         ret['execInfo'] = [{
             'course': {
                 'name': c.problem.course.name,
-                'id': str(c.problem.course.id)
+                'id': c.problem.course.id
             },
             'pid': c.problem.pid,
             'floor': c.floor,

@@ -129,7 +129,7 @@ def create_problem(
     return HTTPResponse(
         'success',
         data={
-            'course': str(p_ks['course'].id),
+            'course': p_ks['course'].pk,
             'pid': problem.pid,
         },
     )

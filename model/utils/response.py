@@ -1,6 +1,21 @@
-from flask import jsonify, redirect
+from bson import ObjectId
+from flask import jsonify, redirect, json
+from mongo import ObjectIdEncoder
 
-__all__ = ['HTTPResponse', 'HTTPRedirect', 'HTTPError']
+__all__ = (
+    'HTTPResponse',
+    'HTTPRedirect',
+    'HTTPError',
+    'PyShareJSONEncoder',
+)
+
+
+class PyShareJSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        try:
+            return ObjectIdEncoder().default(o)
+        except TypeError:
+            return super().default(o)
 
 
 class HTTPBaseResponese(tuple):

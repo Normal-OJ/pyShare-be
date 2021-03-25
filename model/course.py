@@ -17,7 +17,7 @@ def course_list(user):
     '''
     cs = map(Course, engine.Course.objects.only('id'))
     cs = [{
-        'id': str(c.id),
+        'id': c.id,
         'name': c.name,
         'teacher': c.teacher.info,
         'description': c.description,
@@ -42,7 +42,7 @@ def get_single_course(user, course):
     ]
     ret = {
         'name': course.name,
-        'id': str(course.id),
+        'id': course.id,
         'teacher': course.teacher.info,
         'students': [s.info for s in course.students],
         'numOfProblems': len(comments_of_problems),
@@ -114,7 +114,7 @@ def create_course(
         return HTTPError(str(e), 403)
     except NotUniqueError as e:
         return HTTPError(str(e), 422)
-    return HTTPResponse('success', data={'id': str(c.id)})
+    return HTTPResponse('success', data={'id': c.id})
 
 
 @course_api.route('/<course>', methods=['PUT'])
@@ -163,7 +163,7 @@ def update_students(user, course, users):
     # query document
     u_users = [*map(User, users)]
     # store nonexistent user ids
-    not_in_db = [str(u.pk) for u in filter(bool, u_users)]
+    not_in_db = [u.pk for u in filter(bool, u_users)]
     action = request.url[-6:]
     if action == 'insert':
         warning = [*({*course.students} & {*[u.obj for u in u_users]})]

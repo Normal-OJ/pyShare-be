@@ -52,7 +52,7 @@ def create_comment(user, target, code, id_, **ks):
     return HTTPResponse(
         'success',
         data={
-            'id': str(comment.id),
+            'id': comment.id,
             'target': target,
             'target_id': id_,
         },
@@ -113,12 +113,11 @@ def modify_comment(
             'target':
             'comment',
             'target_id':
-            str(
-                engine.Comment.objects.get(
-                    depth=0,
-                    floor=comment.floor,
-                    problem=comment.problem.pid,
-                ).id),
+            engine.Comment.objects.get(
+                depth=0,
+                floor=comment.floor,
+                problem=comment.problem.pid,
+            ).id,
         } if comment.depth else {
             'target': 'problem',
             'target_id': comment.problem.pid,
@@ -141,7 +140,7 @@ def create_new_submission(user, code, comment: Comment):
         return HTTPError('The source code is invalid!', 400)
     return HTTPResponse(
         'Create new submission',
-        data={'submissionId': str(submission.id)},
+        data={'submissionId': submission.id},
     )
 
 
@@ -162,12 +161,11 @@ def delete_comment(
             'target':
             'comment',
             'target_id':
-            str(
-                engine.Comment.objects.get(
-                    depth=0,
-                    floor=comment.floor,
-                    problem=comment.problem.pid,
-                ).id),
+            engine.Comment.objects.get(
+                depth=0,
+                floor=comment.floor,
+                problem=comment.problem.pid,
+            ).id,
         } if comment.depth else {
             'target': 'problem',
             'target_id': comment.problem.pid,

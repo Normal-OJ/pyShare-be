@@ -31,7 +31,7 @@ class Comment(MongoBase, engine=engine.Comment):
     def __init__(self, _id):
         if isinstance(_id, self.engine):
             _id = _id.id
-        self.id = str(_id)
+        self.id = _id
 
     @doc_required('user', 'user', User)
     def own_permission(self, user: User):
@@ -71,8 +71,8 @@ class Comment(MongoBase, engine=engine.Comment):
         ret['created'] = self.created.timestamp()
         ret['updated'] = self.updated.timestamp()
         ret['submission'] = self.submission and Submission(
-            self.submission.id).to_dict()
-        ret['submissions'] = [str(s.id) for s in self.submissions]
+            self.submission).to_dict()
+        ret['submissions'] = [s.pk for s in self.submissions]
         ret['author'] = self.author.info
         ret['replies'] = [str(r) for r in ret['replies']]
         ret['liked'] = [l.info for l in self.liked]
