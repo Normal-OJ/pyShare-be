@@ -1,10 +1,30 @@
-from flask import jsonify, redirect
+from bson import ObjectId
+from flask import jsonify, redirect, json, Response
+from mongo import ObjectIdEncoder
 
-__all__ = ['HTTPResponse', 'HTTPRedirect', 'HTTPError']
+__all__ = (
+    'HTTPResponse',
+    'HTTPRedirect',
+    'HTTPError',
+    'PyShareJSONEncoder',
+)
+
+
+class PyShareJSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        try:
+            return ObjectIdEncoder().default(o)
+        except TypeError:
+            return super().default(o)
 
 
 class HTTPBaseResponese(tuple):
-    def __new__(cls, resp, status_code=200, cookies={}):
+    def __new__(
+        cls,
+        resp: Response,
+        status_code: int = 200,
+        cookies: dict = {},
+    ):
         for c in cookies:
             if cookies[c] == None:
                 resp.delete_cookie(c)
@@ -15,15 +35,17 @@ class HTTPBaseResponese(tuple):
 
 
 class HTTPResponse(HTTPBaseResponese):
-    def __new__(cls,
-                message='',
-                status_code=200,
-                status='ok',
-                data=None,
-                cookies={}):
+    def __new__(
+        cls,
+        message: str = '',
+        status_code: int = 200,
+        status: str = 'ok',
+        data=None,
+        cookies: dict = {},
+    ):
         resp = jsonify({
             'status': status,
-            'message': message,
+            'message': str(message),
             'data': data,
         })
         return super().__new__(HTTPBaseResponese, resp, status_code, cookies)
@@ -36,7 +58,19 @@ class HTTPRedirect(HTTPBaseResponese):
 
 
 class HTTPError(HTTPResponse):
-    def __new__(cls, message, status_code, data=None, logout=False):
+    def __new__(
+        cls,
+        message,
+        status_code: int,
+        data=None,
+        logout: bool = False,
+    ):
         cookies = {'piann': None, 'jwt': None} if logout else {}
-        return super().__new__(HTTPResponse, message, status_code, 'err', data,
-                               cookies)
+        return super().__new__(
+            HTTPResponse,
+            message,
+            status_code,
+            'err',
+            data,
+            cookies,
+        )

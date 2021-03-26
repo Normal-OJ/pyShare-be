@@ -51,11 +51,11 @@ def add_attachment(
     try:
         Attachment.add(file_obj, filename=filename, description=description)
     except FileExistsError as e:
-        return HTTPError(str(e), 400)
+        return HTTPError(e, 400)
     except FileNotFoundError as e:
-        return HTTPError(str(e), 404)
+        return HTTPError(e, 404)
     except ValidationError as ve:
-        return HTTPError(str(ve), 400, data=ve.to_dict())
+        return HTTPError(ve, 400, data=ve.to_dict())
     return HTTPResponse('success')
 
 
@@ -76,7 +76,7 @@ def edit_attachment(
     try:
         atta.update(file_obj, description)
     except ValidationError as ve:
-        return HTTPError(str(ve), 400, data=ve.to_dict())
+        return HTTPError(ve, 400, data=ve.to_dict())
     return HTTPResponse('success')
 
 

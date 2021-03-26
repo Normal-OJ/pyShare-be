@@ -121,15 +121,15 @@ def create_problem(
             **p_ks,
         )
     except engine.ValidationError as ve:
-        return HTTPError(str(ve), 400, data=ve.to_dict())
+        return HTTPError(ve, 400, data=ve.to_dict())
     except TagNotFoundError as e:
-        return HTTPError(str(e), 404)
+        return HTTPError(e, 404)
     except PermissionError as e:
-        return HTTPError(str(e), 403)
+        return HTTPError(e, 403)
     return HTTPResponse(
         'success',
         data={
-            'course': str(p_ks['course'].id),
+            'course': p_ks['course'].pk,
             'pid': problem.pid,
         },
     )
@@ -223,9 +223,9 @@ def patch_attachment(
                     filename=attachment_name,
                 )
         except FileExistsError as e:
-            return HTTPError(str(e), 400)
+            return HTTPError(e, 400)
         except FileNotFoundError as e:
-            return HTTPError(str(e), 404)
+            return HTTPError(e, 404)
         return HTTPResponse(
             f'successfully update from {"db file" if use_db else "your file"}')
     elif request.method == 'DELETE':
@@ -234,7 +234,7 @@ def patch_attachment(
                 problem.reload()
                 problem.remove_attachment(attachment_name)
         except FileNotFoundError as e:
-            return HTTPError(str(e), 404)
+            return HTTPError(e, 404)
         return HTTPResponse('successfully delete')
 
 
@@ -269,7 +269,7 @@ def clone_problem(user, problem, course):
     try:
         problem.copy(target_course=course)
     except engine.ValidationError as ve:
-        return HTTPError(str(ve), 400, data=ve.to_dict())
+        return HTTPError(ve, 400, data=ve.to_dict())
     except PermissionError as e:
-        return HTTPError(str(e), 403)
+        return HTTPError(e, 403)
     return HTTPResponse('Success.')

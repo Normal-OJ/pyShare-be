@@ -76,7 +76,7 @@ def create_test_submission(
     submission.submit()
     return HTTPResponse(
         'Submission recieved.',
-        data={'submissionId': str(submission.id)},
+        data={'submissionId': submission.id},
     )
 
 

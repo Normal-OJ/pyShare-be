@@ -3,6 +3,7 @@ import logging
 from flask import Flask
 from flask_socketio import SocketIO
 from model import *
+from model.utils import *
 from mongo import *
 from mongo import engine, config
 import io
@@ -10,6 +11,7 @@ import io
 # Create a flask app
 app = Flask(__name__)
 app.url_map.strict_slashes = False
+app.json_encoder = PyShareJSONEncoder
 
 # Regist flask blueprint
 api2name = [
