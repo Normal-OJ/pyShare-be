@@ -21,29 +21,35 @@ def login_required(func):
 
     Returns:
         - A wrapped function
-        - 401 Not Logged In
-        - 401 Invalid Token
-        - 403 Inactive User
+        - 401 Not logged in
+        - 401 Invalid token
+        - 403 Inactive user
+        - 403 Authorization expired
     '''
     @wraps(func)
     @Request.cookies(vars_dict={'token': 'piann'})
     def wrapper(token, *args, **kwargs):
         if token is None:
-            return HTTPError('Not Logged In', 401)
+            return HTTPError('Not logged in', 401)
         json = jwt_decode(token)
         if json is None or not json.get('secret'):
-            return HTTPError('Invalid Token', 401)
-        user = User(json['data']['_id'])
+            return HTTPError('Invalid token', 401)
+        try:
+            user = User(json['data'].get('_id'))
+        except ValidationError:
+            return HTTPError('Invalid token', 401)
+        if not user:
+            return HTTPError('Invalid token', 401)
         try:
             if not secrets.compare_digest(
                     json['data'].get('userId'),
                     user.user_id,
             ):
-                return HTTPError(f'Authorization Expired', 403)
+                return HTTPError(f'Authorization expired', 403)
         except TypeError:
-            return HTTPError('Invalid Token', 401)
+            return HTTPError('Invalid token', 401)
         if not user.active:
-            return HTTPError('Inactive User', 403)
+            return HTTPError('Inactive user', 403)
         kwargs['user'] = user
         return func(*args, **kwargs)
 
