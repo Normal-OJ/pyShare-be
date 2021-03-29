@@ -257,6 +257,12 @@ def change_email(user, email, password):
     return HTTPResponse('Email has been changed', cookies={'jwt': user.cookie})
 
 
+@auth_api.route('/check/token', methods=['POST'])
+@login_required
+def refresh_token(user):
+    return HTTPResponse(f'Welcome back!', cookies={'jwt': user.cookie})
+
+
 @auth_api.route('/check/email', methods=['POST'])
 @Request.json('email: str')
 def check_email(email):
