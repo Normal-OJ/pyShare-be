@@ -20,6 +20,9 @@ class User(Document):
         TEACHER = 1
         STUDENT = 2
 
+    class Profile(EmbeddedDocument):
+        bio = StringField(max_length=10**6)
+
     username = StringField(
         max_length=16,
         required=True,
@@ -35,6 +38,7 @@ class User(Document):
         max_length=32,
         required=True,
     )
+    profile = EmbeddedDocumentField(Profile)
     user_id = StringField(db_field='userId', max_length=24, required=True)
     user_id2 = StringField(db_field='userId2', max_length=24, default='')
     email = EmailField(max_length=320)
