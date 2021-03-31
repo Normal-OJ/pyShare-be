@@ -26,34 +26,38 @@ def login_required(func):
         - 403 Inactive user
         - 403 Authorization expired
     '''
-    @wraps(func)
     @Request.cookies(vars_dict={'token': 'piann'})
     def wrapper(token, *args, **kwargs):
         if token is None:
-            return HTTPError('Not logged in', 401)
+            raise PermissionError('Not logged in')
         json = jwt_decode(token)
         if json is None or not json.get('secret'):
-            return HTTPError('Invalid token', 401)
-        try:
-            user = User(json['data'].get('_id'))
-        except ValidationError:
-            return HTTPError('Invalid token', 401)
+            raise ValidationError('Invalid token')
+        user = User(json['data'].get('_id'))
         if not user:
-            return HTTPError('Invalid token', 401)
+            raise ValidationError('Invalid token')
         try:
             if not secrets.compare_digest(
                     json['data'].get('userId'),
                     user.user_id,
             ):
-                return HTTPError(f'Authorization expired', 403)
+                raise ValidationError('Authorization expired')
         except TypeError:
-            return HTTPError('Invalid token', 401)
+            raise ValidationError('Invalid token')
         if not user.active:
-            return HTTPError('Inactive user', 403)
+            raise PermissionError('Inactive user')
         kwargs['user'] = user
         return func(*args, **kwargs)
 
-    return wrapper
+    @wraps(func)
+    def wrapper_with_exception_handling(*args, **ks):
+        try:
+            return wrapper(*args, **ks)
+        except (PermissionError, ValidationError):
+            # logout user
+            return HTTPRedirect('/session')
+
+    return wrapper_with_exception_handling
 
 
 def identity_verify(*roles):
