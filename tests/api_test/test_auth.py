@@ -1,5 +1,12 @@
 import pytest
+from tests import utils
 from mongo import *
+from flask.testing import FlaskClient
+import jwt
+
+
+def setup_function(_):
+    utils.mongo.drop_db()
 
 
 class TestSignup:
@@ -213,3 +220,22 @@ class TestLogout:
         assert rv.status_code == 200
         assert json['status'] == 'ok'
         assert json['message'] == 'Goodbye'
+
+
+def test_token_refresh(client: FlaskClient):
+    # test token can correctly work
+    client.set_cookie(
+        'test.test',
+        'piann',
+        User.get_by_username('test').cookie,
+    )
+    rv = client.post('/auth/check/token')
+    assert rv.status_code == 200
+    # make an invalid token
+    token = jwt_decode(User.get_by_username('test').cookie)
+    token['data']['_id'] = 'n0t_A_Valid_1d'
+    token = jwt.encode(token)
+    # refresh token
+    client.set_cookie('test.test', 'piann', token)
+    client.post('/auth/check/token')
+    assert client.cookie_jar['piann'], client.cookie_jar
