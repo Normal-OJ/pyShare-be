@@ -21,11 +21,11 @@ def login_required(func):
     '''Check if the user is login
 
     Returns:
-        - A wrapped function
-        - 401 Not logged in
-        - 401 Invalid token
-        - 403 Inactive user
-        - 403 Authorization expired
+        A wrapped function
+    
+    Raises:
+        PermissionError: Not logged in, Inactive user
+        ValidationError: Invalid token, Authorization expired
     '''
     @Request.cookies(vars_dict={'token': 'piann'})
     def wrapper(token, *args, **kwargs):
