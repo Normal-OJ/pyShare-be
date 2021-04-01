@@ -232,9 +232,10 @@ class TestLogin:
 class TestLogout:
     '''Test Logout
     '''
-    def test_logout(self, client, test_token):
+    def test_logout(self, client):
+        u = utils.user.lazy_signup()
         # Logout
-        client.set_cookie('test.test', 'piann', test_token)
+        client.set_cookie('test.test', 'piann', u.secret)
         rv = client.get('/auth/session')
         json = rv.get_json()
         assert rv.status_code == 200
@@ -243,19 +244,25 @@ class TestLogout:
 
 
 def test_token_refresh(client: FlaskClient):
+    u = utils.user.lazy_signup()
     # test token can correctly work
-    client.set_cookie(
-        'test.test',
-        'piann',
-        User.get_by_username('test').cookie,
-    )
+    client.set_cookie('test.test', 'piann', u.secret)
     rv = client.post('/auth/check/token')
     assert rv.status_code == 200
     # make an invalid token
-    token = jwt_decode(User.get_by_username('test').cookie)
+    token = jwt_decode(u.secret)
     token['data']['_id'] = 'n0t_A_Valid_1d'
-    token = jwt.encode(token)
+    token = jwt.encode(
+        token,
+        key=b'An0ther53cretKeY',
+    )
     # refresh token
     client.set_cookie('test.test', 'piann', token)
-    client.post('/auth/check/token')
-    assert client.cookie_jar['piann'], client.cookie_jar
+    rv = client.post(
+        '/auth/check/token',
+        follow_redirects=True,
+    )
+    rv_json = rv.get_json()
+    assert rv.status_code == 200, rv_json
+    assert rv_json['message'] == 'Goodbye'
+    # TODO: check cookie value

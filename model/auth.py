@@ -2,6 +2,7 @@
 from functools import wraps
 # Related third party imports
 from flask import Blueprint, request, current_app
+from flask.helpers import url_for
 # Local application
 from mongo import *
 from mongo import engine
@@ -53,9 +54,9 @@ def login_required(func):
     def wrapper_with_exception_handling(*args, **ks):
         try:
             return wrapper(*args, **ks)
-        except (PermissionError, ValidationError):
+        except (PermissionError, ValidationError) as e:
             # logout user
-            return HTTPRedirect('/session')
+            return HTTPRedirect(url_for('.session'))
 
     return wrapper_with_exception_handling
 
@@ -92,7 +93,7 @@ def session():
             - 200 Logout Success
         '''
         cookies = {'jwt': None, 'piann': None}
-        return HTTPResponse(f'Goodbye', cookies=cookies)
+        return HTTPResponse('Goodbye', cookies=cookies)
 
     @Request.json(
         'school',
