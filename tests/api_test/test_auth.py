@@ -1,7 +1,16 @@
+import secrets
 import pytest
+from tests import utils
 from mongo import *
+from flask.testing import FlaskClient
+import jwt
 
 
+def setup_function(_):
+    utils.mongo.drop_db()
+
+
+@pytest.mark.skip(reason='Directly signup is currently not supported.')
 class TestSignup:
     '''Test Signup
     '''
@@ -38,7 +47,7 @@ class TestSignup:
             },
         )
         json = rv.get_json()
-        assert rv.status_code == 200
+        assert rv.status_code == 200, json
         assert json['status'] == 'ok'
         assert json['message'] == 'Signup Success'
         # Signup a second user
@@ -78,6 +87,7 @@ class TestSignup:
         assert json['message'] == 'User Exists'
 
 
+@pytest.mark.skip(reason='Active API is currently not supported.')
 class TestActive:
     '''Test Active
     '''
@@ -151,65 +161,108 @@ class TestLogin:
 
     def test_wrong_password(self, client):
         # Login with wrong password
-        rv = client.post('/auth/session',
-                         json={
-                             'username': 'test',
-                             'password': 'tset'
-                         })
+        rv = client.post(
+            '/auth/session',
+            json={
+                'username': 'test',
+                'password': 'tset'
+            },
+        )
         json = rv.get_json()
         assert rv.status_code == 401
         assert json['status'] == 'err'
         assert json['message'] == 'Login Failed'
 
+    @pytest.mark.skip(reason='User\'s active is set to `True` by deafult')
     def test_not_active(self, client):
+        password = 'ju5t_a_p4ssw0rd'
+        u = utils.user.lazy_signup(password=password)
         # Login an inactive user
-        rv = client.post('/auth/session',
-                         json={
-                             'username': 'test2',
-                             'password': 'test2'
-                         })
+        rv = client.post(
+            '/auth/session',
+            json={
+                'school': u.school,
+                'username': u.username,
+                'password': password,
+            },
+        )
         json = rv.get_json()
-        assert rv.status_code == 403
-        assert json['status'] == 'err'
-        assert json['message'] == 'Inactive User'
+        assert rv.status_code == 401, json
+        assert json['status'] == 'err', json
+        assert json['message'] == 'Inactive User', json
 
-    def test_with_username(self, client):
+    def test_with_username_and_school(self, client):
+        password = secrets.token_urlsafe()
+        u = utils.user.lazy_signup(password=password)
         # Login with username
         rv = client.post(
             '/auth/session',
             json={
-                'username': 'test',
-                'password': 'test'
+                'school': u.school,
+                'username': u.username,
+                'password': password,
             },
         )
         json = rv.get_json()
-        assert rv.status_code == 200
-        assert json['status'] == 'ok'
-        assert json['message'] == 'Login Success'
+        assert rv.status_code == 200, json
+        assert json['status'] == 'ok', json
+        assert json['message'] == 'Login Success', json
 
     def test_with_email(self, client):
+        email = f'{secrets.token_hex(8)}@noj.tw'
+        password = secrets.token_urlsafe()
+        u = utils.user.lazy_signup(
+            email=email,
+            password=password,
+        )
         # Login with email
         rv = client.post(
             '/auth/session',
             json={
-                'username': 'test@test.test',
-                'password': 'test'
+                'email': email,
+                'password': password,
             },
         )
         json = rv.get_json()
-        assert rv.status_code == 200
-        assert json['status'] == 'ok'
-        assert json['message'] == 'Login Success'
+        assert rv.status_code == 200, json
+        assert json['status'] == 'ok', json
+        assert json['message'] == 'Login Success', json
 
 
 class TestLogout:
     '''Test Logout
     '''
-    def test_logout(self, client, test_token):
+    def test_logout(self, client):
+        u = utils.user.lazy_signup()
         # Logout
-        client.set_cookie('test.test', 'piann', test_token)
+        client.set_cookie('test.test', 'piann', u.secret)
         rv = client.get('/auth/session')
         json = rv.get_json()
         assert rv.status_code == 200
         assert json['status'] == 'ok'
         assert json['message'] == 'Goodbye'
+
+
+def test_token_refresh(client: FlaskClient):
+    u = utils.user.lazy_signup()
+    # test token can correctly work
+    client.set_cookie('test.test', 'piann', u.secret)
+    rv = client.post('/auth/check/token')
+    assert rv.status_code == 200
+    # make an invalid token
+    token = jwt_decode(u.secret)
+    token['data']['_id'] = 'n0t_A_Valid_1d'
+    token = jwt.encode(
+        token,
+        key=b'An0ther53cretKeY',
+    )
+    # refresh token
+    client.set_cookie('test.test', 'piann', token)
+    rv = client.post(
+        '/auth/check/token',
+        follow_redirects=True,
+    )
+    rv_json = rv.get_json()
+    assert rv.status_code == 200, rv_json
+    assert rv_json['message'] == 'Goodbye'
+    # TODO: check cookie value

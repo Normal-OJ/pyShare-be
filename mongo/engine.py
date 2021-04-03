@@ -40,7 +40,6 @@ class User(Document):
     email = EmailField(max_length=320)
     md5 = StringField(required=True, max_length=32)
     active = BooleanField(default=True)
-    # role: 0 -> admin / 1 -> teacher / 2 -> student
     role = IntField(
         default=Role.STUDENT,
         choices=Role.choices(),

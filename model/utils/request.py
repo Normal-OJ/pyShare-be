@@ -44,8 +44,10 @@ class _Request(type):
                         })
                         # yapf: enable
                     except ValueError as ve:
-                        return HTTPError('Requested Value With Wrong Type',
-                                         400)
+                        return HTTPError(
+                            'Requested Value With Wrong Type',
+                            400,
+                        )
                     kwargs.update(
                         {v: data.get(vars_dict[v])
                          for v in vars_dict})

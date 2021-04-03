@@ -2,6 +2,7 @@
 from functools import wraps
 # Related third party imports
 from flask import Blueprint, request, current_app
+from flask.helpers import url_for
 # Local application
 from mongo import *
 from mongo import engine
@@ -20,34 +21,44 @@ def login_required(func):
     '''Check if the user is login
 
     Returns:
-        - A wrapped function
-        - 401 Not Logged In
-        - 401 Invalid Token
-        - 403 Inactive User
+        A wrapped function
+    
+    Raises:
+        PermissionError: Not logged in, Inactive user
+        ValidationError: Invalid token, Authorization expired
     '''
-    @wraps(func)
     @Request.cookies(vars_dict={'token': 'piann'})
     def wrapper(token, *args, **kwargs):
         if token is None:
-            return HTTPError('Not Logged In', 401)
+            raise PermissionError('Not logged in')
         json = jwt_decode(token)
         if json is None or not json.get('secret'):
-            return HTTPError('Invalid Token', 401)
-        user = User(json['data']['_id'])
+            raise ValidationError('Invalid token')
+        user = User(json['data'].get('_id'))
+        if not user:
+            raise ValidationError('Invalid token')
         try:
             if not secrets.compare_digest(
                     json['data'].get('userId'),
                     user.user_id,
             ):
-                return HTTPError(f'Authorization Expired', 403)
+                raise ValidationError('Authorization expired')
         except TypeError:
-            return HTTPError('Invalid Token', 401)
+            raise ValidationError('Invalid token')
         if not user.active:
-            return HTTPError('Inactive User', 403)
+            raise PermissionError('Inactive user')
         kwargs['user'] = user
         return func(*args, **kwargs)
 
-    return wrapper
+    @wraps(func)
+    def wrapper_with_exception_handling(*args, **ks):
+        try:
+            return wrapper(*args, **ks)
+        except (PermissionError, ValidationError) as e:
+            # logout user
+            return HTTPRedirect(url_for('.session'))
+
+    return wrapper_with_exception_handling
 
 
 def identity_verify(*roles):
@@ -82,7 +93,7 @@ def session():
             - 200 Logout Success
         '''
         cookies = {'jwt': None, 'piann': None}
-        return HTTPResponse(f'Goodbye', cookies=cookies)
+        return HTTPResponse('Goodbye', cookies=cookies)
 
     @Request.json(
         'school',
@@ -255,6 +266,12 @@ def change_email(user, email, password):
     except (ValidationError, NotUniqueError):
         HTTPError('Invalid or duplicated email.', 400)
     return HTTPResponse('Email has been changed', cookies={'jwt': user.cookie})
+
+
+@auth_api.route('/check/token', methods=['POST'])
+@login_required
+def refresh_token(user):
+    return HTTPResponse(f'Welcome back!', cookies={'jwt': user.cookie})
 
 
 @auth_api.route('/check/email', methods=['POST'])

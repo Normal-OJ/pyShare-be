@@ -25,12 +25,12 @@ class HTTPBaseResponese(tuple):
         status_code: int = 200,
         cookies: dict = {},
     ):
-        for c in cookies:
-            if cookies[c] == None:
-                resp.delete_cookie(c)
+        for k, v in cookies.items():
+            if v is None:
+                resp.delete_cookie(k)
             else:
-                d = c.split('_httponly')
-                resp.set_cookie(d[0], cookies[c], httponly=bool(d[1:]))
+                d = k.split('_httponly')
+                resp.set_cookie(d[0], v, httponly=bool(d[1:]))
         return super().__new__(tuple, (resp, status_code))
 
 
