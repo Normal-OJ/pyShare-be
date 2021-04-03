@@ -8,7 +8,7 @@ from datetime import datetime
 
 from .utils import Enum
 
-__all__ = [*mongoengine.__all__]
+__all__ = mongoengine.__all__
 
 MONGO_HOST = os.getenv('MONGO_HOST', 'mongomock://localhost')
 connect('pyShare', host=MONGO_HOST)
