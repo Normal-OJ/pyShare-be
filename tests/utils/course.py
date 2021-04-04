@@ -1,6 +1,6 @@
 import secrets
 import random
-from typing import Union
+from typing import Union, List
 from mongo import *
 from mongo import engine
 from .utils import none_or
@@ -15,12 +15,14 @@ def data(
     year: int = None,
     semester: int = None,
     status: int = None,
+    tags: List[str] = [],
 ):
     ret = {
         'name': none_or(name, secrets.token_hex(16)),
         'year': none_or(year, random.randint(109, 115)),
         'semester': none_or(semester, random.randint(1, 2)),
         'status': none_or(status, engine.Course.Status.PUBLIC),
+        'tags': tags,
     }
     # save teacher's pk
     if teacher is not None:
