@@ -24,10 +24,8 @@ def test_course_update_tags():
 
 
 def test_course_statistic():
-    # It's function is broken
-    # c = utils.course.lazy_add()
-    # assert c.statistic_file()
-    assert False
+    c = utils.course.lazy_add()
+    assert c.statistic_file() is not None
 
 
 def test_course_permission():
