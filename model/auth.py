@@ -33,6 +33,7 @@ def login_required(func):
         PermissionError: Not logged in, Inactive user
         ValidationError: Invalid token, Authorization expired
     '''
+    # TODO: provide more details about errors
     @Request.cookies(vars_dict={'token': 'piann'})
     def wrapper(token, *args, **kwargs):
         if token is None:
