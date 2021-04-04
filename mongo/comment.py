@@ -87,9 +87,10 @@ class Comment(MongoBase, engine=engine.Comment):
         return ret
 
     def delete(self):
-        self.update(status=0)
+        self.update(status=self.engine.Status.HIDDEN)
         for reply in self.replies:
-            reply.update(status=0)
+            reply.update(status=self.engine.Status.HIDDEN)
+        return self
 
     @doc_required('user', 'user', User)
     def like(self, user):
@@ -225,7 +226,7 @@ class Comment(MongoBase, engine=engine.Comment):
             notif = Notif.new(info)
         for author in authors:
             author.update(push__notifs=notif.pk)
-        return comment
+        return comment.reload()
 
     @classmethod
     @doc_required('author', User)

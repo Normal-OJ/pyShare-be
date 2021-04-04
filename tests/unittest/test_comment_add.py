@@ -13,7 +13,9 @@ def test_add_comment():
 
 
 def test_add_reply():
-    utils.comment.lazy_add_reply()
+    c = utils.comment.lazy_add_comment()
+    r = utils.comment.lazy_add_reply(comment=c)
+    assert r.obj in c.reload().replies
 
 
 # TODO: put these functions not related to add to right location
