@@ -1,4 +1,5 @@
 from typing import Callable
+import concurrent.futures
 import pytest
 from tests import utils
 from mongo import *
@@ -14,8 +15,25 @@ def test_add_comment():
 
 def test_add_reply():
     c = utils.comment.lazy_add_comment()
-    r = utils.comment.lazy_add_reply(comment=c)
-    assert r.obj in c.reload().replies
+    # sequentially add
+    for _ in range(5):
+        r = utils.comment.lazy_add_reply(comment=c)
+        assert r.obj in c.reload('replies').replies
+
+
+def test_add_reply_concurrent():
+    c = utils.comment.lazy_add_comment()
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        r_futures = [
+            executor.submit(
+                utils.comment.lazy_add_reply,
+                comment=c,
+            ) for _ in range(10)
+        ]
+    rs = [f.result() for f in r_futures]
+    add_result = sorted(r.id for r in rs)
+    in_comment = sorted(r.id for r in c.reload('replies').replies)
+    assert add_result == in_comment
 
 
 # TODO: put these functions not related to add to right location
