@@ -58,7 +58,6 @@ def get_problem_list(
             'isTemplate and allowMultipleComments only accept boolean', 400)
     ps = Problem.filter(
         tags=tags,
-        only=['pid'],
         **ks,
     )
     # check whether user has read permission
