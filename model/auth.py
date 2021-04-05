@@ -187,8 +187,7 @@ def batch_signup(user, csv_string, course):
                 ))
             exists.add((_u['username'], _u['school']))
             # add to course
-            new_user.update(add_to_set__courses=course.obj)
-            course.update(add_to_set__students=new_user.obj)
+            course.add_student(new_user)
         except DoesNotExist:
             # get role
             role = _u.get('role', engine.User.Role.STUDENT)

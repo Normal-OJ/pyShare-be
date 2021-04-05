@@ -22,5 +22,8 @@ def test_tag_used_courses_count():
     t = Tag('tag')
     assert t.used_courses_count() == 0
 
-    utils.course.lazy_add(tags=['tag'])
+    c = utils.course.lazy_add(tags=['tag'])
     assert t.used_courses_count() == 1
+
+    c.patch_tag([], ['tag'])
+    assert t.used_courses_count() == 0

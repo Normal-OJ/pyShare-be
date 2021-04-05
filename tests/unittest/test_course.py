@@ -29,14 +29,15 @@ def test_course_statistic():
 
 
 def test_course_permission():
-    teacher = utils.user.lazy_signup(username='teacher', role=1)
+    teacher = utils.user.lazy_signup(username='teacher',
+                                     role=engine.User.Role.TEACHER)
     student = utils.user.lazy_signup(username='student')
     nobody = utils.user.lazy_signup(username='nobody')
     c = utils.course.lazy_add(teacher=teacher,
                               status=engine.Course.Status.READONLY)
-    c.update(add_to_set__students=student.obj)
+    c.add_student(student)
     c = c.reload()
 
-    assert c.own_permission(user=teacher) == set([*'rpw'])
-    assert c.own_permission(user=student) == set([*'rp'])
-    assert c.own_permission(user=nobody) == set([*'r'])
+    assert c.own_permission(user=teacher) == {*'rpw'}
+    assert c.own_permission(user=student) == {*'rp'}
+    assert c.own_permission(user=nobody) == {*'r'}
