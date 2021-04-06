@@ -25,7 +25,14 @@ def test_course_update_tags():
 
 def test_course_statistic():
     c = utils.course.lazy_add()
-    assert c.statistic_file() is not None
+    tester = utils.user.lazy_signup(username='tester')
+    c.add_student(tester)
+    c = c.reload()
+
+    assert c.statistic_file().readlines() == [
+        'username,problems,likes,comments,replies,liked,success,fail\n',
+        'tester,0,0,0,0,0,0,0\n',
+    ]
 
 
 def test_course_permission():

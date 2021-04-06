@@ -77,7 +77,7 @@ class Course(MongoBase, engine=engine.Course):
     def statistic_file(self):
         f = tempfile.TemporaryFile('w+')
         statistic_fields = [
-            *User('').statistic().keys(),
+            *User('000000000000000000000000').statistic().keys(),
             'success',
             'fail',
         ]
