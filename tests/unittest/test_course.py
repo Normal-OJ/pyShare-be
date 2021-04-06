@@ -4,6 +4,10 @@ from mongo import engine
 from tests import utils
 
 
+def setup_function(_):
+    utils.mongo.drop_db()
+
+
 @pytest.mark.parametrize(
     'tags',
     [
@@ -25,13 +29,13 @@ def test_course_update_tags():
 
 def test_course_statistic():
     c = utils.course.lazy_add()
-    tester = utils.user.lazy_signup(username='tester')
-    c.add_student(tester)
+    student= utils.user.lazy_signup(username='student')
+    c.add_student(student)
     c = c.reload()
 
     assert c.statistic_file().readlines() == [
         'username,problems,likes,comments,replies,liked,success,fail\n',
-        'tester,0,0,0,0,0,0,0\n',
+        'student,0,0,0,0,0,0,0\n',
     ]
 
 
