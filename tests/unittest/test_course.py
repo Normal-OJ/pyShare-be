@@ -29,7 +29,7 @@ def test_course_update_tags():
 
 def test_course_statistic():
     c = utils.course.lazy_add()
-    student= utils.user.lazy_signup(username='student')
+    student = utils.user.lazy_signup(username='student')
     c.add_student(student)
     c = c.reload()
 
