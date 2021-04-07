@@ -45,8 +45,9 @@ def student(course: Course):
     if course.status == engine.Course.Status.PUBLIC:
         return user.Factory.student()
     else:
-        # TODO: add student to course, it should not be admin here
-        return user.Factory.admin()
+        u = user.Factory.student()
+        course.add_student(u)
+        return u
 
 
 class Factory:
