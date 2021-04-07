@@ -29,14 +29,23 @@ def data(
     if teacher is not None:
         ret['teacher'] = getattr(teacher, 'pk', teacher)
     else:
-        # TODO: use enum to define role
-        u = user.lazy_signup(role=1)
+        u = user.Factory.teacher()
         ret['teacher'] = u.pk
     return ret
 
 
 def lazy_add(**ks):
     return Course.add(**data(**ks))
+
+
+def student(course: Course):
+    '''
+    Create a user with participate permission to `course`'s problems
+    '''
+    u = user.Factory.student()
+    if course.status != engine.Course.Status.PUBLIC:
+        course.add_student(u)
+    return u
 
 
 class Factory:

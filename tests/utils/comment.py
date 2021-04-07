@@ -1,10 +1,10 @@
 import secrets
 from typing import Optional, Union
+from bson.objectid import ObjectId
 from mongo import *
-from mongo import engine
 from .utils import drop_none, none_or
-from . import user as user_lib
 from . import problem as problem_lib
+from . import course as course_lib
 
 
 def comment_data(
@@ -22,13 +22,7 @@ def comment_data(
     if problem is None:
         problem = problem_lib.lazy_add()
     if author is None:
-        # generate a user has write permission to the problem
-        course = problem.course
-        if course.status == engine.Course.Status.PUBLIC:
-            author = user_lib.Factory.student()
-        else:
-            # TODO: add student to course, it should not be admin here
-            author = user_lib.Factory.admin()
+        author = course_lib.student(problem.course)
     ret.update(
         target=problem,
         author=author,
@@ -36,5 +30,31 @@ def comment_data(
     return drop_none(ret)
 
 
+def reply_data(
+    comment: Optional[Union[Comment, str, ObjectId]] = None,
+    author: Optional[Union[User, str]] = None,
+    title: Optional[str] = None,
+    content: Optional[str] = None,
+):
+    if comment is None:
+        comment = lazy_add_comment()
+    if title is None:
+        title = f'Reply-{secrets.token_urlsafe(8)}'
+    if content is None:
+        content = secrets.token_urlsafe()
+    if author is None:
+        author = course_lib.student(comment.problem.course)
+    return {
+        'target': getattr(comment, 'pk', comment),
+        'author': author,
+        'title': title,
+        'content': content,
+    }
+
+
 def lazy_add_comment(**ks):
-    Comment.add_to_problem(**comment_data(**ks))
+    return Comment.add_to_problem(**comment_data(**ks))
+
+
+def lazy_add_reply(**ks):
+    return Comment.add_to_comment(**reply_data(**ks))

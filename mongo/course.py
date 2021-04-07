@@ -47,6 +47,7 @@ class Course(MongoBase, engine=engine.Course):
     def add_student(self, user: User):
         user.update(add_to_set__courses=self.obj)
         self.update(add_to_set__students=user.obj)
+        return self.reload('students')
 
     @classmethod
     @doc_required('teacher', User)

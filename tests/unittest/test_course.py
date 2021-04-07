@@ -40,15 +40,9 @@ def test_course_statistic():
 
 
 def test_course_permission():
-    teacher = utils.user.lazy_signup(username='teacher',
-                                     role=engine.User.Role.TEACHER)
-    student = utils.user.lazy_signup(username='student')
     nobody = utils.user.lazy_signup(username='nobody')
-    c = utils.course.lazy_add(teacher=teacher,
-                              status=engine.Course.Status.READONLY)
-    c.add_student(student)
-    c = c.reload()
-
-    assert c.own_permission(user=teacher) == {*'rpw'}
+    c = utils.course.lazy_add(status=engine.Course.Status.READONLY)
+    student = utils.course.student(c)
+    assert c.own_permission(user=c.teacher) == {*'rpw'}
     assert c.own_permission(user=student) == {*'rp'}
     assert c.own_permission(user=nobody) == {*'r'}

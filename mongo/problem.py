@@ -24,7 +24,7 @@ class Problem(MongoBase, engine=engine.Problem):
         '''
         _permission = set()
         if self.online:
-            if Course(self.course.pk).permission(user=user, req={'r'}):
+            if Course(self.course).permission(user=user, req={'r'}):
                 _permission.add('r')
         elif user == self.course.teacher:
             _permission.add('r')

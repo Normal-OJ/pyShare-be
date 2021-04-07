@@ -17,6 +17,12 @@ __all__ = ['auth_api', 'login_required', 'identity_verify']
 auth_api = Blueprint('auth_api', __name__)
 
 
+class InvalidTokenError(Exception):
+    '''
+    raise when recieve a invalid token
+    '''
+
+
 def login_required(func):
     '''Check if the user is login
 
@@ -27,26 +33,27 @@ def login_required(func):
         PermissionError: Not logged in, Inactive user
         ValidationError: Invalid token, Authorization expired
     '''
+    # TODO: provide more details about errors
     @Request.cookies(vars_dict={'token': 'piann'})
     def wrapper(token, *args, **kwargs):
         if token is None:
-            raise PermissionError('Not logged in')
+            raise InvalidTokenError('Not logged in')
         json = jwt_decode(token)
         if json is None or not json.get('secret'):
-            raise ValidationError('Invalid token')
+            raise InvalidTokenError('Invalid token')
         user = User(json['data'].get('_id'))
         if not user:
-            raise ValidationError('Invalid token')
+            raise InvalidTokenError('Invalid token')
         try:
             if not secrets.compare_digest(
                     json['data'].get('userId'),
                     user.user_id,
             ):
-                raise ValidationError('Authorization expired')
+                raise InvalidTokenError('Authorization expired')
         except TypeError:
-            raise ValidationError('Invalid token')
+            raise InvalidTokenError('Invalid token')
         if not user.active:
-            raise PermissionError('Inactive user')
+            raise InvalidTokenError('Inactive user')
         kwargs['user'] = user
         return func(*args, **kwargs)
 
@@ -54,9 +61,10 @@ def login_required(func):
     def wrapper_with_exception_handling(*args, **ks):
         try:
             return wrapper(*args, **ks)
-        except (PermissionError, ValidationError) as e:
+        except InvalidTokenError as e:
             # logout user
-            return HTTPRedirect(url_for('.session'))
+            current_app.logger.info(f'Token exception: {e}')
+            return HTTPRedirect(url_for('auth_api.session'))
 
     return wrapper_with_exception_handling
 

@@ -1,5 +1,5 @@
 from flask import current_app
-from typing import Iterable
+from typing import Iterable, List
 from . import engine
 import logging
 
@@ -17,7 +17,7 @@ class MongoBase:
         new = super().__new__(cls)
         # got a engine instance
         if isinstance(pk, new.engine):
-            new.obj = pk.reload()
+            new.obj = pk
         else:
             try:
                 new.obj = new.engine.objects(pk=pk).get()
@@ -52,9 +52,9 @@ class MongoBase:
     def __dir__(self) -> Iterable[str]:
         return (*super().__dir__(), *dir(self.obj))
 
-    def reload(self):
+    def reload(self, *fields: List[str]):
         if self:
-            self.obj.reload()
+            self.obj.reload(*fields)
         return self
 
     @property
