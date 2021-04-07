@@ -40,14 +40,12 @@ def lazy_add(**ks):
 
 def student(course: Course):
     '''
-    Create a user with write permission to `course`'s problems
+    Create a user with participate permission to `course`'s problems
     '''
-    if course.status == engine.Course.Status.PUBLIC:
-        return user.Factory.student()
-    else:
-        u = user.Factory.student()
+    u = user.Factory.student()
+    if course.status != engine.Course.Status.PUBLIC:
         course.add_student(u)
-        return u
+    return u
 
 
 class Factory:
