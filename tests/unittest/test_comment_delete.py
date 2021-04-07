@@ -17,7 +17,7 @@ def setup_function(_):
     ],
 )
 def test_delete(factory_func: Callable[[], Comment]):
-    c = utils.comment.lazy_add_comment()
+    c = factory_func()
     assert c.status == engine.Comment.Status.SHOW
     c = c.delete().reload()
     assert c.status == engine.Comment.Status.HIDDEN
