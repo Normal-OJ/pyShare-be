@@ -1,6 +1,6 @@
 import secrets
 import random
-from typing import Union
+from typing import Union, List, Optional
 from mongo import *
 from mongo import engine
 from .utils import none_or
@@ -10,11 +10,12 @@ __all__ = ('data', 'lazy_add', 'Factory')
 
 
 def data(
-    name: str = None,
-    teacher: Union[str, User] = None,
-    year: int = None,
-    semester: int = None,
-    status: int = None,
+    name: Optional[str] = None,
+    teacher: Optional[Union[str, User]] = None,
+    year: Optional[int] = None,
+    semester: Optional[int] = None,
+    status: Optional[int] = None,
+    tags: Optional[List[str]] = None,
 ):
     ret = {
         'name': none_or(name, secrets.token_hex(16)),
@@ -22,6 +23,8 @@ def data(
         'semester': none_or(semester, random.randint(1, 2)),
         'status': none_or(status, engine.Course.Status.PUBLIC),
     }
+    if tags is not None:
+        ret['tags'] = tags
     # save teacher's pk
     if teacher is not None:
         ret['teacher'] = getattr(teacher, 'pk', teacher)
