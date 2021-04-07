@@ -44,6 +44,10 @@ class Course(MongoBase, engine=engine.Course):
             return not bool(req - _permission)
         return req in _permission
 
+    def add_student(self, user: User):
+        user.update(add_to_set__courses=self.obj)
+        self.update(add_to_set__students=user.obj)
+
     @classmethod
     @doc_required('teacher', User)
     def add(
@@ -73,7 +77,7 @@ class Course(MongoBase, engine=engine.Course):
     def statistic_file(self):
         f = tempfile.TemporaryFile('w+')
         statistic_fields = [
-            *User('').statistic().keys(),
+            *User('000000000000000000000000').statistic().keys(),
             'success',
             'fail',
         ]
