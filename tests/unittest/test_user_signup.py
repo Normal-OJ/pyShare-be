@@ -96,7 +96,7 @@ def test_update_email_uniqueness():
         u.update(email=email)
 
 
-def test_update_email_also_change_email():
+def test_update_email_also_change_md5():
     email = 'bogay@noj.tw'
     u = utils.user.lazy_signup(email=email)
     assert u.md5 == hashlib.md5(email.encode()).hexdigest()
