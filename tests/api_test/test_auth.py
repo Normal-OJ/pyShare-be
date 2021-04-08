@@ -273,6 +273,13 @@ def test_token_refresh(client: FlaskClient):
 
 
 class TestBatchSignup:
+    register_fields = {
+        'username',
+        'school',
+        'password',
+        'displayName',
+    }
+
     @classmethod
     def dicts_to_csv_string(
             cls,
@@ -290,21 +297,15 @@ class TestBatchSignup:
         writer.writerows([partial_dict(d, keys) for d in ds])
         return csv_io.getvalue()
 
-    def test_batch_signup_nonexist_user(
+    def test_batch_signup_nonexistent_user(
         self,
         forge_client: Callable[[], FlaskClient],
     ):
-        register_fields = {
-            'username',
-            'school',
-            'password',
-            'displayName',
-        }
         u_data = utils.user.data()
         u_data['displayName'] = u_data['username']
         csv_string = self.dicts_to_csv_string(
             [u_data],
-            register_fields,
+            self.register_fields,
         )
         c = utils.course.lazy_add()
         client = forge_client(c.teacher.username)
@@ -320,4 +321,39 @@ class TestBatchSignup:
         u = User.get_by_username(u_data['username'])
         assert u
         assert User.login(u.school, u.username, u_data['password']) == u
+        assert c in u.courses, (c.name, [c.name for c in u.courses])
+
+    def test_batch_signup_existent_user(
+        self,
+        forge_client: Callable[[], FlaskClient],
+    ):
+        u = utils.user.Factory.student()
+        u_data = {
+            'username': u.username,
+            'school': u.school,
+            'displayName': 'not-important',
+            'password': 'not-important',
+        }
+        csv_string = self.dicts_to_csv_string(
+            [u_data],
+            self.register_fields,
+        )
+        c = utils.course.lazy_add()
+        client = forge_client(c.teacher.username)
+        rv = client.post(
+            '/auth/batch-signup',
+            json={
+                'csvString': csv_string,
+                'course': str(c.id),
+            },
+        )
+        rv_json = rv.get_json()
+        # TODO: should this return 400?
+        assert rv.status_code == 400, rv_json
+        assert {
+            'username': u.username,
+            'school': u.school,
+        } in rv_json['data']['exist']
+        # user should enroll in the course
+        u.reload('courses')
         assert c in u.courses, (c.name, [c.name for c in u.courses])
