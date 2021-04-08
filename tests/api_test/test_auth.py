@@ -1,7 +1,7 @@
 import io
 import csv
 import secrets
-from typing import Callable
+from typing import Callable, Dict, Iterable, Optional, List
 from tests.utils.utils import partial_dict
 import pytest
 from tests import utils
@@ -272,37 +272,52 @@ def test_token_refresh(client: FlaskClient):
     # TODO: check cookie value
 
 
-def test_batch_signup_nonexist_user(forge_client: Callable[[], FlaskClient]):
-    register_fields = {
-        'username',
-        'school',
-        'password',
-        'displayName',
-    }
-    u_data = utils.user.data()
-    u_data['displayName'] = u_data['username']
-    u_data = partial_dict(
-        u_data,
-        register_fields,
-    )
-    # convert dict to csv string
-    csv_io = io.StringIO()
-    writer = csv.DictWriter(csv_io, register_fields)
-    writer.writeheader()
-    writer.writerow(u_data)
-    csv_string = csv_io.getvalue()
-    c = utils.course.lazy_add()
-    client = forge_client(c.teacher.username)
-    rv = client.post(
-        '/auth/batch-signup',
-        json={
-            'csvString': csv_string,
-            'course': str(c.id),
-        },
-    )
-    assert rv.status_code == 200
-    # ensure the user is registered
-    u = User.get_by_username(u_data['username'])
-    assert u
-    assert User.login(u.school, u.username, u_data['password']) == u
-    assert c in u.courses, (c.name, [c.name for c in u.courses])
+class TestBatchSignup:
+    @classmethod
+    def dicts_to_csv_string(
+            cls,
+            ds: List[Dict[str, str]],
+            keys: Optional[Iterable[str]] = None,
+    ) -> str:
+        d = ds[0]
+        if keys is None:
+            keys = d.keys()
+        keys = {*keys}
+        # convert dict to csv string
+        csv_io = io.StringIO()
+        writer = csv.DictWriter(csv_io, keys)
+        writer.writeheader()
+        writer.writerows([partial_dict(d, keys) for d in ds])
+        return csv_io.getvalue()
+
+    def test_batch_signup_nonexist_user(
+        self,
+        forge_client: Callable[[], FlaskClient],
+    ):
+        register_fields = {
+            'username',
+            'school',
+            'password',
+            'displayName',
+        }
+        u_data = utils.user.data()
+        u_data['displayName'] = u_data['username']
+        csv_string = self.dicts_to_csv_string(
+            [u_data],
+            register_fields,
+        )
+        c = utils.course.lazy_add()
+        client = forge_client(c.teacher.username)
+        rv = client.post(
+            '/auth/batch-signup',
+            json={
+                'csvString': csv_string,
+                'course': str(c.id),
+            },
+        )
+        assert rv.status_code == 200
+        # ensure the user is registered
+        u = User.get_by_username(u_data['username'])
+        assert u
+        assert User.login(u.school, u.username, u_data['password']) == u
+        assert c in u.courses, (c.name, [c.name for c in u.courses])
