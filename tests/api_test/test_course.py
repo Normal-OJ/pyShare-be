@@ -1,5 +1,7 @@
-import pytest
+from typing import Callable
 from tests.base_tester import BaseTester
+from tests import utils
+from flask.testing import FlaskClient
 from mongo import *
 import mongomock.gridfs
 
@@ -121,3 +123,26 @@ class TestCourse(BaseTester):
         json = rv.get_json()
         assert rv.status_code == 200
         assert set(json['data']) == {*'rwp'}
+
+    def test_get_course(
+        self,
+        forge_client: Callable[[], FlaskClient],
+        config_app,
+    ):
+        config_app(env='test')
+        client = forge_client('teacher1')
+        rv = client.get('/course')
+        rv_json = rv.get_json()
+        assert rv.status_code == 200, rv_json
+        course = rv_json['data'][0]
+        keys = [
+            'id',
+            'name',
+            'teacher',
+            'description',
+            'year',
+            'semester',
+            'status',
+        ]
+        for key in keys:
+            assert key in course
