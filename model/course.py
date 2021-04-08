@@ -15,7 +15,7 @@ def course_list(user):
     '''
     get a list of course with course name and teacher's name
     '''
-    cs = map(Course, engine.Course.objects.only('id'))
+    cs = map(Course, engine.Course.objects)
     cs = [{
         'id': c.id,
         'name': c.name,
