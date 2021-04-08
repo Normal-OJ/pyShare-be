@@ -297,6 +297,15 @@ class TestBatchSignup:
         writer.writerows([partial_dict(d, keys) for d in ds])
         return csv_io.getvalue()
 
+    @classmethod
+    def register_payload(cls, u: User):
+        return {
+            'username': u.username,
+            'school': u.school,
+            'displayName': 'not-important',
+            'password': 'not-important',
+        }
+
     def test_batch_signup_nonexistent_user(
         self,
         forge_client: Callable[[], FlaskClient],
@@ -328,12 +337,7 @@ class TestBatchSignup:
         forge_client: Callable[[], FlaskClient],
     ):
         u = utils.user.Factory.student()
-        u_data = {
-            'username': u.username,
-            'school': u.school,
-            'displayName': 'not-important',
-            'password': 'not-important',
-        }
+        u_data = self.register_payload(u)
         csv_string = self.dicts_to_csv_string(
             [u_data],
             self.register_fields,
@@ -357,3 +361,50 @@ class TestBatchSignup:
         # user should enroll in the course
         u.reload('courses')
         assert c in u.courses, (c.name, [c.name for c in u.courses])
+
+    def test_batch_signup_mixed_users(
+        self,
+        forge_client: Callable[[], FlaskClient],
+    ):
+        # prepare payloads
+        cnt = 10
+        new_users = [utils.user.data() for _ in range(cnt)]
+        for u in new_users:
+            u['displayName'] = u['username']
+        old_users = [utils.user.Factory.student() for _ in range(cnt)]
+        u_datas = new_users[:]
+        u_datas.extend(self.register_payload(u) for u in old_users)
+        csv_string = self.dicts_to_csv_string(u_datas, self.register_fields)
+        # request
+        c = utils.course.lazy_add()
+        client = forge_client(c.teacher.username)
+        rv = client.post(
+            '/auth/batch-signup',
+            json={
+                'csvString': csv_string,
+                'course': str(c.id),
+            },
+        )
+        rv_json = rv.get_json()
+        assert rv.status_code == 400, rv_json
+        # ensure new users are registered
+        for u in new_users:
+            u_obj = User.get_by_username(u['username'])
+            assert u
+            assert User.login(
+                u_obj.school,
+                u_obj.username,
+                u['password'],
+            ) == u_obj
+            assert c in u_obj.courses, (
+                c.name,
+                [c.name for c in u_obj.courses],
+            )
+        # ensure old users are enrolled
+        for u in old_users:
+            assert {
+                'username': u.username,
+                'school': u.school,
+            } in rv_json['data']['exist']
+            u.reload('courses')
+            assert c in u.courses, (c.name, [c.name for c in u.courses])
