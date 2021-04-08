@@ -1,4 +1,8 @@
+import io
+import csv
 import secrets
+from typing import Callable
+from tests.utils.utils import partial_dict
 import pytest
 from tests import utils
 from mongo import *
@@ -266,3 +270,39 @@ def test_token_refresh(client: FlaskClient):
     assert rv.status_code == 200, rv_json
     assert rv_json['message'] == 'Goodbye'
     # TODO: check cookie value
+
+
+def test_batch_signup_nonexist_user(forge_client: Callable[[], FlaskClient]):
+    register_fields = {
+        'username',
+        'school',
+        'password',
+        'displayName',
+    }
+    u_data = utils.user.data()
+    u_data['displayName'] = u_data['username']
+    u_data = partial_dict(
+        u_data,
+        register_fields,
+    )
+    # convert dict to csv string
+    csv_io = io.StringIO()
+    writer = csv.DictWriter(csv_io, register_fields)
+    writer.writeheader()
+    writer.writerow(u_data)
+    csv_string = csv_io.getvalue()
+    c = utils.course.lazy_add()
+    client = forge_client(c.teacher.username)
+    rv = client.post(
+        '/auth/batch-signup',
+        json={
+            'csvString': csv_string,
+            'course': str(c.id),
+        },
+    )
+    assert rv.status_code == 200
+    # ensure the user is registered
+    u = User.get_by_username(u_data['username'])
+    assert u
+    assert User.login(u.school, u.username, u_data['password']) == u
+    assert c in u.courses, (c.name, [c.name for c in u.courses])
