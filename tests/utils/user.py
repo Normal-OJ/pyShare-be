@@ -15,9 +15,9 @@ def random_username():
 def data(
     username: Optional[str] = None,
     password: Optional[str] = None,
-    school=None,
+    school: Optional[str] = None,
     email: Optional[str] = None,
-    has_email=True,
+    has_email: bool = True,
     role: Optional[int] = None,
 ):
     if username is None:

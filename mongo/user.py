@@ -6,7 +6,6 @@ from . import engine
 from .utils import *
 from .base import *
 
-import hashlib
 import jwt
 import os
 
@@ -41,10 +40,12 @@ class User(MongoBase, engine=engine.User):
             school=school or '',
             role=role,
         ).save(force_insert=True)
+        user = cls(user)
         # add user to course
         if course is not None:
-            course.add_student(user)
-        return cls(user).reload()
+            from .course import Course
+            Course(course).add_student(user)
+        return user.reload()
 
     @classmethod
     def formated_email(cls, email: str):
