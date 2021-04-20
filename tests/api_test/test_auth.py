@@ -1,7 +1,7 @@
 import io
 import csv
 import secrets
-from typing import Callable, Dict, Iterable, Optional, List
+from typing import Any, Callable, Dict, Iterable, Optional, List, Union
 from tests.utils.utils import partial_dict
 import pytest
 from tests import utils
@@ -306,6 +306,14 @@ class TestBatchSignup:
             'password': 'not-important',
         }
 
+    @classmethod
+    def get_user_key(cls, u: Union[Dict[str, Any], User]) -> str:
+        if isinstance(u, Dict):
+            # school is optional in register payload
+            return ':'.join((u.get('school', ''), u['username']))
+        else:
+            return ':'.join((u.school, u.username))
+
     def test_batch_signup_nonexistent_user(
         self,
         forge_client: Callable[[], FlaskClient],
@@ -326,6 +334,9 @@ class TestBatchSignup:
             },
         )
         assert rv.status_code == 200
+        # check user ids in response
+        user_ids = rv.get_json()['data']['users']
+        assert self.get_user_key(u_data) in user_ids
         # ensure the user is registered
         u = User.get_by_username(u_data['username'])
         assert u
@@ -358,6 +369,8 @@ class TestBatchSignup:
             'username': u.username,
             'school': u.school,
         } in rv_json['data']['exist']
+        # check user id in response
+        assert rv_json['data']['users'][self.get_user_key(u)] == str(u.id)
         # user should enroll in the course
         u.reload('courses')
         assert c in u.courses, (c.name, [c.name for c in u.courses])
