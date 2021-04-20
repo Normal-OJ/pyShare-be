@@ -184,6 +184,7 @@ def batch_signup(user, csv_string, course):
     }
     if required_keys - {*user_data[0].keys()}:
         return HTTPError('Invalid csv format', 400)
+    users = {}
     fails = []
     exists = set()
     for _u in user_data:
@@ -193,7 +194,9 @@ def batch_signup(user, csv_string, course):
                     username=_u['username'],
                     school=_u['school'],
                 ))
-            exists.add((_u['username'], _u['school']))
+            user_key = (_u['school'], _u['username'])
+            exists.add(user_key)
+            users[':'.join(user_key)] = new_user.pk
             # add to course
             course.add_student(new_user)
         except DoesNotExist:
@@ -217,6 +220,7 @@ def batch_signup(user, csv_string, course):
                     course=course.obj,
                     role=role,
                 )
+                users[':'.join((_u['school'], _u['username']))] = new_user.pk
             except ValidationError as ve:
                 fails.append({
                     'username': _u['username'],
@@ -229,8 +233,8 @@ def batch_signup(user, csv_string, course):
                     f'data: {ve.to_dict()}', )
     if exists or fails:
         exists = [{
-            'username': e[0],
-            'school': e[1],
+            'username': e[1],
+            'school': e[0],
         } for e in exists]
         return HTTPError(
             'Sign up finish, but some issues occurred.',
@@ -238,9 +242,10 @@ def batch_signup(user, csv_string, course):
             data={
                 'fails': fails,
                 'exist': exists,
+                'users': users,
             },
         )
-    return HTTPResponse('Ok.')
+    return HTTPResponse('Ok.', data={'users': users})
 
 
 @auth_api.route('/change/password', methods=['POST'])
