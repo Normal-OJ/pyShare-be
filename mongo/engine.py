@@ -182,6 +182,14 @@ class Problem(Document):
         ONLINE = 1
         OFFLINE = 0
 
+    class Type(Enum):
+        class OJProblem(EmbeddedDocument):
+            input = StringField(max_length=5000000, required=True)
+            output = StringField(max_length=5000000, required=True)
+
+        class NormalProblem(EmbeddedDocument):
+            pass
+
     meta = {'indexes': [{'fields': ['$title']}, 'timestamp']}
     pid = SequenceField(required=True, primary_key=True)
     height = IntField(default=0)
@@ -205,6 +213,8 @@ class Problem(Document):
     is_template = BooleanField(db_field='isTemplate', default=False)
     allow_multiple_comments = BooleanField(db_field='allowMultipleComments',
                                            default=False)
+    extra = GenericEmbeddedDocumentField(choices=Type.choices(),
+                                         default=Type.NormalProblem())
 
     @property
     def online(self):
@@ -212,6 +222,8 @@ class Problem(Document):
 
 
 class Submission(Document):
+    meta = {'allow_inheritance': True}
+
     class Result(EmbeddedDocument):
         files = ListField(FileField(), default=[])
         stdout = StringField(max_length=10**6, default='')
@@ -226,6 +238,13 @@ class Submission(Document):
         PENDING = 0
         ACCEPT = 1
         DENIED = 2
+
+    class Type(Enum):
+        class OJSubmission(EmbeddedDocument):
+            judge_result = IntField(default=-2)
+
+        class NormalSubmission(EmbeddedDocument):
+            pass
 
     problem = ReferenceField(Problem, null=True, required=True)
     comment = ReferenceField(Comment, null=True)
@@ -242,6 +261,8 @@ class Submission(Document):
         default=State.PENDING,
         choices=State.choices(),
     )
+    extra = GenericEmbeddedDocumentField(choices=Type.choices(),
+                                         default=Type.NormalSubmission())
 
 
 class Notif(Document):
