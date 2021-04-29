@@ -101,6 +101,7 @@ def get_problem_permission(user, problem):
     'status: int',
     'is_template: bool',
     'allow_multiple_comments: bool',
+    'extra',
 )
 @Request.doc('course', Course)
 @login_required

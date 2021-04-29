@@ -7,6 +7,8 @@ import base64
 from flask import current_app
 import redis
 import fakeredis
+from zipfile import ZipFile
+import io
 
 from . import engine
 from .config import ConfigLoader
@@ -157,16 +159,25 @@ class Submission(MongoBase, engine=engine.Submission):
         self.update(status=self.engine.Status.PENDING)
         judge_url = f'{self.JUDGE_URL}/{self.id}'
         # send submission to snadbox for judgement
-        if ConfigLoader.get('TESTING') == True:
-            return True
+        # if ConfigLoader.get('TESTING') == True:
+        #     return True
         try:
+            files = [(
+                    'attachments',
+                    (a.filename, a, None),
+                ) for a in self.problem.attachments]
+            if self.problem.is_OJ:
+                with ZipFile('testcase.zip', 'w') as z:
+                    # Add multiple files to the zip
+                    z.writestr('input', self.problem.extra.input)
+                    z.writestr('output', self.problem.extra.output)
+                with open('testcase.zip', 'rb') as f:
+                    files.append(('testcase', ('testcase.zip', io.BytesIO(f.read()), None)))
+                os.remove('testcase.zip') 
             resp = rq.post(
                 judge_url,
                 params={'token': token},
-                files=[(
-                    'attachments',
-                    (a.filename, a, None),
-                ) for a in self.problem.attachments],
+                files=files,
                 data={
                     'src': self.code,
                 },
@@ -183,6 +194,7 @@ class Submission(MongoBase, engine=engine.Submission):
         files,
         stderr: str,
         stdout: str,
+        judge_result=None,
     ):
         '''
         judgement complete
@@ -193,6 +205,7 @@ class Submission(MongoBase, engine=engine.Submission):
         result = self.engine.Result(
             stdout=stdout,
             stderr=stderr,
+            judge_result=judge_result,
         )
         self.update(result=result)
         self.reload()

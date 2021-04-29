@@ -220,6 +220,10 @@ class Problem(Document):
     def online(self):
         return self.status == self.Status.ONLINE
 
+    @property
+    def is_OJ(self):
+        return self.extra._cls == 'OJProblem'
+
 
 class Submission(Document):
     meta = {'allow_inheritance': True}
@@ -228,6 +232,7 @@ class Submission(Document):
         files = ListField(FileField(), default=[])
         stdout = StringField(max_length=10**6, default='')
         stderr = StringField(max_length=10**6, default='')
+        judge_result = IntField(default=None)
 
     class Status(Enum):
         PENDING = 0
@@ -238,13 +243,6 @@ class Submission(Document):
         PENDING = 0
         ACCEPT = 1
         DENIED = 2
-
-    class Type(Enum):
-        class OJSubmission(EmbeddedDocument):
-            judge_result = IntField(default=-2)
-
-        class NormalSubmission(EmbeddedDocument):
-            pass
 
     problem = ReferenceField(Problem, null=True, required=True)
     comment = ReferenceField(Comment, null=True)
@@ -261,8 +259,6 @@ class Submission(Document):
         default=State.PENDING,
         choices=State.choices(),
     )
-    extra = GenericEmbeddedDocumentField(choices=Type.choices(),
-                                         default=Type.NormalSubmission())
 
 
 class Notif(Document):
