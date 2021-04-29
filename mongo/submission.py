@@ -159,8 +159,8 @@ class Submission(MongoBase, engine=engine.Submission):
         self.update(status=self.engine.Status.PENDING)
         judge_url = f'{self.JUDGE_URL}/{self.id}'
         # send submission to snadbox for judgement
-        # if ConfigLoader.get('TESTING') == True:
-        #     return True
+        if ConfigLoader.get('TESTING') == True:
+            return True
         try:
             files = [(
                     'attachments',
@@ -194,7 +194,7 @@ class Submission(MongoBase, engine=engine.Submission):
         files,
         stderr: str,
         stdout: str,
-        judge_result=None,
+        judge_result,
     ):
         '''
         judgement complete

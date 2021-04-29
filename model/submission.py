@@ -93,6 +93,7 @@ def complete(_id):
         files,
         request.values['stderr'],
         request.values['stdout'],
+        request.values.get('result', None),
     )
     return HTTPResponse('ok')
 
