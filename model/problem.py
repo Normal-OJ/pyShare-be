@@ -144,6 +144,7 @@ def create_problem(
     'status: int',
     'is_template: bool',
     'allow_multiple_comments: bool',
+    'extra',
 )
 @Request.doc('pid', 'problem', Problem)
 @login_required
