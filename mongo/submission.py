@@ -113,6 +113,7 @@ class Submission(MongoBase, engine=engine.Submission):
                 'stdout': self.result.stdout,
                 'stderr': self.result.stderr,
                 'files': [f.filename for f in self.result.files],
+                'judge_result': self.result.judge_result,
             })
         return ret
 
