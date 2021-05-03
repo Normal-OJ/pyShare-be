@@ -164,17 +164,18 @@ class Submission(MongoBase, engine=engine.Submission):
             return True
         try:
             files = [(
-                    'attachments',
-                    (a.filename, a, None),
-                ) for a in self.problem.attachments]
+                'attachments',
+                (a.filename, a, None),
+            ) for a in self.problem.attachments]
             if self.problem.is_OJ:
                 with ZipFile('testcase.zip', 'w') as z:
                     # Add multiple files to the zip
                     z.writestr('input', self.problem.extra.input)
                     z.writestr('output', self.problem.extra.output)
                 with open('testcase.zip', 'rb') as f:
-                    files.append(('testcase', ('testcase.zip', io.BytesIO(f.read()), None)))
-                os.remove('testcase.zip') 
+                    files.append(('testcase', ('testcase.zip',
+                                               io.BytesIO(f.read()), None)))
+                os.remove('testcase.zip')
             resp = rq.post(
                 judge_url,
                 params={'token': token},

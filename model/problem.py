@@ -9,7 +9,6 @@ from .notifier import *
 from .utils import *
 from mongoengine.base import get_document
 
-
 __all__ = ['problem_api']
 
 problem_api = Blueprint('problem_api', __name__)
@@ -169,7 +168,7 @@ def modify_problem(
             return HTTPError(
                 'Exist tag that is not allowed to use in this course', 400)
     if extra is not None:
-        cls = get_document(extra._cls)
+        cls = get_document(extra['_cls'])
         extra = cls(**extra)
     try:
         p_ks = {k: v for k, v in p_ks.items() if v is not None}
