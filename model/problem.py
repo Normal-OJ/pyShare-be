@@ -8,6 +8,7 @@ from .auth import *
 from .notifier import *
 from .utils import *
 
+
 __all__ = ['problem_api']
 
 problem_api = Blueprint('problem_api', __name__)
@@ -153,6 +154,7 @@ def modify_problem(
     user,
     problem,
     tags,
+    extra,
     **p_ks,
 ):
     if not problem.permission(user=user, req={'w'}):
@@ -165,9 +167,12 @@ def modify_problem(
         if not c.check_tag(tag):
             return HTTPError(
                 'Exist tag that is not allowed to use in this course', 400)
+    if extra is not None:
+        cls = get_document(extra._cls)
+        extra = cls(**extra)
     try:
         p_ks = {k: v for k, v in p_ks.items() if v is not None}
-        problem.update(**p_ks, tags=tags)
+        problem.update(**p_ks, tags=tags, extra=extra)
     except engine.ValidationError as ve:
         return HTTPError(
             'Invalid data',
