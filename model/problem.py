@@ -7,6 +7,7 @@ from mongo import engine
 from .auth import *
 from .notifier import *
 from .utils import *
+from mongoengine.base import get_document
 
 
 __all__ = ['problem_api']
