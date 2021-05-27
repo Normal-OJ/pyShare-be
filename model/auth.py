@@ -133,6 +133,20 @@ def session():
     return methods[request.method]()
 
 
+@auth_api.route('/session', methods=['PATCH'])
+@login_required
+@Request.json('fields: list')
+def update_session(user, fields):
+    try:
+        cookies = {
+            'piann_httponly': user.secret,
+            'jwt': user.cookie(fields),
+        }
+    except ValueError as e:
+        return HTTPError(str(e), 400)
+    return HTTPResponse(cookies=cookies)
+
+
 @auth_api.route('/signup', methods=['POST'])
 @Request.json(
     'username: str',
