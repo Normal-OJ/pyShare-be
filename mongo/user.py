@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Container, Optional
+from typing import Container, Iterable, Optional
 from hmac import compare_digest
 
 from . import engine
@@ -99,15 +99,36 @@ class User(MongoBase, engine=engine.User):
         return cls(obj)
 
     @property
-    def cookie(self):
-        keys = [
+    def cookie(
+        self,
+        keys: Optional[Iterable[str]] = None,
+    ):
+        WHILTLIST = {
             '_id',
             'username',
             'email',
             'displayName',
             'md5',
             'role',
-        ]
+            'courses',
+            'school',
+            'problems',
+            'comments',
+            'likes',
+            'notifs',
+        }
+        if keys is None:
+            keys = [
+                '_id',
+                'username',
+                'email',
+                'displayName',
+                'md5',
+                'role',
+                'courses',
+            ]
+        if any(key not in WHILTLIST for key in keys):
+            raise ValueError('Unallowed key found')
         return self.jwt(*keys)
 
     @property
