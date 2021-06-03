@@ -62,7 +62,7 @@ def test_course_status(status):
         '資訊安全',
         'Algorithm-in-Daliy-Lives',
         'Algorithm in Daliy Lives',
-        '12',
+        '123',
     ],
 )
 def test_normal_course_name(name):
@@ -79,6 +79,7 @@ def test_normal_course_name(name):
         ('Computer/Programming/I', ValidationError),
         ('', ValidationError),
         ('1', ValidationError),
+        ('12', ValidationError),
         (' algo ', ValidationError),
         (' algo', ValidationError),
         ('algo ', ValidationError),
