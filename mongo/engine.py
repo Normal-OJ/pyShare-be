@@ -97,9 +97,10 @@ class Course(Document):
         PUBLIC = 2
 
     # course's name can only contain letters, numbers, underscore (_),
-    # dash (-) and dot (.), also, it can not be empty
+    # dash (-), dot (.) and space ( ),
+    # it can not be empty or begin/end with any space.
     name = StringField(
-        regex=r'^[\w\._\-]+$',
+        regex=r'^[\w\._\-][\w\._\- ]+[\w\._\-]$',
         required=True,
         max_length=64,
     )
