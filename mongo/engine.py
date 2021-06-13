@@ -179,6 +179,7 @@ class Attachment(Document):
     author = ReferenceField('User', requried=True)
     created = DateTimeField(default=datetime.now)
     updated = DateTimeField(default=datetime.now)
+    size = IntField(default=0)
 
 
 class Problem(Document):

@@ -48,6 +48,7 @@ class TestAttachment(BaseTester):
         assert len(rv.get_json()['data']) == 1
         assert rv.get_json()['data'][0]['filename'] == 'atta1'
         assert rv.get_json()['data'][0]['description'] == 'lol'
+        assert rv.get_json()['data'][0]['size'] == 4
 
     def test_get_an_attachment(self, forge_client, config_app):
         config_app(env='test')

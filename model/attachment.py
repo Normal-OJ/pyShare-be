@@ -34,7 +34,8 @@ def get_attachment_list(user):
             'author': a.author.info,
             'created': a.created,
             'updated': a.updated,
-            'id': a.id
+            'id': a.id,
+            'size': a.size
         } for a in engine.Attachment.objects],
     )
 

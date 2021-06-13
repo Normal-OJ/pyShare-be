@@ -33,6 +33,7 @@ class Attachment(MongoBase, engine=engine.Attachment):
             self.file.replace(file_obj, filename=self.filename)
         self.description = description
         self.updated = datetime.now()
+        self.size = file_obj.getbuffer().nbytes
         self.save()
 
     @classmethod
@@ -54,5 +55,6 @@ class Attachment(MongoBase, engine=engine.Attachment):
             updated=datetime.now(),
             created=datetime.now(),
             author=author.pk,
+            size=file_obj.getbuffer().nbytes,
         ).save()
         return cls(attachment)
