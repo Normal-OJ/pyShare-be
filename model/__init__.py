@@ -9,6 +9,7 @@ from . import course
 from . import notifier
 from . import attachment
 from . import notif
+from . import school
 
 from .auth import *
 from .problem import *
@@ -21,6 +22,7 @@ from .course import *
 from .notifier import *
 from .attachment import *
 from .notif import *
+from .school import *
 
 __all__ = [
     *auth.__all__,
@@ -34,4 +36,5 @@ __all__ = [
     *notifier.__all__,
     *attachment.__all__,
     *notif.__all__,
+    *school.__all__,
 ]
