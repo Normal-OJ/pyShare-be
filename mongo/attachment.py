@@ -1,6 +1,9 @@
 from . import engine
 from .base import MongoBase
 from .engine import GridFSProxy
+from datetime import datetime
+from .utils import doc_required
+from .user import User
 
 __all__ = ['Attachment']
 
@@ -29,10 +32,12 @@ class Attachment(MongoBase, engine=engine.Attachment):
         if file_obj is not None:
             self.file.replace(file_obj, filename=self.filename)
         self.description = description
+        self.updated = datetime.now()
         self.save()
 
     @classmethod
-    def add(cls, file_obj, filename, description):
+    @doc_required('author', User)
+    def add(cls, author, file_obj, filename, description):
         '''
         add an attachment to db
         '''
@@ -48,5 +53,8 @@ class Attachment(MongoBase, engine=engine.Attachment):
             filename=filename,
             file=file,
             description=description,
+            updated=datetime.now(),
+            created=datetime.now(),
+            author=author
         ).save()
         return cls(attachment)

@@ -173,9 +173,12 @@ class Comment(Document):
 
 
 class Attachment(Document):
-    filename = StringField(max_length=64, required=True, primary_key=True)
+    filename = StringField(max_length=64, required=True)
     description = StringField(max_length=5000000, required=True)
     file = FileField(required=True)
+    author = ReferenceField('User', requried=True)
+    created = DateTimeField(default=datetime.now)
+    updated = DateTimeField(default=datetime.now)
 
 
 class Problem(Document):
