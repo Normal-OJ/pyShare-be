@@ -6,6 +6,8 @@ import re
 import hashlib
 from datetime import datetime
 
+from mongoengine.fields import StringField
+
 from .utils import Enum
 
 __all__ = mongoengine.__all__
@@ -327,6 +329,23 @@ class Notif(Document):
         choices=Status.choices(),
     )
     info = GenericEmbeddedDocumentField(choices=Type.choices())
+
+
+class School(Document):
+    # Abbreviation of school name
+    abbr = StringField(
+        max_length=16,
+        required=True,
+        primary_key=True,
+    )
+    # School's full name
+    name = StringField(max_length=256)
+
+    def to_dict(self):
+        return {
+            'abbr': self.abbr,
+            'name': self.name,
+        }
 
 
 # register delete rule. execute here to resolve `NotRegistered`
