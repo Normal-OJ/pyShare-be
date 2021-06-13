@@ -31,7 +31,7 @@ def get_attachment_list(user):
         data=[{
             'filename': a.filename,
             'description': a.description,
-            'author': a.author,
+            'author': a.author.info,
             'created': a.created,
             'updated': a.updated,
             'id': a.id
@@ -54,14 +54,17 @@ def add_attachment(
     add an attachment to db
     '''
     try:
-        Attachment.add(user, file_obj, filename=filename, description=description)
+        atta = Attachment.add(author=user,
+                              file_obj=file_obj,
+                              filename=filename,
+                              description=description)
     except FileExistsError as e:
         return HTTPError(e, 400)
     except FileNotFoundError as e:
         return HTTPError(e, 404)
     except ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())
-    return HTTPResponse('success')
+    return HTTPResponse('success', data={'id': atta.id})
 
 
 @attachment_api.route('/<id>', methods=['PUT'])
@@ -78,8 +81,8 @@ def edit_attachment(
     '''
     update an attachment
     '''
-    user = User(user)
-    if atta.author != user and user < 'admin':
+    user = User(user.obj)
+    if user != atta.author and user < 'admin':
         return HTTPError('Permission denied.', 403)
     try:
         atta.update(file_obj, description)
@@ -98,8 +101,8 @@ def delete_attachment(
     '''
     delete an attachment
     '''
-    user = User(user)
-    if atta.author != user and user < 'admin':
+    user = User(user.obj)
+    if user != atta.author and user < 'admin':
         return HTTPError('Permission denied.', 403)
     atta.delete()
     return HTTPResponse('success')

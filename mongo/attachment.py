@@ -37,14 +37,12 @@ class Attachment(MongoBase, engine=engine.Attachment):
 
     @classmethod
     @doc_required('author', User)
-    def add(cls, author, file_obj, filename, description):
+    def add(cls, author: User, file_obj, filename, description):
         '''
         add an attachment to db
         '''
         if file_obj is None:
             raise FileNotFoundError('you need to upload a file')
-        if cls(filename):
-            raise FileExistsError(f'{cls(filename)} already exists!')
         # save file
         file = GridFSProxy()
         file.put(file_obj, filename=filename)
@@ -55,6 +53,6 @@ class Attachment(MongoBase, engine=engine.Attachment):
             description=description,
             updated=datetime.now(),
             created=datetime.now(),
-            author=author
+            author=author.pk,
         ).save()
         return cls(attachment)

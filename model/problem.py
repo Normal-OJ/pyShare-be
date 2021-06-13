@@ -194,12 +194,14 @@ def delete_problem(user, problem):
 @Request.doc('pid', 'problem', Problem)
 @Request.files('attachment')
 @Request.form('attachment_name')
+@Request.form('attachment_id')
 @login_required
 def patch_attachment(
     user,
     problem,
     attachment,
     attachment_name,
+    attachment_id,
 ):
     '''
     update the problem's attachment
@@ -209,12 +211,10 @@ def patch_attachment(
     if attachment_name is None:
         return HTTPError('you need an attachment name', 400)
     if request.method == 'POST':
-        use_db = False
         try:
             # use public attachment db
-            if attachment is None:
-                attachment = Attachment(attachment_name).copy()
-                use_db = True
+            if attachment_id is not None:
+                attachment = Attachment(attachment_id).copy()
             with lock:
                 problem.reload()
                 problem.insert_attachment(
@@ -226,7 +226,8 @@ def patch_attachment(
         except FileNotFoundError as e:
             return HTTPError(e, 404)
         return HTTPResponse(
-            f'successfully update from {"db file" if use_db else "your file"}')
+            f'successfully update from {"db file" if attachment_id is not None else "your file"}'
+        )
     elif request.method == 'DELETE':
         try:
             with lock:

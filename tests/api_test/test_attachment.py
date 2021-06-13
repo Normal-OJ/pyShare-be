@@ -12,7 +12,6 @@ class TestAttachment(BaseTester):
         'key, value, status_code',
         [
             (None, None, 200),
-            ('filename', 'atta1', 400),
             ('filename', 'a' * 65, 400),
             ('fileObj', None, 404),
         ],
@@ -37,7 +36,8 @@ class TestAttachment(BaseTester):
         rv = client.post('/attachment', data=data)
         assert rv.status_code == status_code
         if status_code == 200:
-            assert Attachment('test').description == 'haha'
+            assert Attachment(
+                rv.get_json()['data']['id']).description == 'haha'
 
     def test_get_attachments(self, forge_client, config_app):
         config_app(env='test')
@@ -45,16 +45,18 @@ class TestAttachment(BaseTester):
 
         rv = client.get('/attachment')
         assert rv.status_code == 200
-        assert rv.get_json()['data'] == [{
-            'filename': 'atta1',
-            'description': 'lol',
-        }]
+        assert len(rv.get_json()['data']) == 1
+        assert rv.get_json()['data'][0]['filename'] == 'atta1'
+        assert rv.get_json()['data'][0]['description'] == 'lol'
 
     def test_get_an_attachment(self, forge_client, config_app):
         config_app(env='test')
         client = forge_client('teacher1')
 
-        rv = client.get('/attachment/atta1')
+        rv = client.get('/attachment')
+        id = rv.get_json()['data'][0]['id']
+
+        rv = client.get(f'/attachment/{id}')
         assert rv.status_code == 200
         assert rv.data == b'Hmm.'
 
@@ -66,25 +68,35 @@ class TestAttachment(BaseTester):
             'fileObj': (io.BytesIO(b'Win'), 'goal'),
         }
 
-        rv = client.put('/attachment/atta1', data=data)
+        rv = client.get('/attachment')
+        id = rv.get_json()['data'][0]['id']
+
+        rv = client.put(f'/attachment/{id}', data=data)
+        print(rv.get_json())
         assert rv.status_code == 200
-        assert Attachment('atta1').description == 'haha'
+        assert Attachment(id).description == 'haha'
 
     @pytest.mark.parametrize('key, value, status_code', [
         (None, None, 200),
-        ('filename', 'test', 404),
+        ('id', 'a' * 24, 404),
         ('user', 'student1', 403),
     ])
     def test_delete_attachment(self, forge_client, config_app, key, value,
                                status_code):
         config_app(env='test')
-        data = {'user': 'teacher1', 'filename': 'atta1'}
+
+        client = forge_client('teacher1')
+        rv = client.get('/attachment')
+        id = rv.get_json()['data'][0]['id']
+
+        data = {'user': 'teacher1', 'id': id}
         if key:
             data[key] = value
         client = forge_client(data['user'])
 
-        rv = client.delete(f'/attachment/{data["filename"]}')
+        rv = client.delete(f'/attachment/{data["id"]}')
+        print(rv.get_json())
         assert rv.status_code == status_code
 
         if status_code == 200:
-            assert not bool(Attachment('atta1'))
+            assert not bool(Attachment(data["id"]))
