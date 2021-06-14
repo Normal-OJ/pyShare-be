@@ -1,4 +1,4 @@
-from flask import Blueprint
+from flask import Blueprint, request
 from mongo import *
 from mongo import engine
 from .auth import login_required
@@ -7,16 +7,6 @@ from .utils import *
 __all__ = ('school_api', )
 
 school_api = Blueprint('school_api', __name__)
-
-
-@school_api.before_request
-@login_required
-def before_school_api(user: User):
-    '''
-    Ensure only admin can call this
-    '''
-    if user < 'admin':
-        return HTTPError('Only admin can call this api.', 403)
 
 
 @school_api.route('/', methods=['GET'])
@@ -34,14 +24,18 @@ def get_single(abbr: str):
 
 
 @school_api.route('/', methods=['POST'])
+@login_required
 @Request.json(
     'abbr: str',
     'name: str',
 )
 def add_school(
+    user: User,
     abbr: str,
     name: str,
 ):
+    if user < 'admin':
+        return HTTPError('Only admin can call this api.', 403)
     s = engine.School(
         abbr=abbr,
         name=name,

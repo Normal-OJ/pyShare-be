@@ -32,12 +32,23 @@ def test_other_role_can_not_operate(
     forge_client: Callable[[str], FlaskClient],
 ):
     client = forge_client(user().username)
+    # Anyone can query
     rv = client.get('/school')
-    assert rv.status_code == 403
+    assert rv.status_code == 200
+    # But can not find nonexistent school
     rv = client.get('/school/anything')
+    assert rv.status_code == 404
+    # And can not create new school
+    rv = client.post(
+        '/school',
+        json={
+            'abbr': 'NTNU',
+            'name': 'National Taiwan Normal University',
+        },
+    )
     assert rv.status_code == 403
-    rv = client.post('/school')
-    assert rv.status_code == 403
+    # No school was inserted to DB
+    assert len(engine.School.objects) == 1
 
 
 def test_add_school(forge_client: Callable[[str, Optional[str]], FlaskClient]):
