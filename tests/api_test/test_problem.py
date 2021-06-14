@@ -169,19 +169,23 @@ class TestProblem(BaseTester):
         assert set(json['data']) == {*'wjdsr'}
 
     @pytest.mark.parametrize('key, value, status_code, message', [
-        (None, None, 200, 'your file'),
-        (['attachmentName', 'attachment'], ['atta1', None], 200, 'db file'),
+        ('attachmentId', None, 200, 'your file'),
+        (None, None, 200, 'db file'),
         ('attachmentName', None, 400, None),
         ('attachmentName', 'att', 400, None),
-        ('attachment', None, 404, None),
+        ('attachmentId', 'a' * 24, 404, None),
     ])
     def test_add_attachment(self, forge_client, config_app, key, value,
                             status_code, message):
         config_app(env='test')
         client = forge_client('teacher1')
+        rv = client.get('/attachment')
+        id = rv.get_json()['data'][0]['id']
+
         data = {
             'attachment': (io.BytesIO(b'Win'), 'goal'),
             'attachmentName': 'haha',
+            'attachmentId': id,
         }
         if key:
             if not isinstance(key, list):

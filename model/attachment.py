@@ -10,9 +10,9 @@ __all__ = ['attachment_api']
 attachment_api = Blueprint('attachment_api', __name__)
 
 
-@attachment_api.route('/<filename>', methods=['GET'])
+@attachment_api.route('/<id>', methods=['GET'])
 @login_required
-@Request.doc('filename', 'attachment', Attachment)
+@Request.doc('id', 'attachment', Attachment)
 def get_attachment(user, attachment):
     return send_file(
         attachment.file,
@@ -29,7 +29,12 @@ def get_attachment_list(user):
         'get all attachments\' names',
         data=[{
             'filename': a.filename,
-            'description': a.description
+            'description': a.description,
+            'author': a.author.info,
+            'created': a.created,
+            'updated': a.updated,
+            'id': a.id,
+            'size': a.size
         } for a in engine.Attachment.objects],
     )
 
@@ -49,21 +54,24 @@ def add_attachment(
     add an attachment to db
     '''
     try:
-        Attachment.add(file_obj, filename=filename, description=description)
+        atta = Attachment.add(author=user,
+                              file_obj=file_obj,
+                              filename=filename,
+                              description=description)
     except FileExistsError as e:
         return HTTPError(e, 400)
     except FileNotFoundError as e:
         return HTTPError(e, 404)
     except ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())
-    return HTTPResponse('success')
+    return HTTPResponse('success', data={'id': atta.id})
 
 
-@attachment_api.route('/<filename>', methods=['PUT'])
+@attachment_api.route('/<id>', methods=['PUT'])
 @Request.files('file_obj')
 @Request.form('description')
 @identity_verify(0, 1)
-@Request.doc('filename', 'atta', Attachment)
+@Request.doc('id', 'atta', Attachment)
 def edit_attachment(
     user,
     file_obj,
@@ -73,6 +81,8 @@ def edit_attachment(
     '''
     update an attachment
     '''
+    if not atta.permission(user=user, req={'w'}):
+        return HTTPError('Permission denied.', 403)
     try:
         atta.update(file_obj, description)
     except ValidationError as ve:
@@ -80,9 +90,9 @@ def edit_attachment(
     return HTTPResponse('success')
 
 
-@attachment_api.route('/<filename>', methods=['DELETE'])
+@attachment_api.route('/<id>', methods=['DELETE'])
 @identity_verify(0, 1)
-@Request.doc('filename', 'atta', Attachment)
+@Request.doc('id', 'atta', Attachment)
 def delete_attachment(
     user,
     atta,
@@ -90,5 +100,7 @@ def delete_attachment(
     '''
     delete an attachment
     '''
+    if not atta.permission(user=user, req={'w'}):
+        return HTTPError('Permission denied.', 403)
     atta.delete()
     return HTTPResponse('success')

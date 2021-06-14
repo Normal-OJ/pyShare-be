@@ -84,10 +84,12 @@ def setup_attachment(attachments):
         # if we can find the pre defined attachment
         if attachment in ATTACHMENT_DATA:
             # the tag haven't add to DB
-            if not Attachment(attachment):
+            if len(engine.Attachment.objects(filename=attachment)) == 0:
                 attachment_data = ATTACHMENT_DATA[attachment]
                 attachment_data['file_obj'] = io.BytesIO(
                     str.encode(attachment_data['file_obj']))
+                attachment_data['author'] = User.get_by_username(
+                    attachment_data['author'])
                 Attachment.add(**attachment_data)
         else:
             logging.error(
