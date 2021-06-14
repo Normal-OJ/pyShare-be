@@ -2,7 +2,6 @@ from flask import Blueprint, request, send_file
 
 from mongo import *
 from mongo import engine
-from mongo import User
 from .auth import *
 from .course import *
 from .utils import *
@@ -82,8 +81,7 @@ def edit_attachment(
     '''
     update an attachment
     '''
-    user = User(user.obj)
-    if user != atta.author and user < 'admin':
+    if not atta.permission(user=user, req={'w'}):
         return HTTPError('Permission denied.', 403)
     try:
         atta.update(file_obj, description)
@@ -102,8 +100,7 @@ def delete_attachment(
     '''
     delete an attachment
     '''
-    user = User(user.obj)
-    if user != atta.author and user < 'admin':
+    if not atta.permission(user=user, req={'w'}):
         return HTTPError('Permission denied.', 403)
     atta.delete()
     return HTTPResponse('success')
