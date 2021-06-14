@@ -1,6 +1,8 @@
+from mongo import *
 from mongo import engine
 from tests import utils
-from typing import Callable
+from typing import Callable, Optional
+import pytest
 from flask.testing import FlaskClient
 
 
@@ -14,21 +16,22 @@ def test_admin_can_operate(forge_client: Callable[[str], FlaskClient]):
     # There should be no school
     rv = client.get('/school')
     assert rv.status_code == 200, rv.get_json()
-    assert len(rv.get_json()['data']) == 0
+    # There should be only one school denotes "No school"
+    assert len(rv.get_json()['data']) == 1
 
 
 @pytest.mark.parametrize(
     'user',
     [
-        utils.user.Factory.student(),
-        utils.user.Factory.teacher(),
+        utils.user.Factory.student,
+        utils.user.Factory.teacher,
     ],
 )
 def test_other_role_can_not_operate(
-    user: User,
+    user: Callable[[], User],
     forge_client: Callable[[str], FlaskClient],
 ):
-    client = forge_client(user.username)
+    client = forge_client(user().username)
     rv = client.get('/school')
     assert rv.status_code == 403
     rv = client.get('/school/anything')
@@ -37,8 +40,9 @@ def test_other_role_can_not_operate(
     assert rv.status_code == 403
 
 
-def test_add_school(forge_client: Callable[[str], FlaskClient]):
+def test_add_school(forge_client: Callable[[str, Optional[str]], FlaskClient]):
     u = utils.user.Factory.admin()
+    assert engine.User.objects.get(username=u.username)
     client = forge_client(u.username)
     # Try add a new school
     school_json = {
@@ -50,18 +54,18 @@ def test_add_school(forge_client: Callable[[str], FlaskClient]):
         json=school_json,
     )
     assert rv.status_code == 200, rv.get_json()
-    schools = rv.get_json()['data']
-    assert len(schools) == 1
-    assert schools[0] == school_json
+    # Check the school was inseted
+    assert len(engine.School.objects) == 2
+    assert engine.School.objects(abbr=school_json['abbr'])
 
 
 def test_admin_get_one(forge_client: Callable[[str], FlaskClient]):
     u = utils.user.Factory.admin()
-    client = forge_client(u.username)
+    client = forge_client(u.username, u.school)
     school = engine.School(
         abbr='NTNU',
         name='National Taiwan Normal University',
     ).save()
-    rv = client.delete(f'/school/{school.abbr}')
+    rv = client.get(f'/school/{school.abbr}')
     assert rv.status_code == 200, rv.get_json()
     assert rv.get_json()['data'] == school.to_dict()
