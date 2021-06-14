@@ -17,6 +17,7 @@ from .user import User
 from .problem import Problem
 from .comment import *
 from .utils import doc_required
+import uuid
 
 __all__ = [
     'Submission',
@@ -168,14 +169,15 @@ class Submission(MongoBase, engine=engine.Submission):
                 (a.filename, a, None),
             ) for a in self.problem.attachments]
             if self.problem.is_OJ:
-                with ZipFile('testcase.zip', 'w') as z:
+                zip_file = str(uuid.uuid4()) + '.zip'
+                with ZipFile(zip_file, 'w') as z:
                     # Add multiple files to the zip
                     z.writestr('input', self.problem.extra.input)
                     z.writestr('output', self.problem.extra.output)
-                with open('testcase.zip', 'rb') as f:
-                    files.append(('testcase', ('testcase.zip',
-                                               io.BytesIO(f.read()), None)))
-                os.remove('testcase.zip')
+                with open(zip_file, 'rb') as f:
+                    files.append(
+                        ('testcase', (zip_file, io.BytesIO(f.read()), None)))
+                os.remove(zip_file)
             resp = rq.post(
                 judge_url,
                 params={'token': token},
