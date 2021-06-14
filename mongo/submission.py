@@ -7,6 +7,8 @@ import base64
 from flask import current_app
 import redis
 import fakeredis
+from zipfile import ZipFile
+import io
 
 from . import engine
 from .config import ConfigLoader
@@ -15,6 +17,7 @@ from .user import User
 from .problem import Problem
 from .comment import *
 from .utils import doc_required
+import uuid
 
 __all__ = [
     'Submission',
@@ -111,6 +114,7 @@ class Submission(MongoBase, engine=engine.Submission):
                 'stdout': self.result.stdout,
                 'stderr': self.result.stderr,
                 'files': [f.filename for f in self.result.files],
+                'judge_result': self.result.judge_result,
             })
         return ret
 
@@ -160,13 +164,24 @@ class Submission(MongoBase, engine=engine.Submission):
         if ConfigLoader.get('TESTING') == True:
             return True
         try:
+            files = [(
+                'attachments',
+                (a.filename, a, None),
+            ) for a in self.problem.attachments]
+            if self.problem.is_OJ:
+                zip_file = str(uuid.uuid4()) + '.zip'
+                with ZipFile(zip_file, 'w') as z:
+                    # Add multiple files to the zip
+                    z.writestr('input', self.problem.extra.input)
+                    z.writestr('output', self.problem.extra.output)
+                with open(zip_file, 'rb') as f:
+                    files.append(
+                        ('testcase', (zip_file, io.BytesIO(f.read()), None)))
+                os.remove(zip_file)
             resp = rq.post(
                 judge_url,
                 params={'token': token},
-                files=[(
-                    'attachments',
-                    (a.filename, a, None),
-                ) for a in self.problem.attachments],
+                files=files,
                 data={
                     'src': self.code,
                 },
@@ -183,6 +198,7 @@ class Submission(MongoBase, engine=engine.Submission):
         files,
         stderr: str,
         stdout: str,
+        judge_result,
     ):
         '''
         judgement complete
@@ -193,6 +209,7 @@ class Submission(MongoBase, engine=engine.Submission):
         result = self.engine.Result(
             stdout=stdout,
             stderr=stderr,
+            judge_result=judge_result,
         )
         self.update(result=result)
         self.reload()

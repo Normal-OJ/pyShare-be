@@ -7,6 +7,7 @@ from mongo import engine
 from .auth import *
 from .notifier import *
 from .utils import *
+from mongoengine.base import get_document
 
 __all__ = ['problem_api']
 
@@ -101,6 +102,7 @@ def get_problem_permission(user, problem):
     'status: int',
     'is_template: bool',
     'allow_multiple_comments: bool',
+    'extra',
 )
 @Request.doc('course', Course)
 @login_required
@@ -143,6 +145,7 @@ def create_problem(
     'status: int',
     'is_template: bool',
     'allow_multiple_comments: bool',
+    'extra',
 )
 @Request.doc('pid', 'problem', Problem)
 @login_required
@@ -151,6 +154,7 @@ def modify_problem(
     user,
     problem,
     tags,
+    extra,
     **p_ks,
 ):
     if not problem.permission(user=user, req={'w'}):
@@ -163,9 +167,12 @@ def modify_problem(
         if not c.check_tag(tag):
             return HTTPError(
                 'Exist tag that is not allowed to use in this course', 400)
+    if extra is not None:
+        cls = get_document(extra['_cls'])
+        extra = cls(**extra)
     try:
         p_ks = {k: v for k, v in p_ks.items() if v is not None}
-        problem.update(**p_ks, tags=tags)
+        problem.update(**p_ks, tags=tags, extra=extra)
     except engine.ValidationError as ve:
         return HTTPError(
             'Invalid data',

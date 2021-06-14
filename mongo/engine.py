@@ -183,6 +183,14 @@ class Problem(Document):
         ONLINE = 1
         OFFLINE = 0
 
+    class Type(Enum):
+        class OJProblem(EmbeddedDocument):
+            input = StringField(max_length=5000000, required=True)
+            output = StringField(max_length=5000000, required=True)
+
+        class NormalProblem(EmbeddedDocument):
+            pass
+
     meta = {'indexes': [{'fields': ['$title']}, 'timestamp']}
     pid = SequenceField(required=True, primary_key=True)
     height = IntField(default=0)
@@ -206,17 +214,26 @@ class Problem(Document):
     is_template = BooleanField(db_field='isTemplate', default=False)
     allow_multiple_comments = BooleanField(db_field='allowMultipleComments',
                                            default=False)
+    extra = GenericEmbeddedDocumentField(choices=Type.choices(),
+                                         default=Type.NormalProblem())
 
     @property
     def online(self):
         return self.status == self.Status.ONLINE
 
+    @property
+    def is_OJ(self):
+        return self.extra._cls == 'OJProblem'
+
 
 class Submission(Document):
+    meta = {'allow_inheritance': True}
+
     class Result(EmbeddedDocument):
         files = ListField(FileField(), default=[])
         stdout = StringField(max_length=10**6, default='')
         stderr = StringField(max_length=10**6, default='')
+        judge_result = IntField(default=None)
 
     class Status(Enum):
         PENDING = 0
