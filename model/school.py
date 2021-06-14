@@ -21,13 +21,13 @@ def before_school_api(user: User):
 
 @school_api.route('/', methods=['GET'])
 def get_all():
-    return HTTPReseponse(data=[s.to_dict() for s in engine.School.objects])
+    return HTTPResponse(data=[s.to_dict() for s in engine.School.objects])
 
 
 @school_api.route('/<abbr>', methods=['GET'])
 def get_single(abbr: str):
     try:
-        s = engine.School.objects.get(id=abbr)
+        s = engine.School.objects.get(abbr=abbr)
     except DoesNotExist:
         return HTTPError('School not found.', 404)
     return HTTPResponse(data=s.to_dict())
