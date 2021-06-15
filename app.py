@@ -226,7 +226,7 @@ def setup_app(
     '''
     # Reserve a "empty" school
     try:
-        engine.School(abbr='', name='No School').save()
+        engine.School(abbr='', name='無').save()
     except NotUniqueError:
         pass
     # read flask app config from module
