@@ -25,6 +25,7 @@ api2name = [
     (course_api, '/course'),
     (attachment_api, '/attachment'),
     (notif_api, '/notif'),
+    (school_api, '/school'),
 ]
 for api, name in api2name:
     app.register_blueprint(api, url_prefix=name)
@@ -225,6 +226,11 @@ def setup_app(
     '''
     setup flask app from config and pre-configured env
     '''
+    # Reserve a "empty" school
+    try:
+        engine.School(abbr='', name='無').save()
+    except NotUniqueError:
+        pass
     # read flask app config from module
     app.config.from_object(config)
     # setup environment for testing
