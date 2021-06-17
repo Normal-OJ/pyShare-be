@@ -67,6 +67,33 @@ class TestProblem(BaseTester):
         assert rv.status_code == 200, json
         assert len(engine.Problem.objects) == 4
 
+    def test_cannot_read_deleted_comment_in_problem(
+        self,
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
+    ):
+        # Create some comments
+        problem = utils.problem.lazy_add()
+        user = problem.author
+        cs = [
+            utils.comment.lazy_add_comment(
+                author=user,
+                problem=problem,
+            ) for _ in range(10)
+        ]
+        # TODO: move positive validation to another testcase
+        client = forge_client(user.username)
+        rv = client.get(f'/problem/{problem.pid}')
+        rv_json = rv.get_json()
+        assert rv.status_code == 200, rv_json
+        assert len(rv_json['data']['comments']) == len(cs)
+        # Delete some
+        for c in cs[:len(cs) // 2]:
+            c.delete()
+        rv = client.get(f'/problem/{problem.pid}')
+        rv_json = rv.get_json()
+        assert rv.status_code == 200, rv_json
+        assert len(rv_json['data']['comments']) == len(cs) - len(cs) // 2
+
 
 class TestAttachment(BaseTester):
     @pytest.mark.parametrize('key, value, status_code, message', [

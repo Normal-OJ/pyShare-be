@@ -76,9 +76,15 @@ def get_problem_list(
 def get_single_problem(user, problem):
     if not problem.permission(user=user, req={'r'}):
         return HTTPError('Not enough permission', 403)
+    # Filter comments (according to read permission)
+    p = problem.to_dict()
+    p['comments'] = [
+        str(c.id) for c in map(Comment, problem.comments)
+        if c.permission(user=user, req='r')
+    ]
     return HTTPResponse(
         'here you are, bro',
-        data=problem.to_dict(),
+        data=p,
     )
 
 
