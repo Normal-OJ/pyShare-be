@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Optional
 from flask.testing import FlaskClient
 import pytest
 from tests.base_tester import BaseTester
@@ -202,7 +202,6 @@ class TestComment(BaseTester):
         # Get comments
         config_app(env='test')
         client = forge_client('teacher1')
-
         rv = client.post('/comment',
                          json={
                              'target': 'problem',
@@ -234,14 +233,37 @@ class TestComment(BaseTester):
         assert rv.status_code == 200
 
     def test_get_comment_permission(self, forge_client):
+        # Create a teacher and comment
         teacher = utils.user.Factory.teacher()
         course = utils.course.lazy_add(teacher=teacher)
-        id = utils.comment.lazy_add_comment(
+        _id = utils.comment.lazy_add_comment(
             author=teacher.pk,
             problem=utils.problem.lazy_add(course=course),
         ).id
+        # Check the teacher's permission
         client = forge_client(teacher.username)
-        rv = client.get(f'/comment/{id}/permission')
+        rv = client.get(f'/comment/{_id}/permission')
         json = rv.get_json()
         assert rv.status_code == 200, json
         assert set(json['data']) == {*'wjdsr'}
+
+    def test_oj_comment_permission(
+        self,
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
+    ):
+        # Randomly create a comment
+        course = utils.course.lazy_add()
+        problem = utils.problem.lazy_add(
+            course=course,
+            is_oj=True,
+        )
+        _id = utils.comment.lazy_add_comment(problem=problem).id
+        # Create another user under the same course
+        u = utils.user.Factory.student()
+        course.add_student(u)
+        # It should not has any permission for previous comment
+        client = forge_client(u.username)
+        rv = client.get(f'/comment/{_id}/permission')
+        rv_json = rv.get_json()
+        assert rv.status_code == 200, rv_json
+        assert {*rv_json['data']} == set()
