@@ -3,6 +3,7 @@ from flask.testing import FlaskClient
 import pytest
 from tests.base_tester import BaseTester
 from mongo import *
+from mongo import engine
 import io
 import mongomock.gridfs
 import threading
@@ -20,7 +21,30 @@ def get_file(file):
 class TestProblem(BaseTester):
     def test_get_problems(
         self,
-        forge_client: Callable[[str], FlaskClient],
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
+        config_app,
+    ):
+        # There exists 3 problem in test env
+        config_app(env='test')
+        # Get problems
+        client = forge_client('teacher1')
+        rv = client.get('/problem?offset=0&count=-1')
+        json = rv.get_json()
+        assert rv.status_code == 200, (rv, client.cookie_jar)
+        assert len(json['data']) == 3, json
+
+    def test_get_permission(self, forge_client, config_app):
+        config_app(env='test')
+        client = forge_client('teacher1')
+
+        rv = client.get(f'/problem/1/permission')
+        json = rv.get_json()
+        assert rv.status_code == 200
+        assert set(json['data']) == {*'rwd'}
+
+    def test_create_problem(
+        self,
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
         config_app,
     ):
         config_app(env='test')
@@ -41,20 +65,7 @@ class TestProblem(BaseTester):
         )
         json = rv.get_json()
         assert rv.status_code == 200, json
-        # Get problems
-        rv = client.get('/problem?offset=0&count=-1')
-        json = rv.get_json()
-        assert rv.status_code == 200, (rv, client.cookie_jar)
-        assert len(json['data']) == 4, json
-
-    def test_get_permission(self, forge_client, config_app):
-        config_app(env='test')
-        client = forge_client('teacher1')
-
-        rv = client.get(f'/problem/1/permission')
-        json = rv.get_json()
-        assert rv.status_code == 200
-        assert set(json['data']) == {*'rwd'}
+        assert len(engine.Problem.objects) == 4
 
 
 class TestAttachment(BaseTester):
