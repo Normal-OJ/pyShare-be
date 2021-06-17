@@ -56,6 +56,8 @@ class TestProblem(BaseTester):
         assert rv.status_code == 200
         assert set(json['data']) == {*'rwd'}
 
+
+class TestAttachment(BaseTester):
     @pytest.mark.parametrize('key, value, status_code, message', [
         ('attachmentId', None, 200, 'your file'),
         (None, None, 200, 'db file'),
