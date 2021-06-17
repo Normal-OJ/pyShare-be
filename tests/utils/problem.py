@@ -3,6 +3,7 @@ import random
 from typing import Optional, Union
 from mongo import *
 from . import course as course_lib
+from . import user as user_lib
 from .utils import drop_none, none_or
 
 
@@ -14,8 +15,10 @@ def data(
     output: Optional[str] = None,
     **ks,
 ):
+    # Ensure course
     if course is None:
-        course = course_lib.lazy_add(teacher=author)
+        course = course_lib.lazy_add(teacher=user_lib.Factory.teacher())
+    # Randomly pick one from course
     if author is None:
         author = random.choice((
             course.teacher,

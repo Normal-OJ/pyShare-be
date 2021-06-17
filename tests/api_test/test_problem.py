@@ -47,41 +47,6 @@ class TestProblem(BaseTester):
         assert rv.status_code == 200, (rv, client.cookie_jar)
         assert len(json['data']) == 4, json
 
-    def test_get_comments(self, forge_client, problem_ids, config_app):
-        # Get comments
-        config_app(env='test')
-        client = forge_client('teacher1')
-
-        rv = client.post('/comment',
-                         json={
-                             'target': 'problem',
-                             'id': 1,
-                             'title': 'comment',
-                             'content': '',
-                             'code': ''
-                         })
-        json = rv.get_json()
-        assert rv.status_code == 200
-        id = json['data']['id']
-
-        for j in range(3):
-            rv = client.post('/comment',
-                             json={
-                                 'target': 'comment',
-                                 'id': id,
-                                 'title': f'r{j}',
-                                 'content': '',
-                                 'code': '',
-                             })
-            json = rv.get_json()
-            assert rv.status_code == 200
-
-        rv = client.get(f'/comment/{id}')
-        json = rv.get_json()
-        print(json)
-        assert len(json['data']['replies']) == 3
-        assert rv.status_code == 200
-
     def test_get_permission(self, forge_client, config_app):
         config_app(env='test')
         client = forge_client('teacher1')
@@ -90,26 +55,6 @@ class TestProblem(BaseTester):
         json = rv.get_json()
         assert rv.status_code == 200
         assert set(json['data']) == {*'rwd'}
-
-    def test_get_comment_permission(self, forge_client, config_app):
-        config_app(env='test')
-        client = forge_client('teacher1')
-
-        rv = client.post('/comment',
-                         json={
-                             'target': 'problem',
-                             'id': 1,
-                             'title': 'comment',
-                             'content': '',
-                             'code': ''
-                         })
-        json = rv.get_json()
-        id = json['data']['id']
-
-        rv = client.get(f'/comment/{id}/permission')
-        json = rv.get_json()
-        assert rv.status_code == 200
-        assert set(json['data']) == {*'wjdsr'}
 
     @pytest.mark.parametrize('key, value, status_code, message', [
         ('attachmentId', None, 200, 'your file'),
@@ -250,3 +195,53 @@ class TestProblem(BaseTester):
         rv = client.get('/problem/1/attachment/att')
         assert rv.status_code == 200
         assert rv.data == b'att'
+
+
+class TestComment(BaseTester):
+    def test_get_comments(self, forge_client, problem_ids, config_app):
+        # Get comments
+        config_app(env='test')
+        client = forge_client('teacher1')
+
+        rv = client.post('/comment',
+                         json={
+                             'target': 'problem',
+                             'id': 1,
+                             'title': 'comment',
+                             'content': '',
+                             'code': ''
+                         })
+        json = rv.get_json()
+        assert rv.status_code == 200
+        id = json['data']['id']
+
+        for j in range(3):
+            rv = client.post('/comment',
+                             json={
+                                 'target': 'comment',
+                                 'id': id,
+                                 'title': f'r{j}',
+                                 'content': '',
+                                 'code': '',
+                             })
+            json = rv.get_json()
+            assert rv.status_code == 200
+
+        rv = client.get(f'/comment/{id}')
+        json = rv.get_json()
+        print(json)
+        assert len(json['data']['replies']) == 3
+        assert rv.status_code == 200
+
+    def test_get_comment_permission(self, forge_client):
+        teacher = utils.user.Factory.teacher()
+        course = utils.course.lazy_add(teacher=teacher)
+        id = utils.comment.lazy_add_comment(
+            author=teacher.pk,
+            problem=utils.problem.lazy_add(course=course),
+        ).id
+        client = forge_client(teacher.username)
+        rv = client.get(f'/comment/{id}/permission')
+        json = rv.get_json()
+        assert rv.status_code == 200, json
+        assert set(json['data']) == {*'wjdsr'}

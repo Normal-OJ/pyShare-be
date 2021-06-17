@@ -21,6 +21,8 @@ def comment_data(
     }
     if problem is None:
         problem = problem_lib.lazy_add()
+    elif isinstance(problem, int):
+        problem = Problem(problem)
     if author is None:
         author = course_lib.student(problem.course)
     ret.update(
