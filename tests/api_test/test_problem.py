@@ -80,9 +80,9 @@ class TestProblem(BaseTester):
         forge_client: Callable[[str], FlaskClient],
         config_app,
     ):
-        # Get problems
         config_app(env='test')
         client = forge_client('teacher1')
+        # Create a new problem
         rv = client.post(
             '/problem',
             json={
@@ -98,11 +98,11 @@ class TestProblem(BaseTester):
         )
         json = rv.get_json()
         assert rv.status_code == 200, json
-
+        # Get problems
         rv = client.get('/problem?offset=0&count=-1')
         json = rv.get_json()
         assert rv.status_code == 200, (rv, client.cookie_jar)
-        assert len(json['data']) == 3, json
+        assert len(json['data']) == 4, json
 
     def test_get_comments(self, forge_client, problem_ids, config_app):
         # Get comments
