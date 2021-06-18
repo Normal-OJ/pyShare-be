@@ -421,3 +421,24 @@ class TestBatchSignup:
             } in rv_json['data']['exist']
             u.reload('courses')
             assert c in u.courses, (c.name, [c.name for c in u.courses])
+
+    def test_batch_signup_without_course(
+        self,
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
+    ):
+        u_data = utils.user.data()
+        u_data['displayName'] = u_data['username']
+        csv_string = self.dicts_to_csv_string(
+            [u_data],
+            self.register_fields,
+        )
+        client = forge_client(utils.user.Factory.admin().username)
+        rv = client.post(
+            '/auth/batch-signup',
+            json={
+                'csvString': csv_string,
+            },
+        )
+        rv_json = rv.get_json()
+        assert rv.status_code == 200, rv_json
+        assert User.get_by_username(u_data['username'])
