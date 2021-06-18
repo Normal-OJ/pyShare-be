@@ -51,9 +51,6 @@ class Comment(MongoBase, engine=engine.Comment):
         require 'r' for reading
         '''
         c = Course(self.problem.course)
-        cp = c.own_permission(user=user)
-        if 'r' not in cp:
-            return {'r'}
         _permission = set()
         # Author can edit, rejudge and delete comment
         if user == self.author:
