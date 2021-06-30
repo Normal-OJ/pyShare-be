@@ -13,11 +13,25 @@ def test_add_comment():
     utils.comment.lazy_add_comment()
 
 
+def test_add_comment_multiple():
+    cnt = 5
+    p = utils.problem.lazy_add()
+    # Sequentially add
+    cs = [utils.comment.lazy_add_comment(problem=p.pk) for _ in range(cnt)]
+    p.reload('comments')
+    c_ids = [c.id for c in cs]
+    p_ids = [c.id for c in p.comments]
+    # Check all comments are inserted to the right location
+    assert c_ids == p_ids
+    # Cehck floor numbers
+    assert [c.floor for c in cs] == [*range(1, cnt + 1)]
+
+
 def test_add_reply():
     c = utils.comment.lazy_add_comment()
     # sequentially add
     for _ in range(5):
-        r = utils.comment.lazy_add_reply(comment=c)
+        r = utils.comment.lazy_add_reply(comment=c.pk)
         assert r.obj in c.reload('replies').replies
 
 
@@ -33,6 +47,22 @@ def test_add_reply_concurrent():
         )]
     r_ids = sorted(r.id for r in results)
     c_ids = sorted(r.id for r in c.reload('replies').replies)
+    # Check all the inserted replies are put under the comment
+    assert r_ids == c_ids
+
+
+def test_add_comment_concurrent():
+    p = utils.problem.lazy_add()
+    cnt = 10
+    # Concurrently create new replies
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        create_reply = lambda _p: utils.comment.lazy_add_comment(problem=_p.pk)
+        results = [*executor.map(
+            create_reply,
+            (p for _ in range(cnt)),
+        )]
+    r_ids = sorted(c.id for c in results)
+    c_ids = sorted(c.id for c in p.reload('comments').comments)
     # Check all the inserted replies are put under the comment
     assert r_ids == c_ids
     # Check floor number
