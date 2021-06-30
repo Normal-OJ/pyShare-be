@@ -23,17 +23,20 @@ def test_add_reply():
 
 def test_add_reply_concurrent():
     c = utils.comment.lazy_add_comment()
+    cnt = 10
+    # Concurrently create new replies
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        r_futures = [
-            executor.submit(
-                utils.comment.lazy_add_reply,
-                comment=c,
-            ) for _ in range(10)
-        ]
-    rs = [f.result() for f in r_futures]
-    add_result = sorted(r.id for r in rs)
-    in_comment = sorted(r.id for r in c.reload('replies').replies)
-    assert add_result == in_comment
+        create_reply = lambda _c: utils.comment.lazy_add_reply(comment=_c)
+        results = [*executor.map(
+            create_reply,
+            (c for _ in range(cnt)),
+        )]
+    r_ids = sorted(r.id for r in results)
+    c_ids = sorted(r.id for r in c.reload('replies').replies)
+    # Check all the inserted replies are put under the comment
+    assert r_ids == c_ids
+    # Check floor number
+    assert sorted(r.floor for r in results) == [*range(1, cnt + 1)]
 
 
 # TODO: put these functions not related to add to right location
