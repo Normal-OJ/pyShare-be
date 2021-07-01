@@ -108,8 +108,8 @@ def get_problem_permission(user, problem):
 @login_required
 @fe_update('PROBLEM', 'course')
 def create_problem(
-    user,
-    **p_ks,  # problem args
+        user,
+        **p_ks,  # problem args
 ):
     '''
     create a new problem
@@ -266,8 +266,7 @@ def get_attachment(user, problem, name):
 @problem_api.route('/<int:pid>/clone/<course>', methods=['GET'])
 @login_required
 @Request.args(
-    'is_template',
-)
+    'is_template', )
 @Request.doc('pid', 'problem', Problem)
 @Request.doc('course', Course)
 @fe_update('PROBLEM', 'course')

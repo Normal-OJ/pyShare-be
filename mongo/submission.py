@@ -249,11 +249,11 @@ class Submission(MongoBase, engine=engine.Submission):
     @doc_required('user', User)
     @doc_required('comment', Comment, null=True)
     def add(
-            cls,
-            problem: Problem,
-            user: User,
-            comment: Optional[Comment],
-            code: str,
+        cls,
+        problem: Problem,
+        user: User,
+        comment: Optional[Comment],
+        code: str,
     ) -> 'Submission':
         '''
         Insert a new submission into db
