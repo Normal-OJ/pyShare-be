@@ -49,7 +49,7 @@ class Problem(MongoBase, engine=engine.Problem):
         return req in _permission
 
     @doc_required('target_course', 'target_course', Course)
-    def copy(self, target_course: Course):
+    def copy(self, target_course: Course, is_template: bool):
         '''
         copy the problem to another course, and drop all comments & replies
         '''
@@ -64,7 +64,11 @@ class Problem(MongoBase, engine=engine.Problem):
             del p[field]
         # field conversion
         p['default_code'] = p['defaultCode']
+        p['is_template'] = is_template
+        p['allow_multiple_comments'] = p['allowMultipleComments']
         del p['defaultCode']
+        del p['isTemplate']
+        del p['allowMultipleComments']
         del p['_id']
         # add it to DB
         p = Problem.add(**p)
