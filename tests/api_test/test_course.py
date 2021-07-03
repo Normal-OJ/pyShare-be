@@ -64,8 +64,9 @@ class TestCourse(BaseTester):
             },
         )
         assert rv.status_code == 200
+        # Access a deleted comment will get 403
         rv = client.get(f'/comment/{id}')
-        assert rv.status_code == 404
+        assert rv.status_code == 403
 
     def test_remove_student_also_remove_his_like(
         self,
@@ -73,27 +74,27 @@ class TestCourse(BaseTester):
         config_app,
     ):
         config_app(env='test')
+        # Create a comment by teacher
         client = forge_client('teacher1')
-
         rv = client.post(
             '/comment',
             json={
                 'target': 'problem',
-                'id': 1,
+                'id': 3,
                 'title': 'comment',
                 'content': '',
                 'code': ''
             },
         )
         assert rv.status_code == 200
+        # Student like that comment
         id = rv.get_json()["data"]["id"]
-
         client = forge_client('student1')
         rv = client.get(f'/comment/{id}/like')
         assert rv.status_code == 200
         rv = client.get(f'/comment/{id}')
-        assert len(rv.get_json()['data']['liked']) == 1
-
+        assert len(rv.get_json()['data']['liked']) == 1, rv.get_json()
+        # Remove student from course
         client = forge_client('teacher1')
         cid = Course.get_by_name('course_108-1').pk
         users = [str(User.get_by_username('student1').pk)]
@@ -104,10 +105,11 @@ class TestCourse(BaseTester):
             },
         )
         assert rv.status_code == 200
-
-        client = forge_client('student1')
+        # Check the like has been removed
+        client = forge_client('teacher1')
         rv = client.get(f'/comment/{id}')
-        assert len(rv.get_json()['data']['liked']) == 0
+        assert rv.status_code == 200, rv.get_json()
+        assert len(rv.get_json()['data']['liked']) == 0, rv.get_json()
 
     def test_get_course_permission(
         self,
