@@ -4,7 +4,7 @@ from .problem import Problem
 from .course import Course
 from .user import User
 from .notif import Notif
-from .utils import doc_required
+from .utils import doc_required, get_redis_client
 from .submission import *
 
 __all__ = [
@@ -165,28 +165,31 @@ class Comment(MongoBase, engine=engine.Comment):
             )
             if any(comments):
                 raise TooManyComments
-        # create new commment
-        comment = cls.add(
-            floor=target.height + 1,
-            depth=0,
-            author=author,
-            problem=target,
-            **ks,
-        )
-        # try create a submission
-        submission = Submission.add(
-            problem=target,
-            user=author,
-            comment=comment,
-            code=code,
-        )
-        submission.submit()
-        comment.update(push__submissions=submission.obj)
-        # append to problem
-        target.update(
-            push__comments=comment.obj,
-            inc__height=1,
-        )
+        # Ensure the height field is correct
+        with get_redis_client().lock(str(target)):
+            target.reload('height')
+            # create new commment
+            comment = cls.add(
+                floor=target.height + 1,
+                depth=0,
+                author=author,
+                problem=target,
+                **ks,
+            )
+            # try create a submission
+            submission = Submission.add(
+                problem=target,
+                user=author,
+                comment=comment,
+                code=code,
+            )
+            submission.submit()
+            comment.update(push__submissions=submission.obj)
+            # append to problem
+            target.update(
+                push__comments=comment.obj,
+                inc__height=1,
+            )
         # notify relevant user
         info = Notif.types.NewComment(problem=target.pk)
         if target.author != comment.author:
