@@ -23,7 +23,7 @@ def test_add_comment_multiple():
     p_ids = [c.id for c in p.comments]
     # Check all comments are inserted to the right location
     assert c_ids == p_ids
-    # Cehck floor numbers
+    # Check floor numbers
     assert [c.floor for c in cs] == [*range(1, cnt + 1)]
 
 
