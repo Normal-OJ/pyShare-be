@@ -65,8 +65,6 @@ def create_comment(user, target, code, id_, **ks):
 def get_comment(user, comment: Comment):
     if not comment.permission(user=user, req={'r'}):
         return HTTPError('permission denied', 403)
-    if comment.hidden:
-        return HTTPError('the comment has been removed', 404)
     return HTTPResponse('success', data=comment.to_dict())
 
 

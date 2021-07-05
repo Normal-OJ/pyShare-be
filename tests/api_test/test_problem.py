@@ -1,8 +1,9 @@
-from typing import Callable
+from typing import Callable, Optional
 from flask.testing import FlaskClient
 import pytest
 from tests.base_tester import BaseTester
 from mongo import *
+from mongo import engine
 import io
 import mongomock.gridfs
 import threading
@@ -17,72 +18,38 @@ def get_file(file):
         return {'case': (io.BytesIO(f.read()), "test_case.zip")}
 
 
-class ProblemData:
-    def __init__(
-        self,
-        name,
-        status=1,
-        type=0,
-        description='',
-        tags=[],
-        test_case_info={
-            'language':
-            1,
-            'fillInTemplate':
-            '',
-            'cases': [{
-                'caseCount': 1,
-                'caseScore': 100,
-                'memoryLimit': 1000,
-                'timeLimit': 1000
-            }]
-        }):
-        self.name = name
-        self.status = status
-        self.type = type
-        self.description = description
-        self.tags = tags
-        self.test_case = get_file(test_case)
-        self.test_case_info = test_case_info
-
-
-# First problem (offline)
-@pytest.fixture(params=[{'name': 'Hello World!'}])
-def problem_data(request, client_admin):
-    BaseTester.setup_class()
-    pd = ProblemData(**request.param)
-    # add problem
-    rv = client_admin.post('/problem/manage',
-                           json={
-                               'status': pd.status,
-                               'type': pd.type,
-                               'problemName': pd.name,
-                               'description': pd.description,
-                               'tags': pd.tags,
-                               'testCaseInfo': pd.test_case_info
-                           })
-    id = rv.get_json()['data']['problemId']
-    rv = client_admin.put(f'/problem/manage/{id}',
-                          data=get_file('test_case.zip'))
-    yield pd
-    BaseTester.teardown_class()
-
-
-# Online problem
-@pytest.fixture(params=[{'name': 'Goodbye health~', 'status': 0}])
-def another_problem(request, problem_data):
-    return problem_data(request)
-
-
 class TestProblem(BaseTester):
     def test_get_problems(
         self,
-        forge_client: Callable[[str], FlaskClient],
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
         config_app,
     ):
+        # There exists 3 problem in test env
+        config_app(env='test')
         # Get problems
+        client = forge_client('teacher1')
+        rv = client.get('/problem?offset=0&count=-1')
+        json = rv.get_json()
+        assert rv.status_code == 200, (rv, client.cookie_jar)
+        assert len(json['data']) == 3, json
+
+    def test_get_permission(self, forge_client, config_app):
         config_app(env='test')
         client = forge_client('teacher1')
+
+        rv = client.get(f'/problem/1/permission')
+        json = rv.get_json()
+        assert rv.status_code == 200
+        assert set(json['data']) == {*'rwd'}
+
+    def test_create_problem(
+        self,
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
+        config_app,
+    ):
+        config_app(env='test')
+        client = forge_client('teacher1')
+        # Create a new problem
         rv = client.post(
             '/problem',
             json={
@@ -98,76 +65,37 @@ class TestProblem(BaseTester):
         )
         json = rv.get_json()
         assert rv.status_code == 200, json
+        assert len(engine.Problem.objects) == 4
 
-        rv = client.get('/problem?offset=0&count=-1')
-        json = rv.get_json()
-        assert rv.status_code == 200, (rv, client.cookie_jar)
-        assert len(json['data']) == 3, json
+    def test_cannot_read_deleted_comment_in_problem(
+        self,
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
+    ):
+        # Create some comments
+        problem = utils.problem.lazy_add()
+        user = problem.author
+        cs = [
+            utils.comment.lazy_add_comment(
+                author=user,
+                problem=problem,
+            ) for _ in range(10)
+        ]
+        # TODO: move positive validation to another testcase
+        client = forge_client(user.username)
+        rv = client.get(f'/problem/{problem.pid}')
+        rv_json = rv.get_json()
+        assert rv.status_code == 200, rv_json
+        assert len(rv_json['data']['comments']) == len(cs)
+        # Delete some
+        for c in cs[:len(cs) // 2]:
+            c.delete()
+        rv = client.get(f'/problem/{problem.pid}')
+        rv_json = rv.get_json()
+        assert rv.status_code == 200, rv_json
+        assert len(rv_json['data']['comments']) == len(cs) - len(cs) // 2
 
-    def test_get_comments(self, forge_client, problem_ids, config_app):
-        # Get comments
-        config_app(env='test')
-        client = forge_client('teacher1')
 
-        rv = client.post('/comment',
-                         json={
-                             'target': 'problem',
-                             'id': 1,
-                             'title': 'comment',
-                             'content': '',
-                             'code': ''
-                         })
-        json = rv.get_json()
-        assert rv.status_code == 200
-        id = json['data']['id']
-
-        for j in range(3):
-            rv = client.post('/comment',
-                             json={
-                                 'target': 'comment',
-                                 'id': id,
-                                 'title': f'r{j}',
-                                 'content': '',
-                                 'code': '',
-                             })
-            json = rv.get_json()
-            assert rv.status_code == 200
-
-        rv = client.get(f'/comment/{id}')
-        json = rv.get_json()
-        print(json)
-        assert len(json['data']['replies']) == 3
-        assert rv.status_code == 200
-
-    def test_get_permission(self, forge_client, config_app):
-        config_app(env='test')
-        client = forge_client('teacher1')
-
-        rv = client.get(f'/problem/1/permission')
-        json = rv.get_json()
-        assert rv.status_code == 200
-        assert set(json['data']) == {*'rwd'}
-
-    def test_get_comment_permission(self, forge_client, config_app):
-        config_app(env='test')
-        client = forge_client('teacher1')
-
-        rv = client.post('/comment',
-                         json={
-                             'target': 'problem',
-                             'id': 1,
-                             'title': 'comment',
-                             'content': '',
-                             'code': ''
-                         })
-        json = rv.get_json()
-        id = json['data']['id']
-
-        rv = client.get(f'/comment/{id}/permission')
-        json = rv.get_json()
-        assert rv.status_code == 200
-        assert set(json['data']) == {*'wjdsr'}
-
+class TestAttachment(BaseTester):
     @pytest.mark.parametrize('key, value, status_code, message', [
         ('attachmentId', None, 200, 'your file'),
         (None, None, 200, 'db file'),
@@ -307,3 +235,75 @@ class TestProblem(BaseTester):
         rv = client.get('/problem/1/attachment/att')
         assert rv.status_code == 200
         assert rv.data == b'att'
+
+
+class TestComment(BaseTester):
+    def test_get_comments(self, forge_client, problem_ids, config_app):
+        # Get comments
+        config_app(env='test')
+        client = forge_client('teacher1')
+        rv = client.post('/comment',
+                         json={
+                             'target': 'problem',
+                             'id': 1,
+                             'title': 'comment',
+                             'content': '',
+                             'code': ''
+                         })
+        json = rv.get_json()
+        assert rv.status_code == 200
+        id = json['data']['id']
+
+        for j in range(3):
+            rv = client.post('/comment',
+                             json={
+                                 'target': 'comment',
+                                 'id': id,
+                                 'title': f'r{j}',
+                                 'content': '',
+                                 'code': '',
+                             })
+            json = rv.get_json()
+            assert rv.status_code == 200
+
+        rv = client.get(f'/comment/{id}')
+        json = rv.get_json()
+        print(json)
+        assert len(json['data']['replies']) == 3
+        assert rv.status_code == 200
+
+    def test_get_comment_permission(self, forge_client):
+        # Create a teacher and comment
+        teacher = utils.user.Factory.teacher()
+        course = utils.course.lazy_add(teacher=teacher)
+        _id = utils.comment.lazy_add_comment(
+            author=teacher.pk,
+            problem=utils.problem.lazy_add(course=course),
+        ).id
+        # Check the teacher's permission
+        client = forge_client(teacher.username)
+        rv = client.get(f'/comment/{_id}/permission')
+        json = rv.get_json()
+        assert rv.status_code == 200, json
+        assert set(json['data']) == {*'wjdsr'}
+
+    def test_oj_comment_permission(
+        self,
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
+    ):
+        # Randomly create a comment
+        course = utils.course.lazy_add()
+        problem = utils.problem.lazy_add(
+            course=course,
+            is_oj=True,
+        )
+        _id = utils.comment.lazy_add_comment(problem=problem).id
+        # Create another user under the same course
+        u = utils.user.Factory.student()
+        course.add_student(u)
+        # It should not has any permission for previous comment
+        client = forge_client(u.username)
+        rv = client.get(f'/comment/{_id}/permission')
+        rv_json = rv.get_json()
+        assert rv.status_code == 200, rv_json
+        assert {*rv_json['data']} == set()

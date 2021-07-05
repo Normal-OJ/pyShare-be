@@ -16,7 +16,9 @@
         "tags": [],
         "default_code": "",
         "status": 1,
-        "attachments": ["att"],
+        "attachments": [
+            "att"
+        ],
         "extra": {
             "_cls": "OJProblem",
             "input": "test input",
@@ -32,6 +34,21 @@
         "default_code": "",
         "status": 1,
         "allow_multiple_comments": true,
-        "attachments": ["att"]
+        "attachments": [
+            "att"
+        ]
+    },
+    "p3": {
+        "title": "p3",
+        "description": "hahaha",
+        "course": "course_108-1",
+        "author": "teacher1",
+        "tags": [],
+        "default_code": "",
+        "status": 1,
+        "allow_multiple_comments": true,
+        "attachments": [
+            "att"
+        ]
     }
 }
