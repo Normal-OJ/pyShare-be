@@ -13,6 +13,7 @@ __all__ = [
     'Enum',
     'to_bool',
     'ObjectIdEncoder',
+    'get_redis_client',
 ]
 
 

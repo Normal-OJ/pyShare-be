@@ -1,4 +1,3 @@
-import threading
 from flask import Blueprint, request, send_file
 from urllib import parse
 
@@ -12,7 +11,6 @@ from mongoengine.base import get_document
 __all__ = ['problem_api']
 
 problem_api = Blueprint('problem_api', __name__)
-lock = threading.Lock()
 
 
 @problem_api.route('/', methods=['GET'])
@@ -228,7 +226,7 @@ def patch_attachment(
             # use public attachment db
             if attachment_id is not None:
                 attachment = Attachment(attachment_id).copy()
-            with lock:
+            with get_redis_client().lock(f'{problem}-att'):
                 problem.reload()
                 problem.insert_attachment(
                     attachment,
@@ -243,7 +241,7 @@ def patch_attachment(
         )
     elif request.method == 'DELETE':
         try:
-            with lock:
+            with get_redis_client().lock(f'{problem}-att'):
                 problem.reload()
                 problem.remove_attachment(attachment_name)
         except FileNotFoundError as e:
