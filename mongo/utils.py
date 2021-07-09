@@ -15,12 +15,6 @@ __all__ = [
     'ObjectIdEncoder',
 ]
 
-REDIS_POOL = redis.ConnectionPool(
-    host=os.getenv('REDIS_HOST'),
-    port=os.getenv('REDIS_PORT'),
-    db=0,
-)
-
 
 class Enum:
     @staticmethod
@@ -118,10 +112,27 @@ class ObjectIdEncoder(json.JSONEncoder):
         return super().default(o)
 
 
+# Fake redis server
+server = None
+# Redis connection pool
+redis_pool = None
+
+
 def get_redis_client():
     # Only import fakeredis in testing environment
     if ConfigLoader.get('TESTING') == True:
         import fakeredis
-        return fakeredis.FakeStrictRedis()
+        global server
+        if server is None:
+            server = fakeredis.FakeServer()
+        return fakeredis.FakeStrictRedis(server=server)
     else:
-        return redis.Redis(connection_pool=REDIS_POOL)
+        # Create connection pool
+        global redis_pool
+        if redis_pool is None:
+            redis_pool = redis.ConnectionPool(
+                host=os.getenv('REDIS_HOST'),
+                port=os.getenv('REDIS_PORT'),
+                db=0,
+            )
+        return redis.Redis(connection_pool=redis_pool)
