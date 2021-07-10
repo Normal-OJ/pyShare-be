@@ -274,7 +274,7 @@ def clone_problem(user, problem, course, is_template):
     '''
     clone a problem to another course
     '''
-    if user < 'teacher':
+    if not problem.permission(user=user, req={'c'}):
         return HTTPError('Permission denied.', 403)
     try:
         problem.copy(target_course=course, is_template=(is_template == 'true'))

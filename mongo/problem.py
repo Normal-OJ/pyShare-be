@@ -19,8 +19,8 @@ class Problem(MongoBase, engine=engine.Problem):
     @doc_required('user', 'user', User)
     def own_permission(self, user: User):
         '''
-        {'r', 'w', 'd'}
-        represent read, write, delete respectively
+        {'r', 'w', 'd', 'c'}
+        represent read, write, delete, clone respectively
         '''
         _permission = set()
         if self.online:
@@ -31,6 +31,9 @@ class Problem(MongoBase, engine=engine.Problem):
         # problem author and admin can edit, delete problem
         if user == self.author or user >= 'admin':
             _permission |= {*'rwd'}
+        # teachers and above can clone
+        if user >= 'teacher':
+            _permission.add('c')
         return _permission
 
     @doc_required('user', 'user', User)

@@ -146,7 +146,7 @@ class TestProblem(BaseTester):
         rv = client.get(f'/problem/1/permission')
         json = rv.get_json()
         assert rv.status_code == 200
-        assert set(json['data']) == {*'rwd'}
+        assert set(json['data']) == {*'rwdc'}
 
     def test_get_comment_permission(self, forge_client, config_app):
         config_app(env='test')
