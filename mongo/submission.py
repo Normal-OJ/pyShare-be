@@ -4,9 +4,6 @@ import secrets
 from typing import Optional
 import requests as rq
 import base64
-from flask import current_app
-import redis
-import fakeredis
 from zipfile import ZipFile
 import io
 
@@ -16,7 +13,7 @@ from .base import MongoBase
 from .user import User
 from .problem import Problem
 from .comment import *
-from .utils import doc_required
+from .utils import doc_required, get_redis_client
 import uuid
 
 __all__ = [
@@ -24,19 +21,6 @@ __all__ = [
     'Token',
     'SubmissionPending',
 ]
-
-REDIS_POOL = redis.ConnectionPool(
-    host=os.getenv('REDIS_HOST'),
-    port=os.getenv('REDIS_PORT'),
-    db=0,
-)
-
-
-def get_redis_client():
-    if ConfigLoader.get('TESTING') == True:
-        return fakeredis.FakeStrictRedis()
-    else:
-        return redis.Redis(connection_pool=REDIS_POOL)
 
 
 class SubmissionPending(Exception):

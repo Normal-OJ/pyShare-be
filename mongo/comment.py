@@ -5,7 +5,7 @@ from .problem import Problem
 from .course import Course
 from .user import User
 from .notif import Notif
-from .utils import doc_required
+from .utils import doc_required, get_redis_client
 from .submission import *
 
 __all__ = [
@@ -174,39 +174,46 @@ class Comment(MongoBase, engine=engine.Comment):
     ):
         # TODO: solve circular import between submission and comment
         from .submission import Submission
-        # check if allow multiple comments
-        if not target.allow_multiple_comments:
-            comments = map(
-                lambda c: author == c.author,
-                filter(
-                    lambda c: c.status == engine.Comment.Status.SHOW,
-                    target.comments,
-                ),
-            )
-            if any(comments):
-                raise TooManyComments
-        # create new commment
-        comment = cls.add(
-            floor=target.height + 1,
-            depth=0,
-            author=author,
-            problem=target,
-            **ks,
-        )
-        # try create a submission
-        submission = Submission.add(
-            problem=target,
-            user=author,
-            comment=comment,
-            code=code,
-        )
-        submission.submit()
-        comment.update(push__submissions=submission.obj)
-        # append to problem
-        target.update(
-            push__comments=comment.obj,
-            inc__height=1,
-        )
+        redis = get_redis_client()
+        # Ensure that comment field is sync with db
+        with redis.lock(f'{author}-{target}'):
+            target.reload('comments')
+            # check if allow multiple comments
+            if not target.allow_multiple_comments:
+                comments = map(
+                    lambda c: author == c.author,
+                    filter(
+                        lambda c: c.status == engine.Comment.Status.SHOW,
+                        target.comments,
+                    ),
+                )
+                if any(comments):
+                    raise TooManyComments
+            # Ensure the height field is correct
+            with redis.lock(str(target)):
+                target.reload('height')
+                # create new commment
+                comment = cls.add(
+                    floor=target.height + 1,
+                    depth=0,
+                    author=author,
+                    problem=target,
+                    **ks,
+                )
+                # try create a submission
+                submission = Submission.add(
+                    problem=target,
+                    user=author,
+                    comment=comment,
+                    code=code,
+                )
+                submission.submit()
+                comment.update(push__submissions=submission.obj)
+                # append to problem
+                target.update(
+                    push__comments=comment.obj,
+                    inc__height=1,
+                )
         # notify relevant user
         info = Notif.types.NewComment(problem=target.pk)
         if target.author != comment.author:

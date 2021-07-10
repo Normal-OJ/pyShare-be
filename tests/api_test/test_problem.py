@@ -72,7 +72,7 @@ class TestProblem(BaseTester):
         forge_client: Callable[[str, Optional[str]], FlaskClient],
     ):
         # Create some comments
-        problem = utils.problem.lazy_add()
+        problem = utils.problem.lazy_add(allow_multiple_comments=True)
         user = problem.author
         cs = [
             utils.comment.lazy_add_comment(

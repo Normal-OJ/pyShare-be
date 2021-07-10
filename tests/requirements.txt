@@ -1,3 +1,4 @@
 mongomock
 pytest
 pytest-cov
+lupa==1.9
