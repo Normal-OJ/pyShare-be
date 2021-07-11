@@ -61,6 +61,8 @@ def test_course_status(status):
         'Object.Oreiented.Analysis.and.Design',
         '資訊安全',
         'Algorithm-in-Daliy-Lives',
+        'Algorithm in Daliy Lives',
+        '123',
     ],
 )
 def test_normal_course_name(name):
@@ -76,6 +78,11 @@ def test_normal_course_name(name):
         ('@A@', ValidationError),
         ('Computer/Programming/I', ValidationError),
         ('', ValidationError),
+        ('1', ValidationError),
+        ('12', ValidationError),
+        (' algo ', ValidationError),
+        (' algo', ValidationError),
+        ('algo ', ValidationError),
     ],
 )
 def test_invalid_course_name(name, exception):

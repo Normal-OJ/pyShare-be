@@ -1,10 +1,11 @@
+from enum import Enum
 from . import engine
 from .base import MongoBase
 from .problem import Problem
 from .course import Course
 from .user import User
 from .notif import Notif
-from .utils import doc_required
+from .utils import doc_required, get_redis_client
 from .submission import *
 
 __all__ = [
@@ -28,6 +29,13 @@ class TooManyComments(Exception):
 
 
 class Comment(MongoBase, engine=engine.Comment):
+    class Permission(Enum):
+        READ = 'r'
+        WRITE = 'w'
+        DELETE = 'd'
+        REJUDGE = 'j'
+        UPDATE_STATE = 's'
+
     def __init__(self, _id):
         if isinstance(_id, self.engine):
             _id = _id.id
@@ -42,20 +50,32 @@ class Comment(MongoBase, engine=engine.Comment):
         require 'w' for writing
         require 'r' for reading
         '''
-        _permission = {'r'}
-        # author have all permissions except changing state
+        c = Course(self.problem.course)
+        _permission = set()
+        # Author can edit, rejudge and delete comment
         if user == self.author:
-            _permission |= {'w', 'j', 'd'}
-            # can change state if he's a teacher
-            if user > 'student':
-                _permission |= {'s'}
-        # course's teacher and admin can not edit comment, but he can change state
-        elif user == self.problem.course.teacher or user >= 'admin':
-            _permission |= {'d', 'j', 's'}
-        # other people can not view hidden comments or non visible problems' comments
-        elif self.hidden or not Problem(self.problem).permission(user=user,
-                                                                 req={'r'}):
-            _permission.remove('r')
+            _permission |= {*'wjd'}
+        # Course teacher can rejudge and delete comment
+        elif user == c.teacher:
+            _permission |= {*'jd'}
+        # Course teacher and admin can update state
+        if user == c.teacher or user >= 'admin':
+            _permission.add('s')
+        # The comment is not deleted
+        # and user can read problem
+        if not self.hidden and Problem(self.problem).permission(
+                user=user,
+                req={'r'},
+        ):
+            # Course teacher and admin can read
+            if user == c.teacher or user >= 'admin':
+                _permission.add('r')
+            # Otherwise, only author can see OJ comment
+            elif self.problem.is_OJ:
+                if user == self.author:
+                    _permission.add('r')
+            else:
+                _permission.add('r')
         return _permission
 
     @doc_required('user', 'user', User)
@@ -154,39 +174,46 @@ class Comment(MongoBase, engine=engine.Comment):
     ):
         # TODO: solve circular import between submission and comment
         from .submission import Submission
-        # check if allow multiple comments
-        if not target.allow_multiple_comments:
-            comments = map(
-                lambda c: author == c.author,
-                filter(
-                    lambda c: c.status == engine.Comment.Status.SHOW,
-                    target.comments,
-                ),
-            )
-            if any(comments):
-                raise TooManyComments
-        # create new commment
-        comment = cls.add(
-            floor=target.height + 1,
-            depth=0,
-            author=author,
-            problem=target,
-            **ks,
-        )
-        # try create a submission
-        submission = Submission.add(
-            problem=target,
-            user=author,
-            comment=comment,
-            code=code,
-        )
-        submission.submit()
-        comment.update(push__submissions=submission.obj)
-        # append to problem
-        target.update(
-            push__comments=comment.obj,
-            inc__height=1,
-        )
+        redis = get_redis_client()
+        # Ensure that comment field is sync with db
+        with redis.lock(f'{author}-{target}'):
+            target.reload('comments')
+            # check if allow multiple comments
+            if not target.allow_multiple_comments:
+                comments = map(
+                    lambda c: author == c.author,
+                    filter(
+                        lambda c: c.status == engine.Comment.Status.SHOW,
+                        target.comments,
+                    ),
+                )
+                if any(comments):
+                    raise TooManyComments
+            # Ensure the height field is correct
+            with redis.lock(str(target)):
+                target.reload('height')
+                # create new commment
+                comment = cls.add(
+                    floor=target.height + 1,
+                    depth=0,
+                    author=author,
+                    problem=target,
+                    **ks,
+                )
+                # try create a submission
+                submission = Submission.add(
+                    problem=target,
+                    user=author,
+                    comment=comment,
+                    code=code,
+                )
+                submission.submit()
+                comment.update(push__submissions=submission.obj)
+                # append to problem
+                target.update(
+                    push__comments=comment.obj,
+                    inc__height=1,
+                )
         # notify relevant user
         info = Notif.types.NewComment(problem=target.pk)
         if target.author != comment.author:

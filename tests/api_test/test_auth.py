@@ -1,4 +1,8 @@
+import io
+import csv
 import secrets
+from typing import Any, Callable, Dict, Iterable, Optional, List, Union
+from tests.utils.utils import partial_dict
 import pytest
 from tests import utils
 from mongo import *
@@ -266,3 +270,175 @@ def test_token_refresh(client: FlaskClient):
     assert rv.status_code == 200, rv_json
     assert rv_json['message'] == 'Goodbye'
     # TODO: check cookie value
+
+
+class TestBatchSignup:
+    register_fields = {
+        'username',
+        'school',
+        'password',
+        'displayName',
+    }
+
+    @classmethod
+    def dicts_to_csv_string(
+            cls,
+            ds: List[Dict[str, str]],
+            keys: Optional[Iterable[str]] = None,
+    ) -> str:
+        d = ds[0]
+        if keys is None:
+            keys = d.keys()
+        keys = {*keys}
+        # convert dict to csv string
+        csv_io = io.StringIO()
+        writer = csv.DictWriter(csv_io, keys)
+        writer.writeheader()
+        writer.writerows([partial_dict(d, keys) for d in ds])
+        return csv_io.getvalue()
+
+    @classmethod
+    def register_payload(cls, u: User):
+        return {
+            'username': u.username,
+            'school': u.school,
+            'displayName': 'not-important',
+            'password': 'not-important',
+        }
+
+    @classmethod
+    def get_user_key(cls, u: Union[Dict[str, Any], User]) -> str:
+        if isinstance(u, Dict):
+            # school is optional in register payload
+            return ':'.join((u.get('school', ''), u['username']))
+        else:
+            return ':'.join((u.school, u.username))
+
+    def test_batch_signup_nonexistent_user(
+        self,
+        forge_client: Callable[[], FlaskClient],
+    ):
+        u_data = utils.user.data()
+        u_data['displayName'] = u_data['username']
+        csv_string = self.dicts_to_csv_string(
+            [u_data],
+            self.register_fields,
+        )
+        c = utils.course.lazy_add()
+        client = forge_client(c.teacher.username)
+        rv = client.post(
+            '/auth/batch-signup',
+            json={
+                'csvString': csv_string,
+                'course': str(c.id),
+            },
+        )
+        assert rv.status_code == 200
+        # check user ids in response
+        user_ids = rv.get_json()['data']['users']
+        assert self.get_user_key(u_data) in user_ids
+        # ensure the user is registered
+        u = User.get_by_username(u_data['username'])
+        assert u
+        assert User.login(u.school, u.username, u_data['password']) == u
+        assert c in u.courses, (c.name, [c.name for c in u.courses])
+
+    def test_batch_signup_existent_user(
+        self,
+        forge_client: Callable[[], FlaskClient],
+    ):
+        u = utils.user.Factory.student()
+        u_data = self.register_payload(u)
+        csv_string = self.dicts_to_csv_string(
+            [u_data],
+            self.register_fields,
+        )
+        c = utils.course.lazy_add()
+        client = forge_client(c.teacher.username)
+        rv = client.post(
+            '/auth/batch-signup',
+            json={
+                'csvString': csv_string,
+                'course': str(c.id),
+            },
+        )
+        rv_json = rv.get_json()
+        # TODO: should this return 400?
+        assert rv.status_code == 400, rv_json
+        assert {
+            'username': u.username,
+            'school': u.school,
+        } in rv_json['data']['exist']
+        # check user id in response
+        assert rv_json['data']['users'][self.get_user_key(u)] == str(u.id)
+        # user should enroll in the course
+        u.reload('courses')
+        assert c in u.courses, (c.name, [c.name for c in u.courses])
+
+    def test_batch_signup_mixed_users(
+        self,
+        forge_client: Callable[[], FlaskClient],
+    ):
+        # prepare payloads
+        cnt = 10
+        new_users = [utils.user.data() for _ in range(cnt)]
+        for u in new_users:
+            u['displayName'] = u['username']
+        old_users = [utils.user.Factory.student() for _ in range(cnt)]
+        u_datas = new_users[:]
+        u_datas.extend(self.register_payload(u) for u in old_users)
+        csv_string = self.dicts_to_csv_string(u_datas, self.register_fields)
+        # request
+        c = utils.course.lazy_add()
+        client = forge_client(c.teacher.username)
+        rv = client.post(
+            '/auth/batch-signup',
+            json={
+                'csvString': csv_string,
+                'course': str(c.id),
+            },
+        )
+        rv_json = rv.get_json()
+        assert rv.status_code == 400, rv_json
+        # ensure new users are registered
+        for u in new_users:
+            u_obj = User.get_by_username(u['username'])
+            assert u
+            assert User.login(
+                u_obj.school,
+                u_obj.username,
+                u['password'],
+            ) == u_obj
+            assert c in u_obj.courses, (
+                c.name,
+                [c.name for c in u_obj.courses],
+            )
+        # ensure old users are enrolled
+        for u in old_users:
+            assert {
+                'username': u.username,
+                'school': u.school,
+            } in rv_json['data']['exist']
+            u.reload('courses')
+            assert c in u.courses, (c.name, [c.name for c in u.courses])
+
+    def test_batch_signup_without_course(
+        self,
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
+    ):
+        u_data = utils.user.data()
+        u_data['displayName'] = u_data['username']
+        csv_string = self.dicts_to_csv_string(
+            [u_data],
+            self.register_fields,
+        )
+        client = forge_client(utils.user.Factory.admin().username)
+        rv = client.post(
+            '/auth/batch-signup',
+            json={
+                'csvString': csv_string,
+            },
+        )
+        rv_json = rv.get_json()
+        assert rv.status_code == 200, rv_json
+        assert User.get_by_username(u_data['username'])

@@ -133,6 +133,20 @@ def session():
     return methods[request.method]()
 
 
+@auth_api.route('/session', methods=['PATCH'])
+@login_required
+@Request.json('fields: list')
+def update_session(user, fields):
+    try:
+        cookies = {
+            'piann_httponly': user.secret,
+            'jwt': user.cookie(fields),
+        }
+    except ValueError as e:
+        return HTTPError(str(e), 400)
+    return HTTPResponse(cookies=cookies)
+
+
 @auth_api.route('/signup', methods=['POST'])
 @Request.json(
     'username: str',
@@ -167,15 +181,21 @@ def signup(
 
 
 @auth_api.route('/batch-signup', methods=['POST'])
-@Request.json('csv_string: str', 'course: str')
-@Request.doc('course', Course)
+@Request.json('csv_string: str', 'course')
 @login_required
 def batch_signup(user, csv_string, course):
-    if not course.permission(user=user, req={'w'}):
-        return HTTPError('Not enough permission', 403)
+    # Check course
+    if course is not None:
+        course = Course(course)
+        if not course:
+            return HTTPError(f'{course} not found', 404)
+        if not course.permission(user=user, req={'w'}):
+            return HTTPError('Not enough permission', 403)
+    # Read csv
     user_data = [*csv.DictReader(io.StringIO(csv_string))]
     if len(user_data) == 0:
         return HTTPError('Invalid csv format', 400)
+    # Validate keys
     required_keys = {
         'username',
         'school',
@@ -184,18 +204,23 @@ def batch_signup(user, csv_string, course):
     }
     if required_keys - {*user_data[0].keys()}:
         return HTTPError('Invalid csv format', 400)
+    users = {}
     fails = []
     exists = set()
     for _u in user_data:
         try:
+            # Try to find user on system
             new_user = User(
                 User.engine.objects.get(
                     username=_u['username'],
                     school=_u['school'],
                 ))
-            exists.add((_u['username'], _u['school']))
+            user_key = (_u['school'], _u['username'])
+            exists.add(user_key)
+            users[':'.join(user_key)] = new_user.pk
             # add to course
-            course.add_student(new_user)
+            if course:
+                course.add_student(new_user)
         except DoesNotExist:
             # get role
             role = _u.get('role', engine.User.Role.STUDENT)
@@ -205,6 +230,8 @@ def batch_signup(user, csv_string, course):
                 role = int(role)
             except ValueError:
                 return HTTPError('Role needs to be int', 400)
+            # Try to register a non-student user
+            # But the client is not admin
             if role < engine.User.Role.STUDENT and user < 'admin':
                 return HTTPError('Only admins can change roles', 403)
             # sign up a new user
@@ -214,9 +241,10 @@ def batch_signup(user, csv_string, course):
                     password=_u['password'],
                     display_name=_u['displayName'],
                     school=_u['school'],
-                    course=course.obj,
+                    course=getattr(course, 'obj', None),
                     role=role,
                 )
+                users[':'.join((_u['school'], _u['username']))] = new_user.pk
             except ValidationError as ve:
                 fails.append({
                     'username': _u['username'],
@@ -229,8 +257,8 @@ def batch_signup(user, csv_string, course):
                     f'data: {ve.to_dict()}', )
     if exists or fails:
         exists = [{
-            'username': e[0],
-            'school': e[1],
+            'username': e[1],
+            'school': e[0],
         } for e in exists]
         return HTTPError(
             'Sign up finish, but some issues occurred.',
@@ -238,9 +266,10 @@ def batch_signup(user, csv_string, course):
             data={
                 'fails': fails,
                 'exist': exists,
+                'users': users,
             },
         )
-    return HTTPResponse('Ok.')
+    return HTTPResponse('Ok.', data={'users': users})
 
 
 @auth_api.route('/change/password', methods=['POST'])

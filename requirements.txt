@@ -1,3 +1,4 @@
+# TODO: move test dependencies to tests/requirements.txt
 flask==1.1.2
 gunicorn==20.0.4
 mongoengine==0.19.1

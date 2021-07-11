@@ -1,12 +1,11 @@
 from datetime import datetime, timedelta
-from typing import Container, Optional
+from typing import Container, Iterable, Optional
 from hmac import compare_digest
 
 from . import engine
 from .utils import *
 from .base import *
 
-import hashlib
 import jwt
 import os
 
@@ -41,10 +40,12 @@ class User(MongoBase, engine=engine.User):
             school=school or '',
             role=role,
         ).save(force_insert=True)
+        user = cls(user)
         # add user to course
         if course is not None:
-            course.add_student(user)
-        return cls(user).reload()
+            from .course import Course
+            Course(course).add_student(user)
+        return user.reload()
 
     @classmethod
     def formated_email(cls, email: str):
@@ -98,15 +99,36 @@ class User(MongoBase, engine=engine.User):
         return cls(obj)
 
     @property
-    def cookie(self):
-        keys = [
+    def cookie(
+        self,
+        keys: Optional[Iterable[str]] = None,
+    ):
+        WHILTLIST = {
             '_id',
             'username',
             'email',
             'displayName',
             'md5',
             'role',
-        ]
+            'courses',
+            'school',
+            'problems',
+            'comments',
+            'likes',
+            'notifs',
+        }
+        if keys is None:
+            keys = [
+                '_id',
+                'username',
+                'email',
+                'displayName',
+                'md5',
+                'role',
+                'courses',
+            ]
+        if any(key not in WHILTLIST for key in keys):
+            raise ValueError('Unallowed key found')
         return self.jwt(*keys)
 
     @property

@@ -1,7 +1,6 @@
 import secrets
 from typing import Optional
 from mongo import *
-from mongo import engine
 from .utils import drop_none
 
 __all__ = ('data', 'lazy_signup', 'Factory')
@@ -11,14 +10,13 @@ def random_username():
     return secrets.token_hex(8)
 
 
-# TODO: use enum to define role
 def data(
     username: Optional[str] = None,
     password: Optional[str] = None,
-    school=None,
+    school: Optional[str] = None,
     email: Optional[str] = None,
-    has_email=True,
-    role: Optional[int] = None,
+    has_email: bool = True,
+    role: Optional[User.engine.Role] = None,
 ):
     if username is None:
         username = random_username()
@@ -39,7 +37,6 @@ def lazy_signup(**ks):
     return User.signup(**data(**ks))
 
 
-# TODO: use enum to define role
 class Factory:
     @staticmethod
     def admin():

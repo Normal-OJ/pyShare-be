@@ -21,6 +21,9 @@ def comment_data(
     }
     if problem is None:
         problem = problem_lib.lazy_add()
+    # Convert to problem
+    if not isinstance(problem, Problem):
+        problem = Problem(problem)
     if author is None:
         author = course_lib.student(problem.course)
     ret.update(
@@ -38,6 +41,8 @@ def reply_data(
 ):
     if comment is None:
         comment = lazy_add_comment()
+    if not isinstance(comment, Comment):
+        comment = Comment(comment)
     if title is None:
         title = f'Reply-{secrets.token_urlsafe(8)}'
     if content is None:

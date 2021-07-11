@@ -25,6 +25,7 @@ api2name = [
     (course_api, '/course'),
     (attachment_api, '/attachment'),
     (notif_api, '/notif'),
+    (school_api, '/school'),
 ]
 for api, name in api2name:
     app.register_blueprint(api, url_prefix=name)
@@ -84,10 +85,12 @@ def setup_attachment(attachments):
         # if we can find the pre defined attachment
         if attachment in ATTACHMENT_DATA:
             # the tag haven't add to DB
-            if not Attachment(attachment):
+            if len(engine.Attachment.objects(filename=attachment)) == 0:
                 attachment_data = ATTACHMENT_DATA[attachment]
                 attachment_data['file_obj'] = io.BytesIO(
                     str.encode(attachment_data['file_obj']))
+                attachment_data['author'] = User.get_by_username(
+                    attachment_data['author'])
                 Attachment.add(**attachment_data)
         else:
             logging.error(
@@ -173,7 +176,7 @@ def setup_problem(problems):
                 continue
             keys = {
                 'title', 'description', 'course', 'author', 'tags',
-                'default_code', 'status', 'allow_multiple_comments'
+                'default_code', 'status', 'allow_multiple_comments', 'extra'
             }
             ks = {v: problem_data[v] for v in problem_data.keys() & keys}
             ks['course'] = course
@@ -223,6 +226,11 @@ def setup_app(
     '''
     setup flask app from config and pre-configured env
     '''
+    # Reserve a "empty" school
+    try:
+        engine.School(abbr='', name='無').save()
+    except NotUniqueError:
+        pass
     # read flask app config from module
     app.config.from_object(config)
     # setup environment for testing

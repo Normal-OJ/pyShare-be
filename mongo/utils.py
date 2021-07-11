@@ -1,8 +1,11 @@
 import hashlib
 import json
+import os
 from functools import wraps
 from bson import ObjectId
+import redis
 from . import engine
+from .config import ConfigLoader
 
 __all__ = [
     'hash_id',
@@ -10,6 +13,7 @@ __all__ = [
     'Enum',
     'to_bool',
     'ObjectIdEncoder',
+    'get_redis_client',
 ]
 
 
@@ -90,6 +94,7 @@ def doc_required(
                 raise engine.DoesNotExist(f'{doc} not found!')
             # replace original paramters
             del ks[src]
+            # FIXME: current_logger is not defined
             if des in ks:
                 current_app.logger.warning(
                     f'replace a existed argument in {func}')
@@ -106,3 +111,29 @@ class ObjectIdEncoder(json.JSONEncoder):
         if isinstance(o, ObjectId):
             return str(o)
         return super().default(o)
+
+
+# Fake redis server
+server = None
+# Redis connection pool
+redis_pool = None
+
+
+def get_redis_client():
+    # Only import fakeredis in testing environment
+    if ConfigLoader.get('TESTING') == True:
+        import fakeredis
+        global server
+        if server is None:
+            server = fakeredis.FakeServer()
+        return fakeredis.FakeStrictRedis(server=server)
+    else:
+        # Create connection pool
+        global redis_pool
+        if redis_pool is None:
+            redis_pool = redis.ConnectionPool(
+                host=os.getenv('REDIS_HOST'),
+                port=os.getenv('REDIS_PORT'),
+                db=0,
+            )
+        return redis.Redis(connection_pool=redis_pool)

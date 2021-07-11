@@ -6,6 +6,8 @@ import re
 import hashlib
 from datetime import datetime
 
+from mongoengine.fields import StringField
+
 from .utils import Enum
 
 __all__ = mongoengine.__all__
@@ -97,9 +99,10 @@ class Course(Document):
         PUBLIC = 2
 
     # course's name can only contain letters, numbers, underscore (_),
-    # dash (-) and dot (.), also, it can not be empty
+    # dash (-), dot (.) and space ( ),
+    # it can not be empty or begin/end with any space.
     name = StringField(
-        regex=r'^[\w\._\-]+$',
+        regex=r'^[\w\._\-][\w\._\- ]+[\w\._\-]$',
         required=True,
         max_length=64,
     )
@@ -172,15 +175,27 @@ class Comment(Document):
 
 
 class Attachment(Document):
-    filename = StringField(max_length=64, required=True, primary_key=True)
+    filename = StringField(max_length=64, required=True)
     description = StringField(max_length=5000000, required=True)
     file = FileField(required=True)
+    author = ReferenceField('User', requried=True)
+    created = DateTimeField(default=datetime.now)
+    updated = DateTimeField(default=datetime.now)
+    size = IntField(default=0)
 
 
 class Problem(Document):
     class Status(Enum):
         ONLINE = 1
         OFFLINE = 0
+
+    class Type(Enum):
+        class OJProblem(EmbeddedDocument):
+            input = StringField(max_length=5000000, required=True)
+            output = StringField(max_length=5000000, required=True)
+
+        class NormalProblem(EmbeddedDocument):
+            pass
 
     meta = {'indexes': [{'fields': ['$title']}, 'timestamp']}
     pid = SequenceField(required=True, primary_key=True)
@@ -205,17 +220,26 @@ class Problem(Document):
     is_template = BooleanField(db_field='isTemplate', default=False)
     allow_multiple_comments = BooleanField(db_field='allowMultipleComments',
                                            default=False)
+    extra = GenericEmbeddedDocumentField(choices=Type.choices(),
+                                         default=Type.NormalProblem())
 
     @property
     def online(self):
         return self.status == self.Status.ONLINE
 
+    @property
+    def is_OJ(self):
+        return self.extra._cls == 'OJProblem'
+
 
 class Submission(Document):
+    meta = {'allow_inheritance': True}
+
     class Result(EmbeddedDocument):
         files = ListField(FileField(), default=[])
         stdout = StringField(max_length=10**6, default='')
         stderr = StringField(max_length=10**6, default='')
+        judge_result = IntField(default=None)
 
     class Status(Enum):
         PENDING = 0
@@ -326,6 +350,23 @@ class Notif(Document):
         choices=Status.choices(),
     )
     info = GenericEmbeddedDocumentField(choices=Type.choices())
+
+
+class School(Document):
+    # Abbreviation of school name
+    abbr = StringField(
+        max_length=16,
+        required=True,
+        primary_key=True,
+    )
+    # School's full name
+    name = StringField(max_length=256)
+
+    def to_dict(self):
+        return {
+            'abbr': self.abbr,
+            'name': self.name,
+        }
 
 
 # register delete rule. execute here to resolve `NotRegistered`

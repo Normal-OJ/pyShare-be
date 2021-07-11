@@ -1,4 +1,3 @@
-import threading
 from flask import Blueprint, request, send_file
 from urllib import parse
 
@@ -7,11 +6,11 @@ from mongo import engine
 from .auth import *
 from .notifier import *
 from .utils import *
+from mongoengine.base import get_document
 
 __all__ = ['problem_api']
 
 problem_api = Blueprint('problem_api', __name__)
-lock = threading.Lock()
 
 
 @problem_api.route('/', methods=['GET'])
@@ -75,9 +74,15 @@ def get_problem_list(
 def get_single_problem(user, problem):
     if not problem.permission(user=user, req={'r'}):
         return HTTPError('Not enough permission', 403)
+    # Filter comments (according to read permission)
+    p = problem.to_dict()
+    p['comments'] = [
+        str(c.id) for c in map(Comment, problem.comments)
+        if c.permission(user=user, req='r')
+    ]
     return HTTPResponse(
         'here you are, bro',
-        data=problem.to_dict(),
+        data=p,
     )
 
 
@@ -101,6 +106,7 @@ def get_problem_permission(user, problem):
     'status: int',
     'is_template: bool',
     'allow_multiple_comments: bool',
+    'extra',
 )
 @Request.doc('course', Course)
 @login_required
@@ -143,6 +149,7 @@ def create_problem(
     'status: int',
     'is_template: bool',
     'allow_multiple_comments: bool',
+    'extra',
 )
 @Request.doc('pid', 'problem', Problem)
 @login_required
@@ -151,6 +158,7 @@ def modify_problem(
     user,
     problem,
     tags,
+    extra,
     **p_ks,
 ):
     if not problem.permission(user=user, req={'w'}):
@@ -163,9 +171,12 @@ def modify_problem(
         if not c.check_tag(tag):
             return HTTPError(
                 'Exist tag that is not allowed to use in this course', 400)
+    if extra is not None:
+        cls = get_document(extra['_cls'])
+        extra = cls(**extra)
     try:
         p_ks = {k: v for k, v in p_ks.items() if v is not None}
-        problem.update(**p_ks, tags=tags)
+        problem.update(**p_ks, tags=tags, extra=extra)
     except engine.ValidationError as ve:
         return HTTPError(
             'Invalid data',
@@ -194,12 +205,14 @@ def delete_problem(user, problem):
 @Request.doc('pid', 'problem', Problem)
 @Request.files('attachment')
 @Request.form('attachment_name')
+@Request.form('attachment_id')
 @login_required
 def patch_attachment(
     user,
     problem,
     attachment,
     attachment_name,
+    attachment_id,
 ):
     '''
     update the problem's attachment
@@ -209,13 +222,11 @@ def patch_attachment(
     if attachment_name is None:
         return HTTPError('you need an attachment name', 400)
     if request.method == 'POST':
-        use_db = False
         try:
             # use public attachment db
-            if attachment is None:
-                attachment = Attachment(attachment_name).copy()
-                use_db = True
-            with lock:
+            if attachment_id is not None:
+                attachment = Attachment(attachment_id).copy()
+            with get_redis_client().lock(f'{problem}-att'):
                 problem.reload()
                 problem.insert_attachment(
                     attachment,
@@ -226,10 +237,11 @@ def patch_attachment(
         except FileNotFoundError as e:
             return HTTPError(e, 404)
         return HTTPResponse(
-            f'successfully update from {"db file" if use_db else "your file"}')
+            f'successfully update from {"db file" if attachment_id is not None else "your file"}'
+        )
     elif request.method == 'DELETE':
         try:
-            with lock:
+            with get_redis_client().lock(f'{problem}-att'):
                 problem.reload()
                 problem.remove_attachment(attachment_name)
         except FileNotFoundError as e:
