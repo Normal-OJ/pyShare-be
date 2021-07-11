@@ -74,7 +74,7 @@ class User(Document):
     def update(self, **ks):
         if 'email' in ks:
             self.check_email(ks['email'])
-            self.md5 = self.email_hash((ks['email'] or ''))
+            ks['md5'] = self.email_hash((ks['email'] or ''))
         super().update(**ks)
 
     def save(self, *args, **ks):
