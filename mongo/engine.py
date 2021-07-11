@@ -61,6 +61,10 @@ class User(Document):
     notifs = ListField(ReferenceField('Notif'), default=[])
 
     @classmethod
+    def email_hash(cls, email: str):
+        return hashlib.md5(email.encode()).hexdigest()
+
+    @classmethod
     def check_email(cls, email):
         # TODO: solve race condition
         if email is not None and User.objects(email=email):
@@ -70,12 +74,12 @@ class User(Document):
     def update(self, **ks):
         if 'email' in ks:
             self.check_email(ks['email'])
-            self.md5 = hashlib.md5((ks['email'] or '').encode()).hexdigest()
+            self.md5 = self.email_hash((ks['email'] or ''))
         super().update(**ks)
 
     def save(self, *args, **ks):
         self.check_email(self.email)
-        self.md5 = hashlib.md5((self.email or '').encode()).hexdigest()
+        self.md5 = self.email_hash((self.email or ''))
         super().save(*args, **ks)
         return self.reload()
 
