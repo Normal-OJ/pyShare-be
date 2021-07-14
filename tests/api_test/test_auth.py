@@ -1,8 +1,15 @@
 import io
 import csv
 import secrets
-from typing import Any, Callable, Dict, Iterable, Optional, List, Union
-from tests.utils.utils import partial_dict
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Optional,
+    List,
+    Union,
+)
 import pytest
 from tests import utils
 from mongo import *
@@ -272,6 +279,26 @@ def test_token_refresh(client: FlaskClient):
     # TODO: check cookie value
 
 
+def test_update_email(forge_client: Callable[[str, Optional[str]],
+                                             FlaskClient]):
+    password = 'password'
+    email = 'random@pyshare.noj.tw'
+    u = utils.user.lazy_signup(password=password)
+    assert u.md5 == u.email_hash(u.email)
+    client = forge_client(u.username)
+    rv = client.post(
+        '/auth/change/email',
+        json={
+            'password': password,
+            'email': email,
+        },
+    )
+    assert rv.status_code == 200
+    u.reload('email', 'md5')
+    assert u.email == email
+    assert u.md5 == u.email_hash(email)
+
+
 class TestBatchSignup:
     register_fields = {
         'username',
@@ -286,6 +313,7 @@ class TestBatchSignup:
             ds: List[Dict[str, str]],
             keys: Optional[Iterable[str]] = None,
     ) -> str:
+        from tests.utils.utils import partial_dict
         d = ds[0]
         if keys is None:
             keys = d.keys()
