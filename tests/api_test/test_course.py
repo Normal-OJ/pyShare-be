@@ -149,6 +149,15 @@ class TestCourse(BaseTester):
         for key in keys:
             assert key in course
 
+
+class TestCourseStatistic:
+    @classmethod
+    def setup_class(cls):
+        '''
+        Clean DB before each testcase
+        '''
+        utils.mongo.drop_db()
+
     def test_empty_course_statistic(
         self,
         forge_client: Callable[[str, Optional[str]], FlaskClient],
@@ -161,7 +170,7 @@ class TestCourse(BaseTester):
         client = forge_client(student.username)
         rv = client.get(f'/course/{c.id}/statistic')
         rv_json = rv.get_json()
-        assert rv.status_code == 200, rv_json()
+        assert rv.status_code == 200, rv_json
         statistic = rv_json['data']
         assert len(statistic) == 1
         keys = {
@@ -174,3 +183,45 @@ class TestCourse(BaseTester):
         }
         for key in keys:
             assert statistic[0][key] == []
+
+    def test_oj_statistic_missing_pid(
+        self,
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
+    ):
+        # Setup course and student
+        c = utils.course.lazy_add()
+        student = utils.user.lazy_signup(username='student')
+        c.add_student(student)
+        # Get statistic
+        client = forge_client(student.username)
+        rv = client.get(f'/course/{c.id}/statistic/oj-problem')
+        rv_json = rv.get_json()
+        assert rv.status_code == 400, rv_json
+        assert 'pids' in rv_json['message']
+
+    def test_oj_statistic(
+        self,
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
+    ):
+        # Setup course and student
+        c = utils.course.lazy_add()
+        student = utils.user.lazy_signup(username='student')
+        c.add_student(student)
+        # Create some oj problem
+        cnt = 10
+        ps = [
+            utils.problem.lazy_add(
+                course=c,
+                author=c.teacher,
+                is_oj=True,
+            ) for _ in range(cnt)
+        ]
+        # Get statistic
+        client = forge_client(student.username)
+        rv = client.get(
+            f'/course/{c.id}/statistic/oj-problem',
+            query_string={'pids': ','.join(str(p.pid) for p in ps)},
+        )
+        rv_json = rv.get_json()
+        assert rv.status_code == 200, rv_json
+        # TODO: validate response data
