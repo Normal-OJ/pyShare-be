@@ -14,6 +14,7 @@ __all__ = [
     'to_bool',
     'ObjectIdEncoder',
     'get_redis_client',
+    'logger',
 ]
 
 
@@ -94,7 +95,7 @@ def doc_required(
                 raise engine.DoesNotExist(f'{doc} not found!')
             # replace original paramters
             del ks[src]
-            # FIXME: current_logger is not defined
+            # FIXME: current_app is not defined
             if des in ks:
                 current_app.logger.warning(
                     f'replace a existed argument in {func}')
@@ -137,3 +138,11 @@ def get_redis_client():
                 db=0,
             )
         return redis.Redis(connection_pool=redis_pool)
+
+def logger():
+    try:
+        from flask import current_app
+        return current_app.logger
+    except RuntimeError:
+        import logging
+        return logging.getLogger('gunicorn.error')

@@ -4,7 +4,7 @@ import tempfile
 from abc import ABC, abstractmethod
 from zipfile import ZipFile
 import requests as rq
-from .utils import doc_required
+from .utils import doc_required, logger
 from .submission import Submission
 from .token import Token
 
@@ -68,10 +68,11 @@ class Sandbox(ISandbox):
                 data={'src': submission.code},
             )
         except rq.exceptions.RequestException as e:
+            logger().error(f'Submit {self}: {e}')
             return False
         else:
             if not resp.ok:
-                pass
+                logger().warning(f'Got sandbox resp: {resp.text}')
             return True
 
 
