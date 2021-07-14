@@ -103,7 +103,7 @@ class User(MongoBase, engine=engine.User):
         self,
         keys: Optional[Iterable[str]] = None,
     ):
-        WHILTLIST = {
+        WHITELIST = {
             '_id',
             'username',
             'email',
@@ -127,7 +127,7 @@ class User(MongoBase, engine=engine.User):
                 'role',
                 'courses',
             ]
-        if any(key not in WHILTLIST for key in keys):
+        if any(key not in WHITELIST for key in keys):
             raise ValueError('Unallowed key found')
         return self.jwt(*keys)
 

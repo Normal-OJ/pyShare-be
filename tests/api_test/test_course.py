@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Optional
 from tests.base_tester import BaseTester
 from tests import utils
 from flask.testing import FlaskClient
@@ -148,3 +148,29 @@ class TestCourse(BaseTester):
         ]
         for key in keys:
             assert key in course
+
+    def test_empty_course_statistic(
+        self,
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
+    ):
+        # Setup course and student
+        c = utils.course.lazy_add()
+        student = utils.user.lazy_signup(username='student')
+        c.add_student(student)
+        # Get statistic
+        client = forge_client(student.username)
+        rv = client.get(f'/course/{c.id}/statistic')
+        rv_json = rv.get_json()
+        assert rv.status_code == 200, rv_json()
+        statistic = rv_json['data']
+        assert len(statistic) == 1
+        keys = {
+            'problems',
+            'likes',
+            'comments',
+            'replies',
+            'liked',
+            'execInfo',
+        }
+        for key in keys:
+            assert statistic[0][key] == []
