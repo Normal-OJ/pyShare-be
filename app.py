@@ -246,6 +246,7 @@ def gunicorn_prod_app():
         env='prod',
     )
     config.ConfigLoader.load(config.ProdConfig)
+    ISandbox.use(Sandbox)
     # let flask app user gunicorn error logger
     g_logger = logging.getLogger('gunicorn.error')
     app.logger.handlers = g_logger.handlers

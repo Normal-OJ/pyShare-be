@@ -10,6 +10,8 @@ from . import comment
 from . import attachment
 from . import notif
 from . import config
+from . import sandbox
+from . import token
 
 from .engine import *
 from .user import *
@@ -22,8 +24,11 @@ from .utils import *
 from .comment import *
 from .attachment import *
 from .notif import *
+from .config import *
+from .sandbox import *
+from .token import *
 
-__all__ = [
+__all__ = (
     *engine.__all__,
     *user.__all__,
     *submission.__all__,
@@ -35,4 +40,7 @@ __all__ = [
     *comment.__all__,
     *attachment.__all__,
     *notif.__all__,
-]
+    *config.__all__,
+    *sandbox.__all__,
+    *token.__all__,
+)
