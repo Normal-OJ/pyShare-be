@@ -19,8 +19,8 @@ class Problem(MongoBase, engine=engine.Problem):
     @doc_required('user', 'user', User)
     def own_permission(self, user: User):
         '''
-        {'r', 'w', 'd'}
-        represent read, write, delete respectively
+        {'r', 'w', 'd', 'c'}
+        represent read, write, delete, clone respectively
         '''
         _permission = set()
         if self.online:
@@ -31,6 +31,9 @@ class Problem(MongoBase, engine=engine.Problem):
         # problem author and admin can edit, delete problem
         if user == self.author or user >= 'admin':
             _permission |= {*'rwd'}
+        # teachers and above can clone
+        if user >= 'teacher':
+            _permission.add('c')
         return _permission
 
     @doc_required('user', 'user', User)
@@ -49,7 +52,7 @@ class Problem(MongoBase, engine=engine.Problem):
         return req in _permission
 
     @doc_required('target_course', 'target_course', Course)
-    def copy(self, target_course: Course):
+    def copy(self, target_course: Course, is_template: bool):
         '''
         copy the problem to another course, and drop all comments & replies
         '''
@@ -64,7 +67,11 @@ class Problem(MongoBase, engine=engine.Problem):
             del p[field]
         # field conversion
         p['default_code'] = p['defaultCode']
+        p['is_template'] = is_template
+        p['allow_multiple_comments'] = p['allowMultipleComments']
         del p['defaultCode']
+        del p['isTemplate']
+        del p['allowMultipleComments']
         del p['_id']
         # add it to DB
         p = Problem.add(**p)

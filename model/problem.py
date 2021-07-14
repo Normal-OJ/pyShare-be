@@ -268,17 +268,20 @@ def get_attachment(user, problem, name):
 
 
 @problem_api.route('/<int:pid>/clone/<course>', methods=['GET'])
+@login_required
+@Request.args(
+    'is_template', )
 @Request.doc('pid', 'problem', Problem)
 @Request.doc('course', Course)
 @fe_update('PROBLEM', 'course')
-def clone_problem(user, problem, course):
+def clone_problem(user, problem, course, is_template):
     '''
     clone a problem to another course
     '''
-    if not problem.permission(user=user, req={'r'}):
+    if not problem.permission(user=user, req={'c'}):
         return HTTPError('Permission denied.', 403)
     try:
-        problem.copy(target_course=course)
+        problem.copy(target_course=course, is_template=(is_template == 'true'))
     except engine.ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())
     except PermissionError as e:
