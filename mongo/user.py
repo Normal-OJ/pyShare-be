@@ -354,10 +354,11 @@ class User(MongoBase, engine=engine.User):
         if len(comment.submissions) == 0:
             stat['result'] = self.OJProblemResult.NO_TRY
         else:
+            # Check whether there exists any AC submission
             stat['result'] = (
                 self.OJProblemResult.FAIL,
                 self.OJProblemResult.PASS,
-            )[any(s.has_accepted for s in comment.submissions)]
+            )[any(s.result.judge_result == 0 for s in comment.submissions)]
         stat['tryCount'] = len(comment.submissions)
         return stat
 
