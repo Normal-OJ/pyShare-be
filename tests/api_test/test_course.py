@@ -1,6 +1,7 @@
 from typing import Callable, Optional
 from tests.base_tester import BaseTester
 from tests import utils
+import pytest
 from flask.testing import FlaskClient
 from mongo import *
 import mongomock.gridfs
@@ -184,9 +185,11 @@ class TestCourseStatistic:
         for key in keys:
             assert statistic[0][key] == []
 
+    @pytest.mark.parametrize('pids', ('', None, 'no-a-number'))
     def test_oj_statistic_missing_pid(
         self,
         forge_client: Callable[[str, Optional[str]], FlaskClient],
+        pids: str,
     ):
         # Setup course and student
         c = utils.course.lazy_add()
@@ -194,10 +197,13 @@ class TestCourseStatistic:
         c.add_student(student)
         # Get statistic
         client = forge_client(student.username)
-        rv = client.get(f'/course/{c.id}/statistic/oj-problem')
+        rv = client.get(
+            f'/course/{c.id}/statistic/oj-problem',
+            query_string={'pids': pids},
+        )
         rv_json = rv.get_json()
         assert rv.status_code == 400, rv_json
-        assert 'pids' in rv_json['message']
+        assert 'pid' in rv_json['message']
 
     def test_oj_statistic(
         self,
