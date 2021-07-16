@@ -1,4 +1,4 @@
-from mongoengine import *
+from mongoengine import connect, disconnect
 
 MONGO_HOST = 'mongomock://localhost'
 DB = 'pyShare'

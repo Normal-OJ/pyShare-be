@@ -56,6 +56,7 @@ def get_single_course(user, course):
 
 
 @course_api.route('/<course>/statistic', methods=['GET'])
+@course_api.route('/<course>/statistic/problem', methods=['GET'])
 @login_required
 @Request.doc('course', Course)
 def statistic(user, course):
@@ -68,6 +69,27 @@ def statistic(user, course):
         s.update({'info': u.info})
         ret.append(s)
     return HTTPResponse('ok', data=ret)
+
+
+@course_api.route('/<course>/statistic/oj-problem', methods=['GET'])
+@login_required
+@Request.args('pids')
+@Request.doc('course', Course)
+def oj_statistic(user, course, pids: str):
+    if not course.permission(user=user, req={'r'}):
+        return HTTPError('Not enough permission', 403)
+    if pids == '' or pids is None:
+        return HTTPError('pids are required', 400)
+    try:
+        pids = [int(pid) for pid in pids.split(',')]
+    except ValueError:
+        return HTTPError('Invalid pid value', 400)
+    problems = [Problem(pid) for pid in pids]
+    if not all(problems):
+        return HTTPError('Problem not found', 404)
+    if any(p not in course.problems for p in problems):
+        return HTTPError(f'All problems must belong to {course}', 400)
+    return HTTPResponse(data=course.oj_statistic(problems))
 
 
 @course_api.route('/<name>/permission', methods=['GET'])

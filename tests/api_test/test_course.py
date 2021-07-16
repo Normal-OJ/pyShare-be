@@ -1,6 +1,7 @@
-from typing import Callable
+from typing import Callable, Optional
 from tests.base_tester import BaseTester
 from tests import utils
+import pytest
 from flask.testing import FlaskClient
 from mongo import *
 import mongomock.gridfs
@@ -148,3 +149,85 @@ class TestCourse(BaseTester):
         ]
         for key in keys:
             assert key in course
+
+
+class TestCourseStatistic:
+    @classmethod
+    def setup_class(cls):
+        '''
+        Clean DB before each testcase
+        '''
+        utils.mongo.drop_db()
+
+    def test_empty_course_statistic(
+        self,
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
+    ):
+        # Setup course and student
+        c = utils.course.lazy_add()
+        student = utils.user.lazy_signup(username='student')
+        c.add_student(student)
+        # Get statistic
+        client = forge_client(student.username)
+        rv = client.get(f'/course/{c.id}/statistic')
+        rv_json = rv.get_json()
+        assert rv.status_code == 200, rv_json
+        statistic = rv_json['data']
+        assert len(statistic) == 1
+        keys = {
+            'problems',
+            'likes',
+            'comments',
+            'replies',
+            'liked',
+            'execInfo',
+        }
+        for key in keys:
+            assert statistic[0][key] == []
+
+    @pytest.mark.parametrize('pids', ('', None, 'no-a-number'))
+    def test_oj_statistic_missing_pid(
+        self,
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
+        pids: str,
+    ):
+        # Setup course and student
+        c = utils.course.lazy_add()
+        student = utils.user.lazy_signup(username='student')
+        c.add_student(student)
+        # Get statistic
+        client = forge_client(student.username)
+        rv = client.get(
+            f'/course/{c.id}/statistic/oj-problem',
+            query_string={'pids': pids},
+        )
+        rv_json = rv.get_json()
+        assert rv.status_code == 400, rv_json
+        assert 'pid' in rv_json['message']
+
+    def test_oj_statistic(
+        self,
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
+    ):
+        # Setup course and student
+        c = utils.course.lazy_add()
+        student = utils.user.lazy_signup(username='student')
+        c.add_student(student)
+        # Create some oj problem
+        cnt = 10
+        ps = [
+            utils.problem.lazy_add(
+                course=c,
+                author=c.teacher,
+                is_oj=True,
+            ) for _ in range(cnt)
+        ]
+        # Get statistic
+        client = forge_client(student.username)
+        rv = client.get(
+            f'/course/{c.id}/statistic/oj-problem',
+            query_string={'pids': ','.join(str(p.pid) for p in ps)},
+        )
+        rv_json = rv.get_json()
+        assert rv.status_code == 200, rv_json
+        # TODO: validate response data
