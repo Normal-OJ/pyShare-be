@@ -11,7 +11,6 @@ from .token import Token
 __all__ = (
     'ISandbox',
     'Sandbox',
-    'MockSandbox',
 )
 
 
@@ -74,7 +73,3 @@ class Sandbox(ISandbox):
             if not resp.ok:
                 logger().warning(f'Got sandbox resp: {resp.text}')
             return True
-
-
-class MockSandbox(ISandbox):
-    pass
