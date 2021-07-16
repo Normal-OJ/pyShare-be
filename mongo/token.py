@@ -6,10 +6,12 @@ __all__ = (
     'Token',
 )
 
+
 class TokenExistError(Exception):
     def __init__(self, _id: str) -> None:
         self.id = _id
         super().__init__(f'Token for {_id} exists')
+
 
 class Token:
     def __init__(self, val=None):

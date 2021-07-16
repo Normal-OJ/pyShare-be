@@ -22,18 +22,7 @@ class SubmissionPending(Exception):
         super().__init__(f'{_id} still pending.')
 
 
-
-
 class Submission(MongoBase, engine=engine.Submission):
-    JUDGE_URL = os.getenv(
-        'JUDGE_URL',
-        'http://sandbox:1450',
-    )
-    SANDBOX_TOKEN = os.getenv(
-        'SANDBOX_TOKEN',
-        'KoNoSandboxDa',
-    )
-
     def __init__(self, _id):
         if isinstance(_id, self.engine):
             _id = _id.id
