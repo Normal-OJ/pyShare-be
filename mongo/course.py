@@ -1,11 +1,16 @@
+from __future__ import annotations
 import csv
 import tempfile
+from typing import List, TYPE_CHECKING
 from . import engine
 from .base import MongoBase
 from .user import User
 from .utils import *
 
 __all__ = ['Course']
+
+if TYPE_CHECKING:
+    from .problem import Problem
 
 
 class Course(MongoBase, engine=engine.Course):
@@ -78,7 +83,7 @@ class Course(MongoBase, engine=engine.Course):
     def statistic_file(self):
         f = tempfile.TemporaryFile('w+')
         statistic_fields = [
-            *User('000000000000000000000000').statistic().keys(),
+            *User('0' * 24).statistic().keys(),
             'success',
             'fail',
         ]
@@ -109,6 +114,37 @@ class Course(MongoBase, engine=engine.Course):
             })
         f.seek(0)
         return f
+
+    # FIXME: This method may has performance issue
+    def oj_statistic(self, problems: List[Problem]):
+        student_stats = [{
+            'info': s.info,
+            **s.oj_statistic(problems)
+        } for s in map(User, self.students)]
+        overview = {}
+        for problem in problems:
+            p_stat = {
+                'tryCount': 0,
+                'acUser': 0,
+                'tryUser': 0,
+            }
+            p_stat['acCount'] = len(
+                engine.Submission.objects(
+                    problem=problem.pk,
+                    result__judge_result=0,  # AC
+                ))
+            for s_stat in student_stats:
+                s_stat = s_stat[str(problem.pid)]
+                p_stat['tryCount'] += s_stat['tryCount']
+                is_ac = s_stat['result'] == User.OJProblemResult.PASS
+                p_stat['acUser'] += is_ac
+                tried = s_stat['result'] != User.OJProblemResult.NO_TRY
+                p_stat['tryUser'] += tried
+            overview[str(problem.pid)] = p_stat
+        return {
+            'overview': overview,
+            'users': student_stats,
+        }
 
     def patch_tag(self, push, pop):
         # popped tags have to be removed from problem that is using it

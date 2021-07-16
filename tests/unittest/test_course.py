@@ -39,6 +39,46 @@ def test_course_statistic():
     ]
 
 
+def test_course_oj_statistic():
+    # Setup course and student
+    c = utils.course.lazy_add()
+    student = utils.user.lazy_signup(username='student')
+    c.add_student(student)
+    # Create some oj problem
+    cnt = 10
+    ps = [
+        utils.problem.lazy_add(
+            course=c,
+            author=c.teacher,
+            is_oj=True,
+        ) for _ in range(cnt)
+    ]
+    stat = c.oj_statistic(ps)
+    problem_overview = {
+        'acCount': 0,
+        'tryCount': 0,
+        'acUser': 0,
+        'tryUser': 0,
+    }
+    for p in ps:
+        assert stat['overview'][str(p.pid)] == problem_overview
+    user_stats = stat['users']
+    assert len(user_stats) == 1
+    user_stat = user_stats[0]
+    assert user_stat['info']['username'] == student.username
+    assert user_stat['overview'] == {
+        'acCount': 0,
+        'tryCount': 0,
+    }
+    problem_stat = {
+        'commentId': None,
+        'result': User.OJProblemResult.NO_TRY,
+        'tryCount': 0,
+    }
+    for p in ps:
+        assert user_stat[str(p.pid)] == problem_stat
+
+
 def test_course_permission():
     nobody = utils.user.lazy_signup(username='nobody')
     c = utils.course.lazy_add(status=engine.Course.Status.READONLY)

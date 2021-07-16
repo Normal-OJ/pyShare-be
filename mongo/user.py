@@ -1,5 +1,12 @@
+from __future__ import annotations
 from datetime import datetime, timedelta
-from typing import Container, Iterable, Optional
+from typing import (
+    Container,
+    Iterable,
+    List,
+    Optional,
+    TYPE_CHECKING,
+)
 from hmac import compare_digest
 
 from . import engine
@@ -15,8 +22,17 @@ JWT_EXP = timedelta(days=int(os.getenv('JWT_EXP', '30')))
 JWT_ISS = os.getenv('JWT_ISS', 'test.test')
 JWT_SECRET = os.getenv('JWT_SECRET', 'SuperSecretString')
 
+if TYPE_CHECKING:
+    from .problem import Problem
+    from .comment import Comment
+
 
 class User(MongoBase, engine=engine.User):
+    class OJProblemResult(Enum):
+        PASS = 0
+        FAIL = 1
+        NO_TRY = 2
+
     @classmethod
     def signup(
         cls,
@@ -103,7 +119,7 @@ class User(MongoBase, engine=engine.User):
         self,
         keys: Optional[Iterable[str]] = None,
     ):
-        WHILTLIST = {
+        WHITELIST = {
             '_id',
             'username',
             'email',
@@ -127,7 +143,7 @@ class User(MongoBase, engine=engine.User):
                 'role',
                 'courses',
             ]
-        if any(key not in WHILTLIST for key in keys):
+        if any(key not in WHITELIST for key in keys):
             raise ValueError('Unallowed key found')
         return self.jwt(*keys)
 
@@ -300,6 +316,51 @@ class User(MongoBase, engine=engine.User):
             'fail': c.fail,
         } for c in filter(include_comment, self.comments)]
         return ret
+
+    def oj_statistic(self, problems: List['Problem']):
+        '''
+        Calculate a user's OJ problem statsitic data
+        '''
+        user_stat = {}
+        ac_count = 0
+        try_count = 0
+        no_try_result = {
+            'commentId': None,
+            'result': self.OJProblemResult.NO_TRY,
+            'tryCount': 0,
+        }
+        for problem in problems:
+            problem_stat = {}
+            try:
+                comment = next(c for c in problem.comments if self == c.author)
+            except StopIteration:
+                problem_stat = no_try_result
+            else:
+                problem_stat = self.oj_comment_statistic(comment)
+            finally:
+                try_count += problem_stat['tryCount']
+                ac_count += problem_stat['result'] == self.OJProblemResult.PASS
+                user_stat[str(problem.pid)] = problem_stat
+        return {
+            'overview': {
+                'acCount': ac_count,
+                'tryCount': try_count,
+            },
+            **user_stat,
+        }
+
+    def oj_comment_statistic(self, comment: 'Comment'):
+        stat = {'commentId': comment.id}
+        if len(comment.submissions) == 0:
+            stat['result'] = self.OJProblemResult.NO_TRY
+        else:
+            # Check whether there exists any AC submission
+            stat['result'] = (
+                self.OJProblemResult.FAIL,
+                self.OJProblemResult.PASS,
+            )[any(s.result.judge_result == 0 for s in comment.submissions)]
+        stat['tryCount'] = len(comment.submissions)
+        return stat
 
 
 def jwt_decode(token):
