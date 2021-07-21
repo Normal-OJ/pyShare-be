@@ -28,6 +28,9 @@ class Problem(MongoBase, engine=engine.Problem):
                 _permission.add('r')
         elif user == self.course.teacher:
             _permission.add('r')
+        # all templates can be used
+        if self.is_template:
+            _permission.add('r')
         # problem author and admin can edit, delete problem
         if user == self.author or user >= 'admin':
             _permission |= {*'rwd'}
