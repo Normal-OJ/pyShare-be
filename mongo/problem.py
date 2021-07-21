@@ -26,7 +26,10 @@ class Problem(MongoBase, engine=engine.Problem):
         if self.online:
             if Course(self.course).permission(user=user, req={'r'}):
                 _permission.add('r')
-        elif user == self.course.teacher or self.is_template:
+        elif user == self.course.teacher:
+            _permission.add('r')
+        # all templates can be used
+        if self.is_template:
             _permission.add('r')
         # problem author and admin can edit, delete problem
         if user == self.author or user >= 'admin':
