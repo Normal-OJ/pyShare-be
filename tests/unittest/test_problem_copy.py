@@ -13,10 +13,10 @@ def test_problem_copy():
     problem2 = problem1.copy(target_course=course2, is_template=False)
 
     dicts = [problem1.to_dict(), problem2.to_dict()]
-    for i in range(2):
-        del dicts[i]['timestamp']
-        del dicts[i]['pid']
-        del dicts[i]['course']
-        del dicts[i]['comments']
+    for d in dicts:
+        del d['timestamp']
+        del d['pid']
+        del d['course']
+        del d['comments']
 
     assert dicts[0] == dicts[1]
