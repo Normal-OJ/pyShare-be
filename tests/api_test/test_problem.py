@@ -94,6 +94,24 @@ class TestProblem(BaseTester):
         assert rv.status_code == 200, rv_json
         assert len(rv_json['data']['comments']) == len(cs) - len(cs) // 2
 
+    def test_copy(
+        self,
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
+        config_app,
+    ):
+        config_app(env='test')
+        client = forge_client('teacher1')
+
+        rv = client.get(
+            f'/problem/2/clone/{str(Course.get_by_name("course_108-1").id)}')
+        json = rv.get_json()
+        assert rv.status_code == 200, json
+
+        rv = client.get('/problem?title=p2')
+        json = rv.get_json()
+        assert rv.status_code == 200
+        assert len(json['data']) == 2
+
 
 class TestAttachment(BaseTester):
     @pytest.mark.parametrize('key, value, status_code, message', [
