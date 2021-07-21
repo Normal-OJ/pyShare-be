@@ -98,11 +98,12 @@ class TestProblem(BaseTester):
         self,
         forge_client: Callable[[str, Optional[str]], FlaskClient],
         config_app,
-        ):
+    ):
         config_app(env='test')
         client = forge_client('teacher1')
 
-        rv = client.get(f'/problem/2/clone/{str(Course.get_by_name("course_108-1").id)}')
+        rv = client.get(
+            f'/problem/2/clone/{str(Course.get_by_name("course_108-1").id)}')
         json = rv.get_json()
         assert rv.status_code == 200, json
 

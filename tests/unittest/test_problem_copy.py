@@ -20,4 +20,3 @@ def test_problem_copy():
         del dicts[i]['comments']
 
     assert dicts[0] == dicts[1]
-    
