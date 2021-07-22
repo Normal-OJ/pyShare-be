@@ -30,6 +30,8 @@ class TestAttachment(BaseTester):
             'filename': 'test',
             'description': 'haha',
             'fileObj': (io.BytesIO(b'Win'), 'goal'),
+            'patchNote': 'release',
+            'tags': 'fun,yum',
         }
         if key:
             data[key] = value
@@ -67,15 +69,19 @@ class TestAttachment(BaseTester):
         data = {
             'description': 'haha',
             'fileObj': (io.BytesIO(b'Win'), 'goal'),
+            'patchNote': 'update',
+            'tags': 'lol,haha',
         }
 
         rv = client.get('/attachment')
         id = rv.get_json()['data'][0]['id']
+        notes = rv.get_json()['data'][0]['patchNotes']
 
         rv = client.put(f'/attachment/{id}', data=data)
         print(rv.get_json())
         assert rv.status_code == 200
         assert Attachment(id).description == 'haha'
+        assert len(notes) == Attachment(id).version_number - 1
 
     @pytest.mark.parametrize('key, value, status_code', [
         (None, None, 200),

@@ -52,7 +52,7 @@ class Attachment(MongoBase, engine=engine.Attachment):
         self.file.delete()
         self.obj.delete()
 
-    def update(self, file_obj, description):
+    def update(self, file_obj, description, patch_note, tags_str):
         '''
         update an attachment from db
         '''
@@ -61,11 +61,14 @@ class Attachment(MongoBase, engine=engine.Attachment):
             self.size = file_obj.getbuffer().nbytes
         self.description = description
         self.updated = datetime.now()
+        self.patch_notes.append(patch_note)
+        self.tags = tags_str.split(',')
         self.save()
 
     @classmethod
     @doc_required('author', User)
-    def add(cls, author: User, file_obj, filename, description):
+    def add(cls, author: User, file_obj, filename, description, patch_note,
+            tags_str):
         '''
         add an attachment to db
         '''
@@ -83,5 +86,7 @@ class Attachment(MongoBase, engine=engine.Attachment):
             created=datetime.now(),
             author=author.pk,
             size=file_obj.getbuffer().nbytes,
+            patch_notes=[patch_note],
+            tags=tags_str.split(','),
         ).save()
         return cls(attachment)
