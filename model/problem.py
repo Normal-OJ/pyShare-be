@@ -201,7 +201,7 @@ def delete_problem(user, problem):
     return HTTPResponse(f'{problem} deleted.')
 
 
-@problem_api.route('/<int:pid>/attachment', methods=['POST', 'DELETE'])
+@problem_api.route('/<int:pid>/attachment', methods=['POST', 'PUT', 'DELETE'])
 @Request.doc('pid', 'problem', Problem)
 @Request.files('attachment')
 @Request.form('attachment_name')
@@ -221,7 +221,7 @@ def patch_attachment(
         return HTTPError('Not enough permission', 403)
     if attachment_name is None:
         return HTTPError('you need an attachment name', 400)
-    if request.method == 'POST':
+    if request.method in ['POST', 'PUT']:
         try:
             source = None
             # use public attachment db
@@ -233,11 +233,18 @@ def patch_attachment(
                 source = att.obj
             with get_redis_client().lock(f'{problem}-att'):
                 problem.reload()
-                problem.insert_attachment(
-                    attachment,
-                    filename=attachment_name,
-                    source=source,
-                )
+                if request.method == 'POST':
+                    problem.insert_attachment(
+                        attachment,
+                        filename=attachment_name,
+                        source=source,
+                    )
+                else:
+                    problem.update_attachment(
+                        attachment,
+                        filename=attachment_name,
+                        source=source,
+                    )
         except FileExistsError as e:
             return HTTPError(e, 400)
         except FileNotFoundError as e:

@@ -104,7 +104,11 @@ class Problem(MongoBase, engine=engine.Problem):
         ret = self.to_mongo().to_dict()
         ret['pid'] = ret['_id']
         ret['course'] = str(ret['course'])
-        ret['attachments'] = [att.filename for att in self.attachments]
+        ret['attachments'] = [{
+            'filename': att.filename,
+            'source': str(att.source),
+            'version_number': att.version_number,
+        } for att in self.attachments]
         ret['timestamp'] = ret['timestamp'].timestamp()
         ret['author'] = self.author.info
         ret['comments'] = [str(c) for c in ret['comments']]
@@ -150,6 +154,20 @@ class Problem(MongoBase, engine=engine.Problem):
                 # delete it and pop from list
                 att.delete()
                 self.attachments.pop(i)
+                self.save()
+                return True
+        raise FileNotFoundError(
+            f'can not find a attachment named [{filename}]')
+
+    def update_attachment(self, file_obj, filename, source: engine.Attachment):
+        # search by name
+        for att in self.attachments:
+            if att.filename == filename:
+                if source is not None:
+                    file_obj = source.file
+                att['source'] = source
+                att['version_number'] = -1 if source is None else source.version_number
+                att.file.replace(file_obj, filename=filename)
                 self.save()
                 return True
         raise FileNotFoundError(
