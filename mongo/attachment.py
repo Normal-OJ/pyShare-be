@@ -63,7 +63,7 @@ class Attachment(MongoBase, engine=engine.Attachment):
                     info = Notif.types.AttachmentUpdate(
                         attachment=self.obj,
                         problem=problem,
-                        name=attachment.fileame,
+                        name=attachment.filename,
                     )
                     notif = Notif.new(info)
                     problem.author.update(push__notifs=notif.pk)

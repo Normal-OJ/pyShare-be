@@ -66,6 +66,20 @@ class TestAttachment(BaseTester):
     def test_update_attachment(self, forge_client, config_app):
         config_app(env='test')
         client = forge_client('teacher1')
+        rv = client.get('/attachment')
+        id = rv.get_json()['data'][0]['id']
+        notes = rv.get_json()['data'][0]['patchNotes']
+
+        # add a problem with DB attachment
+        problem_attachment_data = {
+            'attachment': None,
+            'attachmentName': 'lol',
+            'attachmentId': id,
+        }
+
+        rv = client.post('/problem/1/attachment', data=problem_attachment_data)
+        assert rv.status_code == 200, rv.get_json()
+
         data = {
             'description': 'haha',
             'fileObj': (io.BytesIO(b'Win'), 'goal'),
@@ -73,15 +87,15 @@ class TestAttachment(BaseTester):
             'tags': 'lol,haha',
         }
 
-        rv = client.get('/attachment')
-        id = rv.get_json()['data'][0]['id']
-        notes = rv.get_json()['data'][0]['patchNotes']
-
         rv = client.put(f'/attachment/{id}', data=data)
         print(rv.get_json())
         assert rv.status_code == 200
         assert Attachment(id).description == 'haha'
         assert len(notes) == Attachment(id).version_number - 1
+
+        notif = User.get_by_username('teacher1').notifs[0].info.to_dict()
+        assert notif['problem_id'] == 1
+        assert notif['name'] == 'lol'
 
     @pytest.mark.parametrize('key, value, status_code', [
         (None, None, 200),
