@@ -358,6 +358,18 @@ class Notif(Document):
             comment = ReferenceField(Comment)
             problem = ReferenceField(Problem)
 
+        class AttachmentUpdate(__Base__):
+            DICT_FEILDS = {
+                'type': 'type_name',
+                'attachment_id': 'attachment.id',
+                'problem_id': 'problem.id',
+                'name': 'name'
+            }
+
+            attachment = ReferenceField(Attachment)
+            problem = ReferenceField(Problem)
+            name = StringField(max_length=64)
+
         class NewComment(__Base__):
             DICT_FEILDS = {
                 'type': 'type_name',

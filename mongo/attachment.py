@@ -4,6 +4,7 @@ from .engine import GridFSProxy
 from datetime import datetime
 from .utils import doc_required
 from .user import User
+from .notif import Notif
 
 __all__ = ['Attachment']
 
@@ -55,6 +56,17 @@ class Attachment(MongoBase, engine=engine.Attachment):
         self.patch_notes.append(patch_note)
         self.tags = tags_str.split(',')
         self.save()
+
+        for problem in engine.Problem.objects:
+            for attachment in problem.attachments:
+                if self == attachment.source:
+                    info = Notif.types.AttachmentUpdate(
+                        attachment=self.obj,
+                        problem=problem,
+                        name=attachment.fileame,
+                    )
+                    notif = Notif.new(info)
+                    problem.author.update(push__notifs=notif.pk)
 
     @classmethod
     @doc_required('author', User)
