@@ -189,7 +189,7 @@ class TestAttachment(BaseTester):
         ('attachmentName', 'not existed', 404, 'attachment named'),
     ])
     def test_update_attachment(self, forge_client, config_app, key, value,
-                            status_code, message):
+                               status_code, message):
         config_app(env='test')
         client = forge_client('teacher1')
         rv = client.get('/attachment')
