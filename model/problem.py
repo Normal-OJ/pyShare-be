@@ -223,14 +223,20 @@ def patch_attachment(
         return HTTPError('you need an attachment name', 400)
     if request.method == 'POST':
         try:
+            source = None
             # use public attachment db
             if attachment_id is not None:
-                attachment = Attachment(attachment_id).copy()
+                att = Attachment(attachment_id)
+                if not att:
+                    raise FileNotFoundError(
+                        f'can not find {att} in public attachment DB')
+                source = att.obj
             with get_redis_client().lock(f'{problem}-att'):
                 problem.reload()
                 problem.insert_attachment(
                     attachment,
                     filename=attachment_name,
+                    source=source,
                 )
         except FileExistsError as e:
             return HTTPError(e, 400)

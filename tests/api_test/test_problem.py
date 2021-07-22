@@ -144,7 +144,7 @@ class TestAttachment(BaseTester):
                     data[key[i]] = value[i]
 
         rv = client.post('/problem/1/attachment', data=data)
-        assert rv.status_code == status_code
+        assert rv.status_code == status_code, rv.get_json()
 
         if message:
             assert message in rv.get_json()['message']

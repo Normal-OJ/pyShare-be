@@ -36,15 +36,6 @@ class Attachment(MongoBase, engine=engine.Attachment):
             return not bool(req - _permission)
         return req in _permission
 
-    def copy(self):
-        '''
-        copy an attachment in db
-        '''
-        if not self:
-            raise FileNotFoundError(
-                f'can not find {self} in public attachment DB')
-        return self.file
-
     def delete(self):
         '''
         remove an attachment from db

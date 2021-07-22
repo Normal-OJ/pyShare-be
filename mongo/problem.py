@@ -83,9 +83,11 @@ class Problem(MongoBase, engine=engine.Problem):
         target_course.update(push__problems=p.obj)
         # update attachments
         for att in self.attachments:
-            att = self.new_attatchment(
+            att = self.new_attachment(
                 att.file,
                 filename=att.filename,
+                source=att.source,
+                version_number=att.version_number,
             )
             p.attachments.append(att)
             p.save()
@@ -120,7 +122,7 @@ class Problem(MongoBase, engine=engine.Problem):
         # remove problem document
         self.obj.delete()
 
-    def insert_attachment(self, file_obj, filename):
+    def insert_attachment(self, file_obj, filename, source=None):
         '''
         insert a attahment into this problem.
         '''
@@ -130,7 +132,7 @@ class Problem(MongoBase, engine=engine.Problem):
                 f'A attachment named [{filename}] '
                 'already exists!', )
         # create a new attachment
-        att = self.new_attatchment(file_obj, filename=filename)
+        att = self.new_attachment(file_obj, filename=filename, source=source)
         # push into problem
         self.attachments.append(att)
         self.save()
@@ -194,14 +196,28 @@ class Problem(MongoBase, engine=engine.Problem):
         return ps[:count]
 
     @classmethod
-    def new_attatchment(cls, file_obj, **ks):
+    def new_attachment(cls,
+                       file_obj,
+                       source: engine.Attachment,
+                       version_number=None,
+                       **ks):
         '''
         create a new attachment, ks will be passed
         to `GridFSProxy`
         '''
         att = GridFSProxy()
+        att_ks = {'file': att}
+        if source is not None:
+            att_ks['source'] = source
+            # brand new attachment
+            if version_number is None:
+                file_obj = source.file
+                att_ks['version_number'] = source.version_number
+            # copy from other problem's attachment
+            else:
+                att_ks['version_number'] = version_number
         att.put(file_obj, **ks)
-        return engine.Problem.ProblemAttachment(file=att)
+        return engine.Problem.ProblemAttachment(**att_ks)
 
     @classmethod
     @doc_required('author', 'author', User)
