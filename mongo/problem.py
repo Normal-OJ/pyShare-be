@@ -84,7 +84,7 @@ class Problem(MongoBase, engine=engine.Problem):
         # update attachments
         for att in self.attachments:
             att = self.new_attatchment(
-                att,
+                att.file,
                 filename=att.filename,
             )
             p.attachments.append(att)
@@ -201,7 +201,7 @@ class Problem(MongoBase, engine=engine.Problem):
         '''
         att = GridFSProxy()
         att.put(file_obj, **ks)
-        return att
+        return engine.Problem.ProblemAttachment(file=att)
 
     @classmethod
     @doc_required('author', 'author', User)

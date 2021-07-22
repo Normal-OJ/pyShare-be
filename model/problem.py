@@ -259,7 +259,7 @@ def get_attachment(user, problem, name):
     for att in problem.attachments:
         if att.filename == name:
             return send_file(
-                att,
+                att.file,
                 as_attachment=True,
                 cache_timeout=30,
                 attachment_filename=att.filename,
