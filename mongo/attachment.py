@@ -57,7 +57,7 @@ class Attachment(MongoBase, engine=engine.Attachment):
         self.tags = tags_str.split(',')
         self.save()
 
-        for problem in engine.Problem.objects:
+        for problem in engine.Problem.objects(attachments__source=self.obj):
             for attachment in problem.attachments:
                 if self == attachment.source:
                     info = Notif.types.AttachmentUpdate(
