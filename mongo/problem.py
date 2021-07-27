@@ -210,11 +210,7 @@ class Problem(MongoBase, engine=engine.Problem):
         return ps[:count]
 
     @classmethod
-    def new_attachment(cls,
-                       file_obj,
-                       source: engine.Attachment,
-                       version_number=None,
-                       **ks):
+    def new_attachment(cls, file_obj, source: engine.Attachment, **ks):
         '''
         create a new attachment, ks will be passed
         to `GridFSProxy`
@@ -223,13 +219,8 @@ class Problem(MongoBase, engine=engine.Problem):
         att_ks = {'file': att}
         if source is not None:
             att_ks['source'] = source
-            # brand new attachment
-            if version_number is None:
-                file_obj = source.file
-                att_ks['version_number'] = source.version_number
-            # copy from other problem's attachment
-            else:
-                att_ks['version_number'] = version_number
+            file_obj = source.file
+            att_ks['version_number'] = source.version_number
         att.put(file_obj, **ks)
         return engine.Problem.ProblemAttachment(**att_ks)
 

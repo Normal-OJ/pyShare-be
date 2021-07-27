@@ -52,15 +52,14 @@ class Attachment(MongoBase, engine=engine.Attachment):
         if file_obj is not None:
             self.file.replace(file_obj, filename=self.filename)
             self.size = file_obj.getbuffer().nbytes
-        self.description = description
-        self.updated = datetime.now()
-        tags = tags_str.split(',')
-        for tag in tags:
-            if not Tag(tag):
-                raise engine.DoesNotExist
-        self.tags = tags
         self.save()
-        self.obj.update(push__patch_notes=patch_note)
+        tags = tags_str.split(',')
+        if not all(map(Tag, tags)):
+            raise engine.DoesNotExist
+        self.obj.update(push__patch_notes=patch_note,
+                        description=description,
+                        updated=datetime.now(),
+                        tags=tags)
 
         # TODO: make query faster
         for problem in engine.Problem.objects(attachments__source=self.obj):
@@ -84,9 +83,8 @@ class Attachment(MongoBase, engine=engine.Attachment):
         if file_obj is None:
             raise FileNotFoundError('you need to upload a file')
         tags = tags_str.split(',')
-        for tag in tags:
-            if not Tag(tag):
-                raise engine.DoesNotExist
+        if not all(map(Tag, tags)):
+            raise engine.DoesNotExist
         # save file
         file = GridFSProxy()
         file.put(file_obj, filename=filename)
