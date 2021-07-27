@@ -54,13 +54,13 @@ class Attachment(MongoBase, engine=engine.Attachment):
             self.size = file_obj.getbuffer().nbytes
         self.description = description
         self.updated = datetime.now()
-        self.patch_notes.append(patch_note)
         tags = tags_str.split(',')
         for tag in tags:
             if not Tag(tag):
                 raise engine.DoesNotExist
         self.tags = tags
         self.save()
+        self.obj.update(push__patch_notes=patch_note)
 
         # TODO: make query faster
         for problem in engine.Problem.objects(attachments__source=self.obj):
@@ -90,7 +90,7 @@ class Attachment(MongoBase, engine=engine.Attachment):
         # save file
         file = GridFSProxy()
         file.put(file_obj, filename=filename)
-        
+
         # save attachment
         attachment = cls.engine(
             filename=filename,

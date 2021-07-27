@@ -234,15 +234,17 @@ class Problem(MongoBase, engine=engine.Problem):
         return engine.Problem.ProblemAttachment(**att_ks)
 
     @classmethod
-    def copy_attachment(cls,
-                       source: engine.Problem.ProblemAttachment):
+    def copy_attachment(cls, source: engine.Problem.ProblemAttachment):
         '''
         create a new attachment, ks will be passed
         to `GridFSProxy`
         '''
         att = GridFSProxy()
         att.put(source.file, filename=source.filename)
-        return engine.Problem.ProblemAttachment(file=att, source=source.source,version_number=source.version_number)
+        return engine.Problem.ProblemAttachment(
+            file=att,
+            source=source.source,
+            version_number=source.version_number)
 
     @classmethod
     @doc_required('author', 'author', User)
