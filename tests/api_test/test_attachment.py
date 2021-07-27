@@ -14,6 +14,7 @@ class TestAttachment(BaseTester):
             (None, None, 200),
             ('filename', 'a' * 65, 400),
             ('fileObj', None, 404),
+            ('tags', 'not-existed', 404),
         ],
     )
     def test_create_attachment(
@@ -31,12 +32,12 @@ class TestAttachment(BaseTester):
             'description': 'haha',
             'fileObj': (io.BytesIO(b'Win'), 'goal'),
             'patchNote': 'release',
-            'tags': 'fun,yum',
+            'tags': 'tag2',
         }
         if key:
             data[key] = value
         rv = client.post('/attachment', data=data)
-        assert rv.status_code == status_code
+        assert rv.status_code == status_code, rv.get_json()
         if status_code == 200:
             assert Attachment(
                 rv.get_json()['data']['id']).description == 'haha'
@@ -84,7 +85,7 @@ class TestAttachment(BaseTester):
             'description': 'haha',
             'fileObj': (io.BytesIO(b'Win'), 'goal'),
             'patchNote': 'update',
-            'tags': 'lol,haha',
+            'tags': 'tag1,tag2',
         }
 
         rv = client.put(f'/attachment/{id}', data=data)

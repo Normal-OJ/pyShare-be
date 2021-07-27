@@ -70,7 +70,7 @@ def add_attachment(
         )
     except FileExistsError as e:
         return HTTPError(e, 400)
-    except FileNotFoundError as e:
+    except (FileNotFoundError, engine.DoesNotExist) as e:
         return HTTPError(e, 404)
     except ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())
@@ -101,6 +101,8 @@ def edit_attachment(
         atta.update(file_obj, description, patch_note, tags)
     except ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())
+    except engine.DoesNotExist as e:
+        return HTTPError(e, 404)
     return HTTPResponse('success')
 
 

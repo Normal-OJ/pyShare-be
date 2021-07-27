@@ -4,6 +4,7 @@ from .engine import GridFSProxy
 from datetime import datetime
 from .utils import doc_required
 from .user import User
+from .tag import Tag
 from .notif import Notif
 
 __all__ = ['Attachment']
@@ -54,9 +55,14 @@ class Attachment(MongoBase, engine=engine.Attachment):
         self.description = description
         self.updated = datetime.now()
         self.patch_notes.append(patch_note)
-        self.tags = tags_str.split(',')
+        tags = tags_str.split(',')
+        for tag in tags:
+            if not Tag(tag):
+                raise engine.DoesNotExist
+        self.tags = tags
         self.save()
 
+        # TODO: make query faster
         for problem in engine.Problem.objects(attachments__source=self.obj):
             for attachment in problem.attachments:
                 if self == attachment.source:
@@ -77,9 +83,14 @@ class Attachment(MongoBase, engine=engine.Attachment):
         '''
         if file_obj is None:
             raise FileNotFoundError('you need to upload a file')
+        tags = tags_str.split(',')
+        for tag in tags:
+            if not Tag(tag):
+                raise engine.DoesNotExist
         # save file
         file = GridFSProxy()
         file.put(file_obj, filename=filename)
+        
         # save attachment
         attachment = cls.engine(
             filename=filename,
@@ -90,6 +101,6 @@ class Attachment(MongoBase, engine=engine.Attachment):
             author=author.pk,
             size=file_obj.getbuffer().nbytes,
             patch_notes=[patch_note],
-            tags=tags_str.split(','),
+            tags=tags,
         ).save()
         return cls(attachment)
