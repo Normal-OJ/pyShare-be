@@ -6,7 +6,7 @@ from .engine import GridFSProxy
 from .base import MongoBase
 from .course import Course
 from .user import User
-from .utils import doc_required
+from .utils import doc_required, get_redis_client
 
 __all__ = ['Problem', 'TagNotFoundError']
 
@@ -81,16 +81,12 @@ class Problem(MongoBase, engine=engine.Problem):
         # update info
         p.update(course=target_course.obj)
         target_course.update(push__problems=p.obj)
-        # update attachments
-        for att in self.attachments:
-            att = self.new_attachment(
-                att.file,
-                filename=att.filename,
-                source=att.source,
-                version_number=att.version_number,
-            )
-            p.attachments.append(att)
-            p.save()
+        with get_redis_client().lock(f'{p}-att'):
+            # update attachments
+            for att in self.attachments:
+                att = self.copy_attachment(att)
+                p.attachments.append(att)
+        p.save()
         return p.reload()
 
     @property
@@ -165,8 +161,8 @@ class Problem(MongoBase, engine=engine.Problem):
             if att.filename == filename:
                 if source is not None:
                     file_obj = source.file
-                att['source'] = source
-                att['version_number'] = -1 if source is None else source.version_number
+                att.source = source
+                att.version_number = -1 if source is None else source.version_number
                 att.file.replace(file_obj, filename=filename)
                 self.save()
                 return True
@@ -236,6 +232,17 @@ class Problem(MongoBase, engine=engine.Problem):
                 att_ks['version_number'] = version_number
         att.put(file_obj, **ks)
         return engine.Problem.ProblemAttachment(**att_ks)
+
+    @classmethod
+    def copy_attachment(cls,
+                       source: engine.Problem.ProblemAttachment):
+        '''
+        create a new attachment, ks will be passed
+        to `GridFSProxy`
+        '''
+        att = GridFSProxy()
+        att.put(source.file, filename=source.filename)
+        return engine.Problem.ProblemAttachment(file=att, source=source.source,version_number=source.version_number)
 
     @classmethod
     @doc_required('author', 'author', User)
