@@ -86,7 +86,7 @@ class Problem(MongoBase, engine=engine.Problem):
             for att in self.attachments:
                 att = self.copy_attachment(att)
                 p.attachments.append(att)
-        p.save()
+            p.save()
         return p.reload()
 
     @property
@@ -227,8 +227,7 @@ class Problem(MongoBase, engine=engine.Problem):
     @classmethod
     def copy_attachment(cls, source: engine.Problem.ProblemAttachment):
         '''
-        create a new attachment, ks will be passed
-        to `GridFSProxy`
+        copy an existed attachment
         '''
         att = GridFSProxy()
         att.put(source.file, filename=source.filename)
