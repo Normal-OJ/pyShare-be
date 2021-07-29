@@ -1,3 +1,4 @@
+import secrets
 import pytest
 import os
 import itertools
@@ -7,6 +8,8 @@ from pprint import pprint
 from mongo import *
 from mongo import engine
 from tests.base_tester import BaseTester, random_string
+
+from mongo import Token
 
 A_NAMES = [
     'teacher',
@@ -18,61 +21,61 @@ S_NAMES = {
     'student-2': 'Nico.Kurosawa',
 }
 
+# @pytest.fixture(autouse=True)
+# def submission_testcase_setup(
+#     save_source,
+#     make_course,
+#     tmp_path,
+# ):
+#     BaseTester.setup_class()
 
-@pytest.fixture(autouse=True)
-def submission_testcase_setup(
-    save_source,
-    make_course,
-    tmp_path,
-):
-    BaseTester.setup_class()
+#     # modify submission config
+#     from model.submission_config import SubmissionConfig
 
-    # modify submission config
-    from model.submission_config import SubmissionConfig
+#     # use tmp dir to save user source code
+#     SubmissionConfig.SOURCE_PATH = (tmp_path /
+#                                     SubmissionConfig.SOURCE_PATH).absolute()
+#     SubmissionConfig.SOURCE_PATH.mkdir(exist_ok=True)
+#     SubmissionConfig.TMP_DIR = (tmp_path / SubmissionConfig.TMP_DIR).absolute()
+#     SubmissionConfig.TMP_DIR.mkdir(exist_ok=True)
 
-    # use tmp dir to save user source code
-    SubmissionConfig.SOURCE_PATH = (tmp_path /
-                                    SubmissionConfig.SOURCE_PATH).absolute()
-    SubmissionConfig.SOURCE_PATH.mkdir(exist_ok=True)
-    SubmissionConfig.TMP_DIR = (tmp_path / SubmissionConfig.TMP_DIR).absolute()
-    SubmissionConfig.TMP_DIR.mkdir(exist_ok=True)
+#     # disable rate limit
+#     SubmissionConfig.RATE_LIMIT = -1
 
-    # disable rate limit
-    SubmissionConfig.RATE_LIMIT = -1
+#     # save base source
+#     src_dir = pathlib.Path('tests/src')
+#     exts = {'.c', '.cpp', '.py'}
 
-    # save base source
-    src_dir = pathlib.Path('tests/src')
-    exts = {'.c', '.cpp', '.py'}
+#     for src in src_dir.iterdir():
+#         if any([not src.suffix in exts, not src.is_file()]):
+#             continue
+#         save_source(
+#             src.stem,
+#             src.read_text(),
+#             [
+#                 '.c',
+#                 '.cpp',
+#                 '.py',
+#             ].index(src.suffix),
+#         )
 
-    for src in src_dir.iterdir():
-        if any([not src.suffix in exts, not src.is_file()]):
-            continue
-        save_source(
-            src.stem,
-            src.read_text(),
-            [
-                '.c',
-                '.cpp',
-                '.py',
-            ].index(src.suffix),
-        )
+#     for name in A_NAMES:
+#         make_course(
+#             username=name,
+#             students=S_NAMES,
+#         )
 
-    for name in A_NAMES:
-        make_course(
-            username=name,
-            students=S_NAMES,
-        )
+#     yield
 
-    yield
-
-    BaseTester.teardown_class()
+#     BaseTester.teardown_class()
 
 
 class TestSubmissionUtils:
     def test_token_assign(self):
-        token = assign_token('8888')
+        _id = secrets.token_hex()
+        token = Token().assign(_id)
         assert token is not None
-        assert verify_token('8888', token) is True
+        assert Token(token).verify(_id) is True
 
 
 class SubmissionTester:
@@ -80,6 +83,7 @@ class SubmissionTester:
     submissions = []
 
 
+@pytest.mark.skip('Legacy')
 class TestUserGetSubmission(SubmissionTester):
     @classmethod
     @pytest.fixture(autouse=True)
@@ -326,6 +330,7 @@ class TestUserGetSubmission(SubmissionTester):
                        rv_data['submissions'])) == True
 
 
+@pytest.mark.skip('Legacy')
 class TestTeacherGetSubmission(SubmissionTester):
     pids = []
 
@@ -391,6 +396,7 @@ class TestTeacherGetSubmission(SubmissionTester):
             assert 'code' in rv_data, rv_data
 
 
+@pytest.mark.skip('Legacy')
 class TestCreateSubmission(SubmissionTester):
     pid = None
 
