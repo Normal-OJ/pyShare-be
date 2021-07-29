@@ -191,6 +191,6 @@ def rejudge(user, comment: Comment):
         return HTTPError('Forbidden', 403)
     try:
         comment.submit()
-    except SubmissionPending as e:
+    except Submission.Pending as e:
         return HTTPError(e, 503)
     return HTTPResponse('success')

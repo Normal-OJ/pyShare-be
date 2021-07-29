@@ -1,7 +1,7 @@
 import io
 import secrets
 from tests import utils
-from mongo.submission import Submission, SubmissionPending
+from mongo.submission import Submission
 from werkzeug.datastructures import FileStorage
 
 
@@ -37,7 +37,7 @@ def test_get_files():
     for name in files:
         try:
             submission.get_file(name)
-        except SubmissionPending:
+        except Submission.Pending:
             continue
         assert False
     submission.complete(

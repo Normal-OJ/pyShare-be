@@ -11,18 +11,14 @@ from .comment import *
 from .utils import doc_required
 from .token import TokenExistError
 
-__all__ = [
-    'Submission',
-    'SubmissionPending',
-]
-
-
-class SubmissionPending(Exception):
-    def __init__(self, _id):
-        super().__init__(f'{_id} still pending.')
+__all__ = ('Submission', )
 
 
 class Submission(MongoBase, engine=engine.Submission):
+    class Pending(Exception):
+        def __init__(self, _id):
+            super().__init__(f'{_id} still pending.')
+
     def __init__(self, _id):
         if isinstance(_id, self.engine):
             _id = _id.id
@@ -99,7 +95,7 @@ class Submission(MongoBase, engine=engine.Submission):
         try:
             return ISandbox.cls().send(submission=self)
         except TokenExistError as e:
-            raise SubmissionPending(e.id)
+            raise self.Pending(e.id)
 
     def complete(
         self,
@@ -132,7 +128,7 @@ class Submission(MongoBase, engine=engine.Submission):
 
     def get_file(self, filename):
         if self.result is None:
-            raise SubmissionPending(self.id)
+            raise self.Pending(self.id)
         for f in self.result.files:
             if f.filename == filename:
                 return f
