@@ -139,6 +139,7 @@ def get_redis_client():
             )
         return redis.Redis(connection_pool=redis_pool)
 
+
 def logger():
     try:
         from flask import current_app
