@@ -1,4 +1,6 @@
 import secrets
+from typing import Callable, Optional
+from flask.testing import FlaskClient
 import pytest
 import os
 import itertools
@@ -10,6 +12,7 @@ from mongo import engine
 from tests.base_tester import BaseTester, random_string
 
 from mongo import Token
+from tests import utils
 
 A_NAMES = [
     'teacher',
@@ -396,73 +399,31 @@ class TestTeacherGetSubmission(SubmissionTester):
             assert 'code' in rv_data, rv_data
 
 
-@pytest.mark.skip('Legacy')
-class TestCreateSubmission(SubmissionTester):
-    pid = None
-
+class TestCreateSubmission:
     @classmethod
-    @pytest.fixture(autouse=True)
-    def on_create(cls, problem_ids):
-        cls.pid = problem_ids('teacher', 1, True)[0]
-        yield
-        cls.pid = None
+    def setup_class(cls):
+        utils.mongo.drop_db()
 
-    @pytest.mark.parametrize(
-        'lang, ext',
-        zip(
-            range(3),
-            ['.c', '.cpp', '.py'],
-        ),
-    )
-    def test_normal_submission(
+    def test_add_in_self_course(
         self,
-        forge_client,
-        get_source,
-        lang,
-        ext,
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
     ):
-        client = forge_client('student')
-
-        # first claim a new submission to backend server
-        post_json = {
-            'problemId': self.pid,
-            'languageType': lang,
-        }
-        # recieve response, which include the submission id
-        # and a token to validate next request
-        rv, rv_json, rv_data = BaseTester.request(
-            client,
-            'post',
-            '/submission',
-            json=post_json,
+        user = utils.user.Factory.student()
+        comment = utils.comment.lazy_add_comment(author=user)
+        code = 'print("My super awesome code")'
+        client = forge_client(user.username)
+        rv = client.post(
+            f'/comment/{comment.id}/submission',
+            json={'code': code},
         )
-
-        pprint(f'post: {rv_json}')
-
-        assert rv.status_code == 200, can_view(
-            User('stucent'),
-            Problem(pid).obj,
-        )
-        assert sorted(rv_data.keys()) == sorted(['token', 'submissionId'])
-
-        # second, post my source code to server. after that,
-        # my submission will send to sandbox to be judged
-        files = {
-            'code': (
-                get_source(f'base{ext}'),
-                'code',
-            )
-        }
-        rv = client.put(
-            f'/submission/{rv_data["submissionId"]}?token={rv_data["token"]}',
-            data=files,
-        )
-        rv_json = rv.get_json()
-
-        pprint(f'put: {rv_json}')
-
         assert rv.status_code == 200
+        _id = rv.get_json()['data']['submissionId']
+        assert rv.status_code == 200
+        assert Submission(_id).code == code
 
+
+@pytest.mark.skip('Legacy')
+class _TestCreateSubmission:
     def test_user_db_submission_field_content(
         self,
         forge_client,
