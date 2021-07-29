@@ -24,57 +24,9 @@ S_NAMES = {
     'student-2': 'Nico.Kurosawa',
 }
 
-# @pytest.fixture(autouse=True)
-# def submission_testcase_setup(
-#     save_source,
-#     make_course,
-#     tmp_path,
-# ):
-#     BaseTester.setup_class()
 
-#     # modify submission config
-#     from model.submission_config import SubmissionConfig
-
-#     # use tmp dir to save user source code
-#     SubmissionConfig.SOURCE_PATH = (tmp_path /
-#                                     SubmissionConfig.SOURCE_PATH).absolute()
-#     SubmissionConfig.SOURCE_PATH.mkdir(exist_ok=True)
-#     SubmissionConfig.TMP_DIR = (tmp_path / SubmissionConfig.TMP_DIR).absolute()
-#     SubmissionConfig.TMP_DIR.mkdir(exist_ok=True)
-
-#     # disable rate limit
-#     SubmissionConfig.RATE_LIMIT = -1
-
-#     # save base source
-#     src_dir = pathlib.Path('tests/src')
-#     exts = {'.c', '.cpp', '.py'}
-
-#     for src in src_dir.iterdir():
-#         if any([not src.suffix in exts, not src.is_file()]):
-#             continue
-#         save_source(
-#             src.stem,
-#             src.read_text(),
-#             [
-#                 '.c',
-#                 '.cpp',
-#                 '.py',
-#             ].index(src.suffix),
-#         )
-
-#     for name in A_NAMES:
-#         make_course(
-#             username=name,
-#             students=S_NAMES,
-#         )
-
-#     yield
-
-#     BaseTester.teardown_class()
-
-
-class TestSubmissionUtils:
-    def test_token_assign(self):
+class TestToken:
+    def test_assign(self):
         _id = secrets.token_hex()
         token = Token().assign(_id)
         assert token is not None
@@ -421,210 +373,26 @@ class TestCreateSubmission:
         assert rv.status_code == 200
         assert Submission(_id).code == code
 
-
-@pytest.mark.skip('Legacy')
-class _TestCreateSubmission:
-    def test_user_db_submission_field_content(
-        self,
-        forge_client,
-    ):
-        # get submission length
-        before_len = len(User('student').submissions)
-        # create a submission
-        client = forge_client('student')
-        rv, rv_json, rv_data = BaseTester.request(
-            client,
-            'post',
-            '/submission',
-            json={
-                'problemId': self.pid,
-                'languageType': 0,
-            },
-        )
-
-        # get user's data
-        user = User('student')
-        pprint(user.to_mongo())
-        pprint(rv_json)
-
-        assert user
-        assert rv.status_code == 200
-        assert len(user.submissions) == before_len + 1
-
-    def test_wrong_language_type(
-        self,
-        forge_client,
-        get_source,
-    ):
-        client = forge_client('student')
-
-        post_json = {
-            'problemId': self.pid,
-            'languageType': 2,
-        }  # 2 for py3
-        rv, rv_json, rv_data = BaseTester.request(
-            client,
-            'post',
-            '/submission',
-            json=post_json,
-        )
-
-        pprint(f'post: {rv_json}')
-
-        files = {
-            'code': (
-                get_source('base.c'),
-                'code',
-            )
-        }
-        rv = client.put(
-            f'/submission/{rv_data["submissionId"]}?token={rv_data["token"]}',
-            data=files,
-        )
-        rv_json = rv.get_json()
-
-        pprint(f'put: {rv_json}')
-
-        assert rv.status_code == 200
-
     def test_empty_source(
-        self,
-        forge_client,
-        get_source,
+        cls,
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
     ):
-        client = forge_client('student')
-        post_json = {
-            'problemId': self.pid,
-            'languageType': 0,
-        }
-        rv, rv_json, rv_data = BaseTester.request(
-            client,
-            'post',
-            '/submission',
-            json=post_json,
-        )
-
-        pprint(f'post: {rv_json}')
-
-        files = {'code': (None, 'code')}
-        rv = client.put(
-            f'/submission/{rv_data["submissionId"]}?token={rv_data["token"]}',
-            data=files,
-        )
-        rv_json = rv.get_json()
-
-        pprint(f'put: {rv_json}')
-
-        assert rv.status_code == 400
-
-    @pytest.mark.parametrize(
-        'lang, ext',
-        zip(
-            range(3),
-            ['.c', '.cpp', '.py'],
-        ),
-    )
-    def test_no_source_upload(
-        self,
-        forge_client,
-        lang,
-        ext,
-        get_source,
-    ):
-        client = forge_client('student')
-        post_json = {
-            'problemId': self.pid,
-            'languageType': lang,
-        }
-        rv, rv_json, rv_data = BaseTester.request(
-            client,
-            'post',
-            '/submission',
-            json=post_json,
-        )
-
-        pprint(f'post: {rv_json}')
-
-        files = {'c0d3': (get_source(f'base{ext}'), 'code')}
-        rv = client.put(
-            f'/submission/{rv_data["submissionId"]}?token={rv_data["token"]}',
-            data=files,
-        )
-        rv_json = rv.get_json()
-
-        pprint(f'put: {rv_json}')
-
+        user = utils.user.Factory.student()
+        comment = utils.comment.lazy_add_comment(author=user)
+        client = forge_client(user.username)
+        rv = client.post(f'/comment/{comment.id}/submission')
         assert rv.status_code == 400
 
     def test_submit_to_others(
-        self,
-        forge_client,
-        get_source,
+        cls,
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
     ):
-        client = forge_client('student')
-        rv, rv_json, rv_data = BaseTester.request(
-            client,
-            'post',
-            '/submission',
-            json={
-                'problemId': self.pid,
-                'languageType': 0
-            },
+        user = utils.user.Factory.student()
+        comment = utils.comment.lazy_add_comment()
+        assert comment.author != user
+        client = forge_client(user.username)
+        rv = client.post(
+            f'/comment/{comment.id}/submission',
+            json={'code': 'print("Yabe")'},
         )
-
-        pprint(rv_json)
-        assert rv.status_code == 200
-
-        client = forge_client('student-2')
-        submission_id = rv_data['submissionId']
-        token = rv_data['token']
-        files = {
-            'code': (
-                get_source('base.cpp'),
-                'd1w5q6dqw',
-            )
-        }
-        rv, rv_json, rv_data = BaseTester.request(
-            client,
-            'put',
-            f'/submission/{submission_id}?token={token}',
-            data=files,
-        )
-
-        pprint(rv_json)
         assert rv.status_code == 403
-
-    def test_reach_rate_limit(self, client_student):
-        from model.submission_config import SubmissionConfig
-        SubmissionConfig.RATE_LIMIT = 5
-
-        post_json = {
-            'problemId': self.pid,
-            'languageType': 1,
-        }
-        client_student.post(
-            '/submission',
-            json=post_json,
-        )
-
-        for _ in range(10):
-            rv = client_student.post(
-                '/submission',
-                json=post_json,
-            )
-
-            assert rv.status_code == 429, rv.get_json()
-
-        SubmissionConfig.RATE_LIMIT = -1
-
-    def test_submit_to_non_participate_contest(self, client_student):
-        pass
-
-    def test_submit_outside_when_user_in_contest(self, client_student):
-        '''
-        submit a problem outside the contest when user is in contest
-        '''
-        pass
-
-    def test_submit_to_not_enrolled_course(self, client_student):
-        pass
