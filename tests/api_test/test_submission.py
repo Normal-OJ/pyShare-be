@@ -373,14 +373,15 @@ class TestCreateSubmission:
         assert rv.status_code == 200
         assert Submission(_id).code == code
 
-    def test_empty_source(
+    def test_no_source(
         cls,
         forge_client: Callable[[str, Optional[str]], FlaskClient],
     ):
         user = utils.user.Factory.student()
         comment = utils.comment.lazy_add_comment(author=user)
         client = forge_client(user.username)
-        rv = client.post(f'/comment/{comment.id}/submission')
+        # Send a json but without source code
+        rv = client.post(f'/comment/{comment.id}/submission', json={})
         assert rv.status_code == 400
 
     def test_submit_to_others(
