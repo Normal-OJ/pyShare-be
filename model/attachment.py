@@ -98,7 +98,8 @@ def edit_attachment(
     if not atta.permission(user=user, req={'w'}):
         return HTTPError('Permission denied.', 403)
     try:
-        atta.update(file_obj, description, patch_note, tags)
+        with get_redis_client().lock(f'{atta}'):
+            atta.update(file_obj, description, patch_note, tags)
     except ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())
     except engine.DoesNotExist as e:

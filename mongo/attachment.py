@@ -49,17 +49,17 @@ class Attachment(MongoBase, engine=engine.Attachment):
         '''
         update an attachment from db
         '''
-        if file_obj is not None:
-            self.file.replace(file_obj, filename=self.filename)
-            self.size = file_obj.getbuffer().nbytes
-        self.save()
         tags = tags_str.split(',')
         if not all(map(Tag, tags)):
             raise engine.DoesNotExist
-        self.obj.update(push__patch_notes=patch_note,
-                        description=description,
-                        updated=datetime.now(),
-                        tags=tags)
+        if file_obj is not None:
+            self.file.replace(file_obj, filename=self.filename)
+            self.size = file_obj.getbuffer().nbytes
+        self.description = description
+        self.updated = datetime.now()
+        self.tags = tags
+        self.patch_notes.append(patch_note)
+        self.save()
 
         # TODO: make query faster
         for problem in engine.Problem.objects(attachments__source=self.obj):
