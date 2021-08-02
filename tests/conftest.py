@@ -12,7 +12,7 @@ from tests.api_test.test_homework import CourseData
 from tests.api_test.test_problem import get_file
 
 MONGO_MOCK_HOST = 'mongomock://localhost'
-DB = 'normal-oj'
+DB = 'pyShare'
 
 
 @pytest.fixture

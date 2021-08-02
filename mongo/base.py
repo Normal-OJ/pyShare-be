@@ -1,7 +1,5 @@
-from flask import current_app
 from typing import Iterable, List
 from . import engine
-import logging
 
 __all__ = ['MongoBase']
 
@@ -56,10 +54,3 @@ class MongoBase:
         if self:
             self.obj.reload(*fields)
         return self
-
-    @property
-    def logger(self):
-        try:
-            return current_app.logger
-        except RuntimeError:
-            return logging.getLogger('gunicorn.error')

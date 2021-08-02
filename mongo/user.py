@@ -168,7 +168,7 @@ class User(MongoBase, engine=engine.User):
         try:
             return self.role_ids[role]
         except KeyError:
-            self.logger.warning(f'unknown role \'{role}\'')
+            logger().warning(f'unknown role \'{role}\'')
             return None
 
     def __eq__(self, other):

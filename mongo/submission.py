@@ -1,11 +1,6 @@
 import os
-import logging
-import secrets
 from typing import Optional
-import requests as rq
 import base64
-from zipfile import ZipFile
-import io
 
 from . import engine
 from .config import ConfigLoader
@@ -13,65 +8,16 @@ from .base import MongoBase
 from .user import User
 from .problem import Problem
 from .comment import *
-from .utils import doc_required, get_redis_client
-import uuid
+from .utils import doc_required
+from .token import TokenExistError
 
-__all__ = [
-    'Submission',
-    'Token',
-    'SubmissionPending',
-]
-
-
-class SubmissionPending(Exception):
-    def __init__(self, _id):
-        super().__init__(f'{_id} still pending.')
-
-
-class Token:
-    def __init__(self, val=None):
-        self._client = get_redis_client()
-        if val is None:
-            val = self.gen()
-        self.val = val
-
-    @staticmethod
-    def gen():
-        return secrets.token_urlsafe()
-
-    def assign(self, submission_id):
-        '''
-        assign a token to submission, if no token provided
-        generate a random one
-        '''
-        # only accept one pending submission
-        if self._client.exists(submission_id):
-            raise SubmissionPending(submission_id)
-        self._client.set(submission_id, self.val, ex=600)
-        return self.val
-
-    def verify(self, submission_id):
-        # no token found
-        if not self._client.exists(submission_id):
-            return False
-        # get submission token
-        s_token = self._client.get(submission_id).decode('ascii')
-        result = secrets.compare_digest(s_token, self.val)
-        # delete if success
-        if result is True:
-            self._client.delete(submission_id)
-        return result
+__all__ = ('Submission', )
 
 
 class Submission(MongoBase, engine=engine.Submission):
-    JUDGE_URL = os.getenv(
-        'JUDGE_URL',
-        'http://sandbox:1450',
-    )
-    SANDBOX_TOKEN = os.getenv(
-        'SANDBOX_TOKEN',
-        'KoNoSandboxDa',
-    )
+    class Pending(Exception):
+        def __init__(self, _id):
+            super().__init__(f'{_id} still pending.')
 
     def __init__(self, _id):
         if isinstance(_id, self.engine):
@@ -141,41 +87,15 @@ class Submission(MongoBase, engine=engine.Submission):
         # nonexistent id
         if not self:
             raise engine.DoesNotExist(f'{self}')
-        token = Token(self.SANDBOX_TOKEN).assign(self.id)
         self.update(status=self.engine.Status.PENDING)
-        judge_url = f'{self.JUDGE_URL}/{self.id}'
         # send submission to snadbox for judgement
         if ConfigLoader.get('TESTING') == True:
             return True
+        from .sandbox import ISandbox
         try:
-            files = [(
-                'attachments',
-                (a.filename, a, None),
-            ) for a in self.problem.attachments]
-            if self.problem.is_OJ:
-                zip_file = str(uuid.uuid4()) + '.zip'
-                with ZipFile(zip_file, 'w') as z:
-                    # Add multiple files to the zip
-                    z.writestr('input', self.problem.extra.input)
-                    z.writestr('output', self.problem.extra.output)
-                with open(zip_file, 'rb') as f:
-                    files.append(
-                        ('testcase', (zip_file, io.BytesIO(f.read()), None)))
-                os.remove(zip_file)
-            resp = rq.post(
-                judge_url,
-                params={'token': token},
-                files=files,
-                data={
-                    'src': self.code,
-                },
-            )
-        except rq.exceptions.RequestException as e:
-            self.logger.error(str(e))
-            return False
-        if not resp.ok:
-            logging.warning(f'got sandbox resp: {resp.text}')
-        return True
+            return ISandbox.cls().send(submission=self)
+        except TokenExistError as e:
+            raise self.Pending(e.id)
 
     def complete(
         self,
@@ -208,7 +128,7 @@ class Submission(MongoBase, engine=engine.Submission):
 
     def get_file(self, filename):
         if self.result is None:
-            raise SubmissionPending(self.id)
+            raise self.Pending(self.id)
         for f in self.result.files:
             if f.filename == filename:
                 return f
