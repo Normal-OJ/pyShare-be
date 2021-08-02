@@ -155,15 +155,16 @@ class Problem(MongoBase, engine=engine.Problem):
         raise FileNotFoundError(
             f'can not find a attachment named [{filename}]')
 
-    def update_attachment(self, file_obj, filename, source: engine.Attachment):
+    def update_attachment(self, filename):
         # search by name
         for att in self.attachments:
             if att.filename == filename:
-                if source is not None:
-                    file_obj = source.file
-                att.source = source
-                att.version_number = -1 if source is None else source.version_number
-                att.file.replace(file_obj, filename=filename)
+                if att.source is None:
+                    raise FileNotFoundError(
+                        f'attachment named [{filename}] doesn\'t have a source'
+                    )
+                att.version_number = att.source.version_number
+                att.file.replace(att.source.file, filename=filename)
                 self.save()
                 return True
         raise FileNotFoundError(

@@ -71,16 +71,6 @@ class TestAttachment(BaseTester):
         id = rv.get_json()['data'][0]['id']
         notes = rv.get_json()['data'][0]['patchNotes']
 
-        # add a problem with DB attachment
-        problem_attachment_data = {
-            'attachment': None,
-            'attachmentName': 'lol',
-            'attachmentId': id,
-        }
-
-        rv = client.post('/problem/1/attachment', data=problem_attachment_data)
-        assert rv.status_code == 200, rv.get_json()
-
         data = {
             'description': 'haha',
             'fileObj': (io.BytesIO(b'Win'), 'goal'),
@@ -96,7 +86,7 @@ class TestAttachment(BaseTester):
 
         notif = User.get_by_username('teacher1').notifs[0].info.to_dict()
         assert notif['problem_id'] == 1
-        assert notif['name'] == 'lol'
+        assert notif['name'] == 'att2'
 
     @pytest.mark.parametrize('key, value, status_code', [
         (None, None, 200),

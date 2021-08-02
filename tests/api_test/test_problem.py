@@ -182,43 +182,24 @@ class TestAttachment(BaseTester):
             assert rv.status_code == 200
             assert rv.data == f'Testing{i}'.encode('utf-8')
 
-    @pytest.mark.parametrize('key, value, status_code, message', [
-        ('attachmentId', None, 200, 'your file'),
-        (None, None, 200, 'db file'),
-        ('attachmentId', 'a' * 24, 404, None),
-        ('attachmentName', 'not existed', 404, 'attachment named'),
+    @pytest.mark.parametrize('attachment_name, status_code, message', [
+        ('att2', 200, 'update'),
+        ('att', 404, 'a source'),
+        ('non-existed', 404, 'can not find'),
     ])
-    def test_update_attachment(self, forge_client, config_app, key, value,
+    def test_update_attachment(self, forge_client, config_app, attachment_name,
                                status_code, message):
         config_app(env='test')
         client = forge_client('teacher1')
         rv = client.get('/attachment')
-        id = rv.get_json()['data'][0]['id']
 
         data = {
-            'attachment': (io.BytesIO(b'Win'), 'goal'),
-            'attachmentName': 'att',
-            'attachmentId': id,
+            'attachmentName': attachment_name,
         }
-        if key:
-            if not isinstance(key, list):
-                key = [key]
-                value = [value]
-            for i in range(len(key)):
-                if value[i] is None:
-                    del data[key[i]]
-                else:
-                    data[key[i]] = value[i]
 
         rv = client.put('/problem/1/attachment', data=data)
         assert rv.status_code == status_code, rv.get_json()
-
-        if message:
-            assert message in rv.get_json()['message']
-
-        if status_code == 200:
-            rv = client.get(f'/problem/1/attachment/{data["attachmentName"]}')
-            assert rv.status_code == 200
+        assert message in rv.get_json()['message']
 
     @pytest.mark.parametrize(
         'key, value, status_code',
