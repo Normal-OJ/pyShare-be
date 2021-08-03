@@ -83,9 +83,7 @@ class Problem(MongoBase, engine=engine.Problem):
         target_course.update(push__problems=p.obj)
         with get_redis_client().lock(f'{p}-att'):
             # update attachments
-            for att in self.attachments:
-                att = self.copy_attachment(att)
-                p.attachments.append(att)
+            p.attachments = [*map(self.copy_attachment, self.attachments)]
             p.save()
         return p.reload()
 
@@ -124,7 +122,7 @@ class Problem(MongoBase, engine=engine.Problem):
 
     def insert_attachment(self, file_obj, filename, source=None):
         '''
-        insert a attahment into this problem.
+        insert a attachment into this problem.
         '''
         # check existence
         if any([att.filename == filename for att in self.attachments]):
