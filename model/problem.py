@@ -233,6 +233,7 @@ def patch_attachment(
                 source = att.obj
             with get_redis_client().lock(f'{problem}-att'):
                 problem.reload()
+                # if the source exists, use the source. Otherwise, use the attachment
                 problem.insert_attachment(
                     attachment,
                     filename=attachment_name,
