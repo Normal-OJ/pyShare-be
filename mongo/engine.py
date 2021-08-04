@@ -186,6 +186,14 @@ class Attachment(Document):
     created = DateTimeField(default=datetime.now)
     updated = DateTimeField(default=datetime.now)
     size = IntField(default=0)
+    patch_notes = ListField(StringField(max_length=5000000),
+                            default=[],
+                            db_field='patchNotes')
+    tags = ListField(StringField(max_length=16), default=list)
+
+    @property
+    def version_number(self):
+        return len(self.patch_notes)
 
 
 class Problem(Document):
@@ -201,6 +209,19 @@ class Problem(Document):
         class NormalProblem(EmbeddedDocument):
             pass
 
+    class ProblemAttachment(EmbeddedDocument):
+        file = FileField(required=True)
+        source = ReferenceField('Attachment', default=None)
+        version_number = IntField(db_field='versionNumber', default=-1)
+
+        @property
+        def filename(self):
+            return self.file.filename
+
+        @property
+        def delete(self):
+            return self.file.delete
+
     meta = {'indexes': [{'fields': ['$title']}, 'timestamp']}
     pid = SequenceField(required=True, primary_key=True)
     height = IntField(default=0)
@@ -209,7 +230,8 @@ class Problem(Document):
     description = StringField(max_length=5000000, required=True)
     author = ReferenceField('User', requried=True)
     tags = ListField(StringField(max_length=16), default=[])
-    attachments = ListField(FileField(), default=[])
+    attachments = ListField(EmbeddedDocumentField(ProblemAttachment),
+                            default=[])
     comments = ListField(ReferenceField('Comment'), default=[])
     timestamp = DateTimeField(default=datetime.now)
     status = IntField(
@@ -335,6 +357,18 @@ class Notif(Document):
 
             comment = ReferenceField(Comment)
             problem = ReferenceField(Problem)
+
+        class AttachmentUpdate(__Base__):
+            DICT_FEILDS = {
+                'type': 'type_name',
+                'attachment_id': 'attachment.id',
+                'problem_id': 'problem.id',
+                'name': 'name'
+            }
+
+            attachment = ReferenceField(Attachment)
+            problem = ReferenceField(Problem)
+            name = StringField(max_length=64)
 
         class NewComment(__Base__):
             DICT_FEILDS = {

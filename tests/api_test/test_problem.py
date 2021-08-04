@@ -144,7 +144,7 @@ class TestAttachment(BaseTester):
                     data[key[i]] = value[i]
 
         rv = client.post('/problem/1/attachment', data=data)
-        assert rv.status_code == status_code
+        assert rv.status_code == status_code, rv.get_json()
 
         if message:
             assert message in rv.get_json()['message']
@@ -181,6 +181,25 @@ class TestAttachment(BaseTester):
             rv = client.get(f'/problem/1/attachment/test{i}')
             assert rv.status_code == 200
             assert rv.data == f'Testing{i}'.encode('utf-8')
+
+    @pytest.mark.parametrize('attachment_name, status_code, message', [
+        ('att2', 200, 'update'),
+        ('att', 404, 'a source'),
+        ('non-existed', 404, 'can not find'),
+    ])
+    def test_update_attachment(self, forge_client, config_app, attachment_name,
+                               status_code, message):
+        config_app(env='test')
+        client = forge_client('teacher1')
+        rv = client.get('/attachment')
+
+        data = {
+            'attachmentName': attachment_name,
+        }
+
+        rv = client.put('/problem/1/attachment', data=data)
+        assert rv.status_code == status_code, rv.get_json()
+        assert message in rv.get_json()['message']
 
     @pytest.mark.parametrize(
         'key, value, status_code',

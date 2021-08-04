@@ -3,6 +3,8 @@
 		"author": "teacher1",
 		"filename": "atta1",
 		"description": "lol",
-		"file_obj": "Hmm."
+		"file_obj": "Hmm.",
+		"patch_note": "release",
+		"tags_str": "tag1,tag2"
 	}
 }

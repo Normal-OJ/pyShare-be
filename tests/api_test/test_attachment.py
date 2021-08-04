@@ -14,6 +14,7 @@ class TestAttachment(BaseTester):
             (None, None, 200),
             ('filename', 'a' * 65, 400),
             ('fileObj', None, 404),
+            ('tags', 'not-existed', 404),
         ],
     )
     def test_create_attachment(
@@ -30,11 +31,13 @@ class TestAttachment(BaseTester):
             'filename': 'test',
             'description': 'haha',
             'fileObj': (io.BytesIO(b'Win'), 'goal'),
+            'patchNote': 'release',
+            'tags': 'tag2',
         }
         if key:
             data[key] = value
         rv = client.post('/attachment', data=data)
-        assert rv.status_code == status_code
+        assert rv.status_code == status_code, rv.get_json()
         if status_code == 200:
             assert Attachment(
                 rv.get_json()['data']['id']).description == 'haha'
@@ -64,18 +67,26 @@ class TestAttachment(BaseTester):
     def test_update_attachment(self, forge_client, config_app):
         config_app(env='test')
         client = forge_client('teacher1')
+        rv = client.get('/attachment')
+        id = rv.get_json()['data'][0]['id']
+        notes = rv.get_json()['data'][0]['patchNotes']
+
         data = {
             'description': 'haha',
             'fileObj': (io.BytesIO(b'Win'), 'goal'),
+            'patchNote': 'update',
+            'tags': 'tag1,tag2',
         }
-
-        rv = client.get('/attachment')
-        id = rv.get_json()['data'][0]['id']
 
         rv = client.put(f'/attachment/{id}', data=data)
         print(rv.get_json())
         assert rv.status_code == 200
         assert Attachment(id).description == 'haha'
+        assert len(notes) == Attachment(id).version_number - 1
+
+        notif = User.get_by_username('teacher1').notifs[0].info.to_dict()
+        assert notif['problem_id'] == 1
+        assert notif['name'] == 'att2'
 
     @pytest.mark.parametrize('key, value, status_code', [
         (None, None, 200),

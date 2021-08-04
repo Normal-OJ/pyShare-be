@@ -4,6 +4,8 @@ from .engine import GridFSProxy
 from datetime import datetime
 from .utils import doc_required
 from .user import User
+from .tag import Tag
+from .notif import Notif
 
 __all__ = ['Attachment']
 
@@ -36,15 +38,6 @@ class Attachment(MongoBase, engine=engine.Attachment):
             return not bool(req - _permission)
         return req in _permission
 
-    def copy(self):
-        '''
-        copy an attachment in db
-        '''
-        if not self:
-            raise FileNotFoundError(
-                f'can not find {self} in public attachment DB')
-        return self.file
-
     def delete(self):
         '''
         remove an attachment from db
@@ -52,28 +45,50 @@ class Attachment(MongoBase, engine=engine.Attachment):
         self.file.delete()
         self.obj.delete()
 
-    def update(self, file_obj, description):
+    def update(self, file_obj, description, patch_note, tags_str):
         '''
         update an attachment from db
         '''
+        tags = tags_str.split(',')
+        if not all(map(Tag, tags)):
+            raise engine.DoesNotExist
         if file_obj is not None:
             self.file.replace(file_obj, filename=self.filename)
             self.size = file_obj.getbuffer().nbytes
         self.description = description
         self.updated = datetime.now()
+        self.tags = tags
+        self.patch_notes.append(patch_note)
         self.save()
+
+        # TODO: make query faster
+        for problem in engine.Problem.objects(attachments__source=self.obj):
+            for attachment in problem.attachments:
+                if self == attachment.source:
+                    info = Notif.types.AttachmentUpdate(
+                        attachment=self.obj,
+                        problem=problem,
+                        name=attachment.filename,
+                    )
+                    notif = Notif.new(info)
+                    problem.author.update(push__notifs=notif.pk)
 
     @classmethod
     @doc_required('author', User)
-    def add(cls, author: User, file_obj, filename, description):
+    def add(cls, author: User, file_obj, filename, description, patch_note,
+            tags_str):
         '''
         add an attachment to db
         '''
         if file_obj is None:
             raise FileNotFoundError('you need to upload a file')
+        tags = tags_str.split(',')
+        if not all(map(Tag, tags)):
+            raise engine.DoesNotExist
         # save file
         file = GridFSProxy()
         file.put(file_obj, filename=filename)
+
         # save attachment
         attachment = cls.engine(
             filename=filename,
@@ -83,5 +98,7 @@ class Attachment(MongoBase, engine=engine.Attachment):
             created=datetime.now(),
             author=author.pk,
             size=file_obj.getbuffer().nbytes,
+            patch_notes=[patch_note],
+            tags=tags,
         ).save()
         return cls(attachment)

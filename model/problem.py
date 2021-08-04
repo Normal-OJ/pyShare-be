@@ -201,7 +201,7 @@ def delete_problem(user, problem):
     return HTTPResponse(f'{problem} deleted.')
 
 
-@problem_api.route('/<int:pid>/attachment', methods=['POST', 'DELETE'])
+@problem_api.route('/<int:pid>/attachment', methods=['POST', 'PUT', 'DELETE'])
 @Request.doc('pid', 'problem', Problem)
 @Request.files('attachment')
 @Request.form('attachment_name')
@@ -223,14 +223,21 @@ def patch_attachment(
         return HTTPError('you need an attachment name', 400)
     if request.method == 'POST':
         try:
+            source = None
             # use public attachment db
             if attachment_id is not None:
-                attachment = Attachment(attachment_id).copy()
+                att = Attachment(attachment_id)
+                if not att:
+                    raise FileNotFoundError(
+                        f'can not find {att} in public attachment DB')
+                source = att.obj
             with get_redis_client().lock(f'{problem}-att'):
                 problem.reload()
+                # if the source exists, use the source. Otherwise, use the attachment
                 problem.insert_attachment(
                     attachment,
                     filename=attachment_name,
+                    source=source,
                 )
         except FileExistsError as e:
             return HTTPError(e, 400)
@@ -239,6 +246,14 @@ def patch_attachment(
         return HTTPResponse(
             f'successfully update from {"db file" if attachment_id is not None else "your file"}'
         )
+    elif request.method == 'PUT':
+        try:
+            with get_redis_client().lock(f'{problem}-att'):
+                problem.reload()
+                problem.update_attachment(attachment_name)
+        except FileNotFoundError as e:
+            return HTTPError(e, 404)
+        return HTTPResponse('successfully update')
     elif request.method == 'DELETE':
         try:
             with get_redis_client().lock(f'{problem}-att'):
@@ -259,7 +274,7 @@ def get_attachment(user, problem, name):
     for att in problem.attachments:
         if att.filename == name:
             return send_file(
-                att,
+                att.file,
                 as_attachment=True,
                 cache_timeout=30,
                 attachment_filename=att.filename,

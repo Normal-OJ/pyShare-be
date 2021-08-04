@@ -186,14 +186,21 @@ def setup_problem(problems):
             problem = Problem.add(**ks)
             # add attachments
             for att in problem_data.get('attachments', []):
-                name = att.split('/')[-1]
-                problem.insert_attachment(
-                    open(
-                        f'env_data/problem/attachment/{att}',
-                        'rb',
-                    ),
-                    filename=name,
-                )
+                name = att['name']
+                if att['source'] is None:
+                    problem.insert_attachment(
+                        open(
+                            f'env_data/problem/attachment/{name}',
+                            'rb',
+                        ),
+                        filename=name,
+                    )
+                else:
+                    problem.insert_attachment(
+                        None,
+                        filename=name,
+                        source=engine.Attachment.objects.get(
+                            filename=att['source']))
         else:
             logging.error(
                 f'Try to setup with problem that is not in problem.json: {problem}'
@@ -211,8 +218,8 @@ def setup_env(env):
         ('user', setup_user),
         ('tag', setup_tag),
         ('course', setup_course),
-        ('problem', setup_problem),
         ('attachment', setup_attachment),
+        ('problem', setup_problem),
     ]
     for key, func in setup_funcs:
         if key in j:

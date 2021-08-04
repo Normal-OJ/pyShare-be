@@ -34,7 +34,9 @@ def get_attachment_list(user):
             'created': a.created,
             'updated': a.updated,
             'id': a.id,
-            'size': a.size
+            'size': a.size,
+            'patchNotes': a.patch_notes,
+            'tags': a.tags,
         } for a in engine.Attachment.objects],
     )
 
@@ -43,24 +45,32 @@ def get_attachment_list(user):
 @Request.files('file_obj')
 @Request.form('filename')
 @Request.form('description')
+@Request.form('patch_note')
+@Request.form('tags')
 @identity_verify(0, 1)
 def add_attachment(
     user,
     file_obj,
     filename,
     description,
+    patch_note,
+    tags,
 ):
     '''
     add an attachment to db
     '''
     try:
-        atta = Attachment.add(author=user,
-                              file_obj=file_obj,
-                              filename=filename,
-                              description=description)
+        atta = Attachment.add(
+            author=user,
+            file_obj=file_obj,
+            filename=filename,
+            description=description,
+            patch_note=patch_note,
+            tags_str=tags,
+        )
     except FileExistsError as e:
         return HTTPError(e, 400)
-    except FileNotFoundError as e:
+    except (FileNotFoundError, engine.DoesNotExist) as e:
         return HTTPError(e, 404)
     except ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())
@@ -70,12 +80,16 @@ def add_attachment(
 @attachment_api.route('/<id>', methods=['PUT'])
 @Request.files('file_obj')
 @Request.form('description')
+@Request.form('patch_note')
+@Request.form('tags')
 @identity_verify(0, 1)
 @Request.doc('id', 'atta', Attachment)
 def edit_attachment(
     user,
     file_obj,
     description,
+    patch_note,
+    tags,
     atta,
 ):
     '''
@@ -84,9 +98,12 @@ def edit_attachment(
     if not atta.permission(user=user, req={'w'}):
         return HTTPError('Permission denied.', 403)
     try:
-        atta.update(file_obj, description)
+        with get_redis_client().lock(f'{atta}'):
+            atta.update(file_obj, description, patch_note, tags)
     except ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())
+    except engine.DoesNotExist as e:
+        return HTTPError(e, 404)
     return HTTPResponse('success')
 
 

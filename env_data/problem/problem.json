@@ -17,7 +17,14 @@
         "default_code": "",
         "status": 1,
         "attachments": [
-            "att"
+            {
+                "name": "att",
+                "source": null
+            },
+            {
+                "name": "att2",
+                "source": "atta1"
+            }
         ],
         "extra": {
             "_cls": "OJProblem",
@@ -35,7 +42,10 @@
         "status": 1,
         "allow_multiple_comments": true,
         "attachments": [
-            "att"
+            {
+                "name": "att",
+                "source": null
+            }
         ]
     },
     "p3": {
@@ -48,7 +58,10 @@
         "status": 1,
         "allow_multiple_comments": true,
         "attachments": [
-            "att"
+            {
+                "name": "att",
+                "source": null
+            }
         ]
     }
 }
