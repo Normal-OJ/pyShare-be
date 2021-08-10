@@ -11,11 +11,8 @@ user_api = Blueprint('user', __name__)
 
 @user_api.route('/', methods=['GET'])
 @login_required
-def get_all_user():
-    users = engine.User.objects
-    users = [{
-        **u.info,
-    } for u in map(User, users)]
+def get_all_user(user):
+    users = [u.info for u in map(User, engine.User.objects)]
     return HTTPResponse('here you are.', data=users)
 
 
