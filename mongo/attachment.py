@@ -45,7 +45,7 @@ class Attachment(MongoBase, engine=engine.Attachment):
         self.file.delete()
         self.obj.delete()
 
-    def update(self, file_obj, description, patch_note, tags_str):
+    def update(self, filename, file_obj, description, patch_note, tags_str):
         '''
         update an attachment from db
         '''
@@ -56,6 +56,7 @@ class Attachment(MongoBase, engine=engine.Attachment):
             self.file.replace(file_obj, filename=self.filename)
             self.size = file_obj.getbuffer().nbytes
         self.description = description
+        self.filename = filename
         self.updated = datetime.now()
         self.tags = tags
         self.patch_notes.append(patch_note)

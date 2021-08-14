@@ -82,6 +82,7 @@ def add_attachment(
 @Request.form('description')
 @Request.form('patch_note')
 @Request.form('tags')
+@Request.form('filename')
 @identity_verify(0, 1)
 @Request.doc('id', 'atta', Attachment)
 def edit_attachment(
@@ -90,6 +91,7 @@ def edit_attachment(
     description,
     patch_note,
     tags,
+    filename,
     atta,
 ):
     '''
@@ -99,7 +101,7 @@ def edit_attachment(
         return HTTPError('Permission denied.', 403)
     try:
         with get_redis_client().lock(f'{atta}'):
-            atta.update(file_obj, description, patch_note, tags)
+            atta.update(filename, file_obj, description, patch_note, tags)
     except ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())
     except engine.DoesNotExist as e:

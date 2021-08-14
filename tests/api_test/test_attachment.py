@@ -76,11 +76,12 @@ class TestAttachment(BaseTester):
             'fileObj': (io.BytesIO(b'Win'), 'goal'),
             'patchNote': 'update',
             'tags': 'tag1,tag2',
+            'filename': 'edited',
         }
 
         rv = client.put(f'/attachment/{id}', data=data)
         print(rv.get_json())
-        assert rv.status_code == 200
+        assert rv.status_code == 200, rv.get_json()
         assert Attachment(id).description == 'haha'
         assert len(notes) == Attachment(id).version_number - 1
 
