@@ -23,8 +23,8 @@ class ISandbox(ABC):
 
     @classmethod
     def use(cls, _cls):
-        if not issubclass(_cls, ISandbox):
-            raise TypeError('It shoud be a subclass of ISandbox')
+        if not _cls is None and not issubclass(_cls, ISandbox):
+            raise TypeError('It shoud be a subclass of ISandbox or None')
         cls.cls = _cls
 
 

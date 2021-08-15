@@ -6,7 +6,12 @@ from mongo import engine
 
 
 def setup_function(_):
+    ISandbox.use(utils.submission.MockSandbox)
     utils.mongo.drop_db()
+
+
+def teardown_function(_):
+    ISandbox.use(None)
 
 
 @pytest.mark.parametrize(
