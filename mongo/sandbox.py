@@ -43,7 +43,7 @@ class Sandbox(ISandbox):
         # Extract problem attachments
         files = [(
             'attachments',
-            (a.filename, a),
+            (a.filename, a.file),
         ) for a in submission.problem.attachments]
         # Attatch standard input / output
         if submission.problem.is_OJ:
