@@ -84,12 +84,13 @@ class Attachment(MongoBase, engine=engine.Attachment):
         '''
         if file_obj is None:
             raise FileNotFoundError('you need to upload a file')
-        if tags_str != '' and tags_str is not None:
+        tags = []
+        # even if tags_str is not passed in API, it is still a str 'None'
+        if tags_str != '' and tags_str != 'None':
             tags = tags_str.split(',')
             if not all(map(Tag, tags)):
                 raise engine.DoesNotExist
-        else:
-            tags = []
+            
         # save file
         file = GridFSProxy()
         file.put(file_obj, filename=filename)
