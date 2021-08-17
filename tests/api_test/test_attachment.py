@@ -77,6 +77,10 @@ class TestAttachment(BaseTester):
         assert rv.status_code == 200
         assert rv.data == b'Hmm.'
 
+        rv = client.get(f'/attachment/{id}/meta')
+        assert rv.status_code == 200
+        assert rv.get_json()['data']['downloadCount'] == 1
+
     def test_update_attachment(self, forge_client, config_app):
         config_app(env='test')
         client = forge_client('teacher1')

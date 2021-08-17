@@ -14,6 +14,7 @@ attachment_api = Blueprint('attachment_api', __name__)
 @login_required
 @Request.doc('id', 'attachment', Attachment)
 def get_attachment(user, attachment):
+    attachment.obj.update(inc__download_count=1)
     return send_file(
         attachment.file,
         as_attachment=True,
@@ -28,17 +29,7 @@ def get_attachment(user, attachment):
 def get_an_attachment(user, attachment):
     return HTTPResponse(
         'get an attachment',
-        data={
-            'filename': attachment.filename,
-            'description': attachment.description,
-            'author': attachment.author.info,
-            'created': attachment.created.timestamp(),
-            'updated': attachment.updated.timestamp(),
-            'id': attachment.id,
-            'size': attachment.size,
-            'patchNotes': attachment.patch_notes,
-            'tags': attachment.tags,
-        },
+        data=attachment.to_dict(),
     )
 
 
@@ -47,17 +38,7 @@ def get_an_attachment(user, attachment):
 def get_attachment_list(user):
     return HTTPResponse(
         'get all attachments\' names',
-        data=[{
-            'filename': a.filename,
-            'description': a.description,
-            'author': a.author.info,
-            'created': a.created.timestamp(),
-            'updated': a.updated.timestamp(),
-            'id': a.id,
-            'size': a.size,
-            'patchNotes': a.patch_notes,
-            'tags': a.tags,
-        } for a in engine.Attachment.objects],
+        data=[a.to_dict() for a in engine.Attachment.objects],
     )
 
 
