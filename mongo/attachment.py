@@ -45,7 +45,6 @@ class Attachment(MongoBase, engine=engine.Attachment):
         self.file.delete()
         self.obj.delete()
 
-
     def update(self, filename, file_obj, description, patch_note, tags_str):
         '''
         update an attachment from db
@@ -83,8 +82,7 @@ class Attachment(MongoBase, engine=engine.Attachment):
         if not all(map(Tag, tags)):
             raise engine.DoesNotExist
         return tags
-    
-    
+
     @classmethod
     @doc_required('author', User)
     def add(cls, author: User, file_obj, filename, description, patch_note,
