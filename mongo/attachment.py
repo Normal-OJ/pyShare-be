@@ -90,7 +90,7 @@ class Attachment(MongoBase, engine=engine.Attachment):
             tags = tags_str.split(',')
             if not all(map(Tag, tags)):
                 raise engine.DoesNotExist
-            
+
         # save file
         file = GridFSProxy()
         file.put(file_obj, filename=filename)

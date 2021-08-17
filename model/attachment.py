@@ -44,10 +44,7 @@ def get_attachment_list(user):
 
 @attachment_api.route('/', methods=['POST'])
 @Request.files('file_obj')
-@Request.form('filename')
-@Request.form('description')
-@Request.form('patch_note')
-@Request.form('tags')
+@Request.form('filename', 'description', 'patch_note', 'tags')
 @identity_verify(0, 1)
 def add_attachment(
     user,
@@ -80,10 +77,7 @@ def add_attachment(
 
 @attachment_api.route('/<id>', methods=['PUT'])
 @Request.files('file_obj')
-@Request.form('description')
-@Request.form('patch_note')
-@Request.form('tags')
-@Request.form('filename')
+@Request.form('description', 'patch_note', 'tags', 'filename')
 @identity_verify(0, 1)
 @Request.doc('id', 'atta', Attachment)
 def edit_attachment(
