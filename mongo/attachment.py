@@ -49,16 +49,17 @@ class Attachment(MongoBase, engine=engine.Attachment):
         '''
         update an attachment from db
         '''
-        tags = tags_str.split(',')
-        if not all(map(Tag, tags)):
-            raise engine.DoesNotExist
+        if tags_str != '' and tags_str is not None:
+            tags = tags_str.split(',')
+            if not all(map(Tag, tags)):
+                raise engine.DoesNotExist
+            self.tags = tags
         if file_obj is not None:
             self.file.replace(file_obj, filename=self.filename)
             self.size = file_obj.getbuffer().nbytes
         self.description = description
         self.filename = filename
         self.updated = datetime.now()
-        self.tags = tags
         self.patch_notes.append(patch_note)
         self.save()
 
@@ -83,9 +84,12 @@ class Attachment(MongoBase, engine=engine.Attachment):
         '''
         if file_obj is None:
             raise FileNotFoundError('you need to upload a file')
-        tags = tags_str.split(',')
-        if not all(map(Tag, tags)):
-            raise engine.DoesNotExist
+        if tags_str != '' and tags_str is not None:
+            tags = tags_str.split(',')
+            if not all(map(Tag, tags)):
+                raise engine.DoesNotExist
+        else:
+            tags = []
         # save file
         file = GridFSProxy()
         file.put(file_obj, filename=filename)
