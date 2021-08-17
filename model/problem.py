@@ -230,7 +230,6 @@ def patch_attachment(
                 if not att:
                     raise FileNotFoundError(
                         f'can not find {att} in public attachment DB')
-                att.obj.update(inc__quote_count=1)
                 source = att.obj
             with get_redis_client().lock(f'{problem}-att'):
                 problem.reload()

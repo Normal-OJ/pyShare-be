@@ -192,7 +192,6 @@ class Attachment(Document):
     tags = ListField(StringField(max_length=16), default=list)
     quote_count = IntField(default=0, db_field='quoteCount')
     download_count = IntField(default=0, db_field='downloadCount')
-    size = IntField(default=0)
 
     @property
     def version_number(self):

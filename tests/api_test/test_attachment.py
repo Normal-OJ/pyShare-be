@@ -15,6 +15,8 @@ class TestAttachment(BaseTester):
             ('filename', 'a' * 65, 400),
             ('fileObj', None, 404),
             ('tags', 'not-existed', 404),
+            ('tags', '', 200),
+            ('tags', None, 200),
         ],
     )
     def test_create_attachment(

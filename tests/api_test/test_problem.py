@@ -143,6 +143,11 @@ class TestAttachment(BaseTester):
                 else:
                     data[key[i]] = value[i]
 
+        quote_count = 0
+        if status_code == 200 and 'attachmentId' in data:
+            rv = client.get(f'/attachment/{data["attachmentId"]}/meta')
+            quote_count = rv.get_json()['data']['quoteCount']
+
         rv = client.post('/problem/1/attachment', data=data)
         assert rv.status_code == status_code, rv.get_json()
 
@@ -156,7 +161,7 @@ class TestAttachment(BaseTester):
             if 'attachmentId' in data:
                 rv = client.get(f'/attachment/{data["attachmentId"]}/meta')
                 assert rv.status_code == 200
-                assert rv.get_json()['data']['quoteCount'] == 1
+                assert rv.get_json()['data']['quoteCount'] == quote_count + 1
 
     def test_add_multiple_attachments(self, forge_client, config_app):
         config_app(env='test')

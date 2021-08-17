@@ -220,6 +220,7 @@ class Problem(MongoBase, engine=engine.Problem):
             att_ks['source'] = source
             file_obj = source.file
             att_ks['version_number'] = source.version_number
+            source.update(inc__quote_count=1)
         att.put(file_obj, **ks)
         return engine.Problem.ProblemAttachment(**att_ks)
 
