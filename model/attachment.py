@@ -22,6 +22,26 @@ def get_attachment(user, attachment):
     )
 
 
+@attachment_api.route('/<id>/meta', methods=['GET'])
+@login_required
+@Request.doc('id', 'attachment', Attachment)
+def get_an_attachment(user, attachment):
+    return HTTPResponse(
+        'get an attachment',
+        data={
+            'filename': attachment.filename,
+            'description': attachment.description,
+            'author': attachment.author.info,
+            'created': attachment.created.timestamp(),
+            'updated': attachment.updated.timestamp(),
+            'id': attachment.id,
+            'size': attachment.size,
+            'patchNotes': attachment.patch_notes,
+            'tags': attachment.tags,
+        },
+    )
+
+
 @attachment_api.route('/', methods=['GET'])
 @login_required
 def get_attachment_list(user):

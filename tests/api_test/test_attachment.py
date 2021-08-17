@@ -53,7 +53,20 @@ class TestAttachment(BaseTester):
         assert rv.get_json()['data'][0]['description'] == 'lol'
         assert rv.get_json()['data'][0]['size'] == 4
 
-    def test_get_an_attachment(self, forge_client, config_app):
+    def test_get_an_attachments(self, forge_client, config_app):
+        config_app(env='test')
+        client = forge_client('teacher1')
+
+        rv = client.get('/attachment')
+        id = rv.get_json()['data'][0]['id']
+
+        rv = client.get(f'/attachment/{id}/meta')
+        assert rv.status_code == 200
+        assert rv.get_json()['data']['filename'] == 'atta1'
+        assert rv.get_json()['data']['description'] == 'lol'
+        assert rv.get_json()['data']['size'] == 4
+
+    def test_get_attachment_file(self, forge_client, config_app):
         config_app(env='test')
         client = forge_client('teacher1')
 
