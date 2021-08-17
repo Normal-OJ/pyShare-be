@@ -75,8 +75,7 @@ class Attachment(MongoBase, engine=engine.Attachment):
 
     @classmethod
     def to_tag_list(cls, tags_str):
-        # even if tags_str is not passed in API, it is still a str 'None'
-        if tags_str == '' or tags_str == 'None':
+        if tags_str == '' or tags_str is None:
             return False
         tags = tags_str.split(',')
         if not all(map(Tag, tags)):

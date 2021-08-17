@@ -16,7 +16,7 @@ class TestAttachment(BaseTester):
             ('fileObj', None, 404),
             ('tags', 'not-existed', 404),
             ('tags', '', 200),
-            ('tags', None, 200),
+            ('tags', 'tag2', 200),
         ],
     )
     def test_create_attachment(
@@ -34,7 +34,6 @@ class TestAttachment(BaseTester):
             'description': 'haha',
             'fileObj': (io.BytesIO(b'Win'), 'goal'),
             'patchNote': 'release',
-            'tags': 'tag2',
         }
         if key:
             data[key] = value
