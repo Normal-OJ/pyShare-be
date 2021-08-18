@@ -45,19 +45,19 @@ class Attachment(MongoBase, engine=engine.Attachment):
         self.file.delete()
         self.obj.delete()
 
-    def update(self, file_obj, description, patch_note, tags_str):
+    def update(self, filename, file_obj, description, patch_note, tags_str):
         '''
         update an attachment from db
         '''
-        tags = tags_str.split(',')
-        if not all(map(Tag, tags)):
-            raise engine.DoesNotExist
+        tags = self.to_tag_list(tags_str)
+        if tags:
+            self.tags = tags
         if file_obj is not None:
             self.file.replace(file_obj, filename=self.filename)
             self.size = file_obj.getbuffer().nbytes
         self.description = description
+        self.filename = filename
         self.updated = datetime.now()
-        self.tags = tags
         self.patch_notes.append(patch_note)
         self.save()
 
@@ -74,6 +74,15 @@ class Attachment(MongoBase, engine=engine.Attachment):
                     problem.author.update(push__notifs=notif.pk)
 
     @classmethod
+    def to_tag_list(cls, tags_str):
+        if tags_str == '' or tags_str is None:
+            return False
+        tags = tags_str.split(',')
+        if not all(map(Tag, tags)):
+            raise engine.DoesNotExist
+        return tags
+
+    @classmethod
     @doc_required('author', User)
     def add(cls, author: User, file_obj, filename, description, patch_note,
             tags_str):
@@ -82,9 +91,9 @@ class Attachment(MongoBase, engine=engine.Attachment):
         '''
         if file_obj is None:
             raise FileNotFoundError('you need to upload a file')
-        tags = tags_str.split(',')
-        if not all(map(Tag, tags)):
-            raise engine.DoesNotExist
+        tags = cls.to_tag_list(tags_str)
+        if not tags:
+            tags = []
         # save file
         file = GridFSProxy()
         file.put(file_obj, filename=filename)

@@ -190,10 +190,27 @@ class Attachment(Document):
                             default=[],
                             db_field='patchNotes')
     tags = ListField(StringField(max_length=16), default=list)
+    quote_count = IntField(default=0, db_field='quoteCount')
+    download_count = IntField(default=0, db_field='downloadCount')
 
     @property
     def version_number(self):
         return len(self.patch_notes)
+
+    def to_dict(self):
+        return {
+            'filename': self.filename,
+            'description': self.description,
+            'author': self.author.info,
+            'created': self.created.timestamp(),
+            'updated': self.updated.timestamp(),
+            'id': self.id,
+            'size': self.size,
+            'patchNotes': self.patch_notes,
+            'tags': self.tags,
+            'downloadCount': self.download_count,
+            'quoteCount': self.quote_count
+        }
 
 
 class Problem(Document):

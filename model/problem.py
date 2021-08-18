@@ -204,8 +204,7 @@ def delete_problem(user, problem):
 @problem_api.route('/<int:pid>/attachment', methods=['POST', 'PUT', 'DELETE'])
 @Request.doc('pid', 'problem', Problem)
 @Request.files('attachment')
-@Request.form('attachment_name')
-@Request.form('attachment_id')
+@Request.form('attachment_name', 'attachment_id')
 @login_required
 def patch_attachment(
     user,

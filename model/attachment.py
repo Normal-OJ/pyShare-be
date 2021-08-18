@@ -14,6 +14,7 @@ attachment_api = Blueprint('attachment_api', __name__)
 @login_required
 @Request.doc('id', 'attachment', Attachment)
 def get_attachment(user, attachment):
+    attachment.obj.update(inc__download_count=1)
     return send_file(
         attachment.file,
         as_attachment=True,
@@ -22,31 +23,28 @@ def get_attachment(user, attachment):
     )
 
 
+@attachment_api.route('/<id>/meta', methods=['GET'])
+@login_required
+@Request.doc('id', 'attachment', Attachment)
+def get_an_attachment(user, attachment):
+    return HTTPResponse(
+        'get an attachment',
+        data=attachment.to_dict(),
+    )
+
+
 @attachment_api.route('/', methods=['GET'])
 @login_required
 def get_attachment_list(user):
     return HTTPResponse(
         'get all attachments\' names',
-        data=[{
-            'filename': a.filename,
-            'description': a.description,
-            'author': a.author.info,
-            'created': a.created,
-            'updated': a.updated,
-            'id': a.id,
-            'size': a.size,
-            'patchNotes': a.patch_notes,
-            'tags': a.tags,
-        } for a in engine.Attachment.objects],
+        data=[a.to_dict() for a in engine.Attachment.objects],
     )
 
 
 @attachment_api.route('/', methods=['POST'])
 @Request.files('file_obj')
-@Request.form('filename')
-@Request.form('description')
-@Request.form('patch_note')
-@Request.form('tags')
+@Request.form('filename', 'description', 'patch_note', 'tags')
 @identity_verify(0, 1)
 def add_attachment(
     user,
@@ -79,9 +77,7 @@ def add_attachment(
 
 @attachment_api.route('/<id>', methods=['PUT'])
 @Request.files('file_obj')
-@Request.form('description')
-@Request.form('patch_note')
-@Request.form('tags')
+@Request.form('description', 'patch_note', 'tags', 'filename')
 @identity_verify(0, 1)
 @Request.doc('id', 'atta', Attachment)
 def edit_attachment(
@@ -90,6 +86,7 @@ def edit_attachment(
     description,
     patch_note,
     tags,
+    filename,
     atta,
 ):
     '''
@@ -99,7 +96,7 @@ def edit_attachment(
         return HTTPError('Permission denied.', 403)
     try:
         with get_redis_client().lock(f'{atta}'):
-            atta.update(file_obj, description, patch_note, tags)
+            atta.update(filename, file_obj, description, patch_note, tags)
     except ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())
     except engine.DoesNotExist as e:
