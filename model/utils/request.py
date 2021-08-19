@@ -79,6 +79,9 @@ class Request(metaclass=_Request):
                 except DoesNotExist as e:
                     return HTTPError(e, 404)
                 # if args missing
+                # TODO: this line may catch a unexpected exception
+                #   which is hard to debug. Define a special exception
+                #   may be a solution.
                 except TypeError as e:
                     return HTTPError(e, 500)
                 except ValidationError as e:

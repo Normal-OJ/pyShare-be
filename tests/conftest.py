@@ -10,6 +10,7 @@ from collections import defaultdict
 from tests.base_tester import random_string, BaseTester
 from tests.api_test.test_homework import CourseData
 from tests.api_test.test_problem import get_file
+from tests import utils
 
 MONGO_MOCK_HOST = 'mongomock://localhost'
 DB = 'pyShare'
@@ -22,13 +23,13 @@ def config_app():
             'config': config,
             'env': env,
         }
+        ISandbox.use(utils.submission.MockSandbox)
         return setup_app(**ks)
 
     yield config_app
     # clean db
-    disconnect()
-    conn = connect(DB, host=MONGO_MOCK_HOST)
-    conn.drop_database(DB)
+    utils.mongo.drop_db()
+    ISandbox.use(None)
 
 
 @pytest.fixture

@@ -2,11 +2,17 @@ import io
 import secrets
 from tests import utils
 from mongo.submission import Submission
+from mongo.sandbox import ISandbox
 from werkzeug.datastructures import FileStorage
 
 
 def setup_function(_):
+    ISandbox.use(utils.submission.MockSandbox)
     utils.mongo.drop_db()
+
+
+def teardown_function(_):
+    ISandbox.use(None)
 
 
 def test_add():

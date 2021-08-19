@@ -1,5 +1,6 @@
-from mongoengine import connect, disconnect
+from mongo.sandbox import ISandbox
 import secrets
+from tests import utils
 
 
 def random_string(k=32):
@@ -22,17 +23,16 @@ class BaseTester:
 
     @classmethod
     def drop_db(cls):
-        disconnect()
-        conn = connect(cls.DB, host=cls.MONGO_HOST)
-        conn.drop_database(cls.DB)
+        utils.mongo.drop_db()
 
     @classmethod
     def setup_class(cls):
+        ISandbox.use(utils.submission.MockSandbox)
         cls.drop_db()
 
     @classmethod
     def teardown_class(cls):
-        cls.drop_db()
+        ISandbox.use(None)
 
     @staticmethod
     def request(client, method, url, **ks):

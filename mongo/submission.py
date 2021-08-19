@@ -89,8 +89,6 @@ class Submission(MongoBase, engine=engine.Submission):
             raise engine.DoesNotExist(f'{self}')
         self.update(status=self.engine.Status.PENDING)
         # send submission to snadbox for judgement
-        if ConfigLoader.get('TESTING') == True:
-            return True
         from .sandbox import ISandbox
         try:
             return ISandbox.cls().send(submission=self)

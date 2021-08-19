@@ -23,8 +23,8 @@ class ISandbox(ABC):
 
     @classmethod
     def use(cls, _cls):
-        if not issubclass(_cls, ISandbox):
-            raise TypeError('It shoud be a subclass of ISandbox')
+        if not _cls is None and not issubclass(_cls, ISandbox):
+            raise TypeError('It shoud be a subclass of ISandbox or None')
         cls.cls = _cls
 
 
@@ -43,28 +43,28 @@ class Sandbox(ISandbox):
         # Extract problem attachments
         files = [(
             'attachments',
-            (a.filename, a, None),
+            (a.filename, a.file),
         ) for a in submission.problem.attachments]
         # Attatch standard input / output
         if submission.problem.is_OJ:
-            with tempfile.TemporaryFile() as tmp_f:
+            with tempfile.NamedTemporaryFile('wb+') as tmp_f:
                 with ZipFile(tmp_f, 'w') as zf:
                     # Add multiple files to the zip
                     zf.writestr('input', submission.problem.extra.input)
                     zf.writestr('output', submission.problem.extra.output)
-                with open(tmp_f.name, 'rb') as f:
-                    files.append(('testcase', (
-                        tmp_f.name,
-                        io.BytesIO(f.read()),
-                        None,
-                    )))
+                files.append(('testcase', (
+                    tmp_f.name,
+                    io.BytesIO(tmp_f.read()),
+                )))
         token = Token(self.SANDBOX_TOKEN).assign(submission.id)
         try:
             resp = rq.post(
                 f'{self.JUDGE_URL}/{submission.id}',
-                params={'token': token},
                 files=files,
-                data={'src': submission.code},
+                data={
+                    'src': submission.code,
+                    'token': token,
+                },
             )
         except rq.exceptions.RequestException as e:
             logger().error(f'Submit {self}: {e}')
