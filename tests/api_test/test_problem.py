@@ -40,7 +40,7 @@ class TestProblem(BaseTester):
         rv = client.get(f'/problem/1/permission')
         json = rv.get_json()
         assert rv.status_code == 200
-        assert set(json['data']) == {*'rwdc'}
+        assert set(json['data']) == {*'rwdcj'}
 
     def test_create_problem(
         self,
@@ -111,6 +111,24 @@ class TestProblem(BaseTester):
         json = rv.get_json()
         assert rv.status_code == 200
         assert len(json['data']) == 2
+
+    def test_rejudge(
+        self,
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
+    ):
+        # TODO: see if comments are rejudged or not
+        teacher = utils.user.Factory.teacher()
+        course = utils.course.lazy_add(teacher=teacher)
+        problem = utils.problem.lazy_add(course=course)
+        utils.comment.lazy_add_comment(
+            author=teacher.pk,
+            problem=problem,
+        )
+        client = forge_client(teacher.username)
+
+        rv = client.get(f'/problem/{problem.id}/rejudge')
+        json = rv.get_json()
+        assert rv.status_code == 200, json
 
 
 class TestAttachment(BaseTester):

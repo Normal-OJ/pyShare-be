@@ -301,3 +301,18 @@ def clone_problem(user, problem, course, is_template):
     except PermissionError as e:
         return HTTPError(e, 403)
     return HTTPResponse('Success.')
+
+
+@problem_api.route('/<int:pid>/rejudge', methods=['GET'])
+@login_required
+@Request.doc('pid', 'problem', Problem)
+def rejudge_problem(user, problem):
+    if not problem.permission(user=user, req={'j'}):
+        return HTTPError('Permission denied.', 403)
+
+    for comment in problem.comments:
+        try:
+            Comment(comment).submit()
+        except Submission.Pending as e:
+            return HTTPError(e, 503)
+    return HTTPResponse('success')

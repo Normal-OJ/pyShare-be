@@ -19,8 +19,8 @@ class Problem(MongoBase, engine=engine.Problem):
     @doc_required('user', 'user', User)
     def own_permission(self, user: User):
         '''
-        {'r', 'w', 'd', 'c'}
-        represent read, write, delete, clone respectively
+        {'r', 'w', 'd', 'c', 'j'}
+        represent read, write, delete, clone, rejudge respectively
         '''
         _permission = set()
         if self.online:
@@ -31,9 +31,9 @@ class Problem(MongoBase, engine=engine.Problem):
         # all templates can be used
         if self.is_template:
             _permission.add('r')
-        # problem author and admin can edit, delete problem
+        # problem author and admin can edit, delete, rejudge problem
         if user == self.author or user >= 'admin':
-            _permission |= {*'rwd'}
+            _permission |= {*'rwdj'}
         # teachers and above can clone
         if user >= 'teacher':
             _permission.add('c')
