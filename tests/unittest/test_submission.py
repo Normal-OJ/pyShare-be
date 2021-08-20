@@ -1,6 +1,7 @@
 import io
 import secrets
 from tests import utils
+from mongo.comment import Comment
 from mongo.submission import Submission
 from mongo.sandbox import ISandbox
 from werkzeug.datastructures import FileStorage
@@ -34,6 +35,8 @@ def test_complete():
         stdout='output',
         judge_result=0,
     )
+    assert submission.result.stdout == 'output'
+    assert submission.result.stderr == 'err'
 
 
 def test_get_files():
@@ -60,3 +63,37 @@ def test_get_files():
     for name, content in files.items():
         file = submission.get_file(name)
         assert file.read() == content
+
+
+def test_complete_multiple():
+    problem = utils.problem.lazy_add(allow_multiple_comments=True)
+    submission = utils.submission.lazy_add_new(problem=problem)
+    except_outputs = ((secrets.token_hex(), secrets.token_hex())
+                      for _ in range(10))
+    for out, err in except_outputs:
+        submission.complete(
+            files=[],
+            stderr=err,
+            stdout=out,
+            judge_result=0,
+        )
+        assert submission.result.stdout == out
+        assert submission.result.stderr == err
+
+
+def test_oj_problem_has_accepted_shoulde_update():
+    problem = utils.problem.lazy_add(
+        allow_multiple_comments=True,
+        is_oj=True,
+    )
+    submission = utils.submission.lazy_add_new(problem=problem)
+    submission.complete(
+        files=[],
+        stderr='err',
+        stdout='output',
+        judge_result=Submission.engine.JudgeResult.AC,
+    )
+    Comment(submission.comment).finish_submission()
+    submission.reload('comment')
+    assert submission.result.judge_result == Submission.engine.JudgeResult.AC
+    assert submission.comment.has_accepted == True
