@@ -1,6 +1,7 @@
 import io
 import secrets
 from tests import utils
+from mongo.comment import Comment
 from mongo.submission import Submission
 from mongo.sandbox import ISandbox
 from werkzeug.datastructures import FileStorage
@@ -92,5 +93,7 @@ def test_oj_problem_has_accepted_shoulde_update():
         stdout='output',
         judge_result=Submission.engine.JudgeResult.AC,
     )
+    Comment(submission.comment).finish_submission()
+    submission.reload('comment')
     assert submission.result.judge_result == Submission.engine.JudgeResult.AC
     assert submission.comment.has_accepted == True
