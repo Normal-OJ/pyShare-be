@@ -307,7 +307,7 @@ def clone_problem(user, problem, course, is_template):
 @login_required
 @Request.doc('pid', 'problem', Problem)
 def rejudge_problem(user, problem):
-    if not problem.permission(user=user, req={'j'}):
+    if not problem.permission(user=user, req={'w'}):
         return HTTPError('Permission denied.', 403)
 
     for comment in problem.comments:
