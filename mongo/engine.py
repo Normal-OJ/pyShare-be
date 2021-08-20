@@ -285,7 +285,7 @@ class Submission(Document):
         stdout = StringField(max_length=10**6, default='')
         stderr = StringField(max_length=10**6, default='')
         judge_result = IntField(default=None)
-    
+
     class JudgeResult(Enum):
         AC = 0
         WA = 1

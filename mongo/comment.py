@@ -236,7 +236,6 @@ class Comment(MongoBase, engine=engine.Comment):
         submission.add_on_complete_listener(self.finish_submission)
         return submission
 
-
     @classmethod
     def add_to_comment(
         cls,
