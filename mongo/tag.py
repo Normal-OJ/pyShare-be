@@ -29,5 +29,5 @@ class Tag(MongoBase, engine=engine.Tag):
         '''
         add a tag to db
         '''
-        t = engine.Tag(value=value)
-        t.save()
+        t = cls.engine(value=value).save()
+        return cls(t)
