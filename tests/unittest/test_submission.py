@@ -34,6 +34,8 @@ def test_complete():
         stdout='output',
         judge_result=0,
     )
+    assert submission.result.stdout == 'output'
+    assert submission.result.stderr == 'err'
 
 
 def test_get_files():
@@ -60,3 +62,19 @@ def test_get_files():
     for name, content in files.items():
         file = submission.get_file(name)
         assert file.read() == content
+
+
+def test_complete_multiple():
+    problem = utils.problem.lazy_add(allow_multiple_comments=True)
+    submission = utils.submission.lazy_add_new(problem=problem)
+    except_outputs = ((secrets.token_hex(), secrets.token_hex())
+                      for _ in range(10))
+    for out, err in except_outputs:
+        submission.complete(
+            files=[],
+            stderr=err,
+            stdout=out,
+            judge_result=0,
+        )
+        assert submission.result.stdout == out
+        assert submission.result.stderr == err
