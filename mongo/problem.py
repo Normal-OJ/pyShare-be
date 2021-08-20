@@ -168,6 +168,11 @@ class Problem(MongoBase, engine=engine.Problem):
         raise FileNotFoundError(
             f'can not find a attachment named [{filename}]')
 
+    def rejudge(self):
+        from .comment import Comment
+        for comment in self.comments:
+            Comment(comment).submit()
+
     @classmethod
     def filter(
         cls,

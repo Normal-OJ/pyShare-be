@@ -310,9 +310,8 @@ def rejudge_problem(user, problem):
     if not problem.permission(user=user, req={'w'}):
         return HTTPError('Permission denied.', 403)
 
-    for comment in problem.comments:
-        try:
-            Comment(comment).submit()
-        except Submission.Pending as e:
-            return HTTPError(e, 503)
+    try:
+        problem.rejudge()
+    except Submission.Pending as e:
+        return HTTPError(e, 503)
     return HTTPResponse('success')
