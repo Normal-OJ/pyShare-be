@@ -40,7 +40,7 @@ class TestProblem(BaseTester):
         rv = client.get(f'/problem/1/permission')
         json = rv.get_json()
         assert rv.status_code == 200
-        assert set(json['data']) == {*'rwdc'}
+        assert set(json['data']) == {*'rwjdc'}
 
     def test_create_problem(
         self,
