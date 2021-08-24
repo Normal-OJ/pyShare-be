@@ -36,8 +36,12 @@ def manage_tag(user, tags):
                 Tag.add(value=tag)
             else:
                 Tag(tag).delete()
-        except (engine.DoesNotExist, engine.ValidationError,
-                engine.NotUniqueError, PermissionError) as e:
+        except (
+                engine.DoesNotExist,
+                engine.ValidationError,
+                engine.NotUniqueError,
+                PermissionError,
+        ) as e:
             fail.append({
                 'value': tag,
                 'msg': str(e),
