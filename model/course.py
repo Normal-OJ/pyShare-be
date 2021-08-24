@@ -136,6 +136,8 @@ def create_course(
         return HTTPError(e, 403)
     except NotUniqueError as e:
         return HTTPError(e, 422)
+    except DoesNotExist as e:
+        return HTTPError(e, 404)
     return HTTPResponse('success', data={'id': c.id})
 
 

@@ -69,6 +69,11 @@ class Course(MongoBase, engine=engine.Course):
             raise PermissionError(
                 'only those who has more permission'
                 ' than teacher can create course', )
+        # Tags should exist in collection
+        if 'tags' in ks and not all(map(Tag, ks['tags'])):
+            raise Tag.engine.DoesNotExist(
+                'Some tag can not be '
+                'found in system', )
         # insert a new course into DB
         c = cls.engine(
             teacher=teacher.pk,
