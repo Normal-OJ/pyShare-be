@@ -86,6 +86,23 @@ def get_single_problem(user, problem):
     )
 
 
+@problem_api.route('/<int:pid>/io', methods=['GET'])
+@login_required
+@Request.doc('pid', 'problem', Problem)
+def get_single_problem_io(user, problem):
+    if not problem.permission(user=user, req={'r'}):
+        return HTTPError('Not enough permission', 403)
+    if not problem.is_OJ:
+        return HTTPError('Not an OJ problem', 400)
+    return HTTPResponse(
+        'here you are, bro',
+        data={
+            'input': problem.extra.input,
+            'output': problem.extra.output
+        },
+    )
+
+
 @problem_api.route('/<int:pid>/permission', methods=['GET'])
 @login_required
 @Request.doc('pid', 'problem', Problem)

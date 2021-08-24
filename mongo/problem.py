@@ -108,6 +108,9 @@ class Problem(MongoBase, engine=engine.Problem):
         ret['comments'] = [str(c) for c in ret['comments']]
         for k in ('_id', 'height'):
             del ret[k]
+        if self.is_OJ:
+            for k in ('input', 'output'):
+                del ret['extra'][k]
         return ret
 
     def delete(self):

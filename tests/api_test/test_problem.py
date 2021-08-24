@@ -33,6 +33,16 @@ class TestProblem(BaseTester):
         assert rv.status_code == 200, (rv, client.cookie_jar)
         assert len(json['data']) == 3, json
 
+    def test_get_input_ouput(self, forge_client, config_app):
+        config_app(env='test')
+        client = forge_client('teacher1')
+
+        rv = client.get(f'/problem/1/io')
+        json = rv.get_json()
+        assert rv.status_code == 200
+        assert json['data']['input'] == 'test input'
+        assert json['data']['output'] == 'test output'
+
     def test_get_permission(self, forge_client, config_app):
         config_app(env='test')
         client = forge_client('teacher1')
