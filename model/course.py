@@ -228,18 +228,14 @@ def update_tags(user, course, push, pop):
     '''
     if not course.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
-    if not all(map(Tag, push)):
-        return HTTPError('Push: Tag not found', 404)
-    if {*pop} & {*push}:
-        return HTTPError('Tag appears in both list', 400)
-    if {*push} & {*course.tags}:
-        return HTTPError('Push: Tag is already in course', 400)
-    if {*pop} - {*course.tags}:
-        return HTTPError('Pop: Tag not found', 404)
     try:
         course.patch_tag(push, pop)
     except ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())
+    except ValueError as e:
+        return HTTPError(e, 400)
+    except engine.DoesNotExist as e:
+        return HTTPError(e, 400)
     return HTTPResponse('success')
 
 
