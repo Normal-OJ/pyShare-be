@@ -25,7 +25,7 @@ def data(
     }
     if tags is not None:
         ret['tags'] = tags
-    # save teacher's pk
+    # Save teacher's pk
     if teacher is not None:
         ret['teacher'] = getattr(teacher, 'pk', teacher)
     else:
@@ -34,8 +34,15 @@ def data(
     return ret
 
 
-def lazy_add(**ks):
-    return Course.add(**data(**ks))
+def lazy_add(
+    auto_insert_tags: bool = False,
+    **ks,
+):
+    course_data = data(**ks)
+    if auto_insert_tags == True:
+        for tag in course_data['tags']:
+            Tag.add(tag)
+    return Course.add(**course_data)
 
 
 def student(course: Course):
