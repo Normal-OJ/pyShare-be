@@ -25,3 +25,16 @@ def test_add_tag(forge_client: Callable[[str], FlaskClient]):
     assert rv.status_code == 200, rv.get_json()
     assert len(Tag.engine.objects) == 1
     assert Tag(tag_str)
+
+
+def test_get_all_tag(forge_client: Callable[[str], FlaskClient]):
+    tags = [random_tag_str() for _ in range(10)]
+    for tag in tags:
+        Tag.add(tag)
+    teacher = utils.user.Factory.teacher()
+    client = forge_client(teacher.username)
+    rv = client.get('/tag')
+    assert rv.status_code == 200
+    resp_tags = rv.get_json()['data']
+    sys_tags = [t.value for t in Tag.engine.objects]
+    assert sorted(resp_tags) == sorted(sys_tags)
