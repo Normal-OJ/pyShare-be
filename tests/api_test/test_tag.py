@@ -1,5 +1,8 @@
+from re import A
 import secrets
 from typing import Callable
+from _pytest.mark import param
+import pytest
 from flask.testing import FlaskClient
 from mongo import Tag
 from tests import utils
@@ -35,6 +38,24 @@ def test_get_all_tag(forge_client: Callable[[str], FlaskClient]):
     client = forge_client(teacher.username)
     rv = client.get('/tag')
     assert rv.status_code == 200
-    resp_tags = rv.get_json()['data']
+    rv_tags = rv.get_json()['data']
     sys_tags = [t.value for t in Tag.engine.objects]
-    assert sorted(resp_tags) == sorted(sys_tags)
+    assert sorted(rv_tags) == sorted(sys_tags)
+
+
+def test_get_course_tags(forge_client: Callable[[str], FlaskClient], ):
+    tags = [random_tag_str() for _ in range(5)]
+    # Create course with some tags
+    course = utils.course.lazy_add(
+        tags=tags,
+        auto_insert_tags=True,
+    )
+    client = forge_client(course.teacher.username)
+    rv = client.get(
+        '/tag',
+        query_string=f'course={course.id}',
+    )
+    assert rv.status_code == 200
+    rv_tags = rv.get_json()['data']
+    excepted = course.tags
+    assert sorted(rv_tags) == sorted(excepted)
