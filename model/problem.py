@@ -312,7 +312,9 @@ def clone_problem(user, problem, course, is_template):
     if not problem.permission(user=user, req={'c'}):
         return HTTPError('Permission denied.', 403)
     try:
-        problem.copy(target_course=course, is_template=(is_template == 'true'))
+        problem.copy(target_course=course,
+                     is_template=(is_template == 'true'),
+                     user=user)
     except engine.ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())
     except PermissionError as e:

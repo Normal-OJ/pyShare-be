@@ -121,6 +121,8 @@ class TestProblem(BaseTester):
         json = rv.get_json()
         assert rv.status_code == 200
         assert len(json['data']) == 2
+        assert json['data'][0]['author']['username'] != 'teacher1'
+        assert json['data'][1]['author']['username'] == 'teacher1'
 
 
 class TestAttachment(BaseTester):
