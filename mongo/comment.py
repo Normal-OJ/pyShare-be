@@ -56,7 +56,7 @@ class Comment(MongoBase, engine=engine.Comment):
         if user == self.author:
             _permission |= {*'wjd'}
         # Course teacher can rejudge and delete comment
-        elif user == c.teacher:
+        elif c.permission(user=user, req='w'):
             _permission |= {*'jd'}
         # Course teacher and admin can update state
         if user == c.teacher or user >= 'admin':
