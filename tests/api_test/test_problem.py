@@ -113,14 +113,17 @@ class TestProblem(BaseTester):
         client = forge_client('teacher1')
 
         rv = client.get(
-            f'/problem/2/clone/{str(Course.get_by_name("course_108-1").id)}')
+            f'/problem/2/clone/{Course.get_by_name("course_108-1").id}')
         json = rv.get_json()
         assert rv.status_code == 200, json
+        teacher = Course.get_by_name("course_108-1").teacher.username
 
         rv = client.get('/problem?title=p2')
         json = rv.get_json()
         assert rv.status_code == 200
         assert len(json['data']) == 2
+        assert json['data'][0]['author']['username'] != teacher
+        assert json['data'][1]['author']['username'] == teacher
 
 
 class TestAttachment(BaseTester):
