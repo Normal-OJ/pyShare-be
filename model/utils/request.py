@@ -55,9 +55,8 @@ class _Request(type):
                     try:
                         for k, t in map_dec_params(keys):
                             repl_k = repl_underscore(k)
-                            kwargs.update({
-                                k: check_val_type(data.get(repl_k), t)
-                            })
+                            kwargs.update(
+                                {k: check_val_type(data.get(repl_k), t)})
                     except ValueError as ve:
                         return HTTPError(
                             'Requested Value With Wrong Type',
