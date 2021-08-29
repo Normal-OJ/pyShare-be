@@ -19,8 +19,8 @@ class Problem(MongoBase, engine=engine.Problem):
     @doc_required('user', 'user', User)
     def own_permission(self, user: User):
         '''
-        {'r', 'w', 'd', 'c'}
-        represent read, write, delete, clone respectively
+        {'r', 'w', 'd', 'c', 'j'}
+        represent read, write, delete, clone, rejudge respectively
         '''
         _permission = set()
         if self.online:
@@ -37,6 +37,9 @@ class Problem(MongoBase, engine=engine.Problem):
         # teachers and above can clone
         if user >= 'teacher':
             _permission.add('c')
+        # people who can write the course can rejudge problem
+        if Course(self.course).permission(user=user, req={'w'}):
+            _permission.add('j')
         return _permission
 
     @doc_required('user', 'user', User)
@@ -172,6 +175,11 @@ class Problem(MongoBase, engine=engine.Problem):
                 return True
         raise FileNotFoundError(
             f'can not find a attachment named [{filename}]')
+
+    def rejudge(self):
+        from .comment import Comment
+        for comment in self.comments:
+            Comment(comment).submit()
 
     @classmethod
     def filter(

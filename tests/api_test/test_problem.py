@@ -13,6 +13,15 @@ from tests import utils
 mongomock.gridfs.enable_gridfs_integration()
 
 
+def setup_function(_):
+    ISandbox.use(utils.submission.MockSandbox)
+    utils.mongo.drop_db()
+
+
+def teardown_function(_):
+    ISandbox.use(None)
+
+
 def get_file(file):
     with open("./tests/problem_test_case/" + file, 'rb') as f:
         return {'case': (io.BytesIO(f.read()), "test_case.zip")}
@@ -50,7 +59,7 @@ class TestProblem(BaseTester):
         rv = client.get(f'/problem/1/permission')
         json = rv.get_json()
         assert rv.status_code == 200
-        assert set(json['data']) == {*'rwdc'}
+        assert set(json['data']) == {*'rwjdc'}
 
     def test_create_problem(
         self,
@@ -124,6 +133,38 @@ class TestProblem(BaseTester):
         assert len(json['data']) == 2
         assert json['data'][0]['author']['username'] != teacher
         assert json['data'][1]['author']['username'] == teacher
+
+    def test_rejudge(
+        self,
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
+    ):
+        # TODO: see if comments are rejudged or not
+        teacher = utils.user.Factory.teacher()
+        course = utils.course.lazy_add(teacher=teacher)
+        problem = utils.problem.lazy_add(course=course,
+                                         is_oj=True,
+                                         output='hi')
+        comment = utils.comment.lazy_add_comment(
+            author=teacher.pk,
+            problem=problem,
+        )
+        comment.submit('print("hi")')
+        client = forge_client(teacher.username)
+        Submission(comment.submission).complete(
+            files=[],
+            stderr='err',
+            stdout='output',
+            judge_result=0,
+        )
+
+        assert comment.submission.status == 1
+
+        rv = client.get(f'/problem/{problem.id}/rejudge')
+        json = rv.get_json()
+        assert rv.status_code == 200, json
+
+        comment.submission.reload()
+        assert comment.submission.status == 0
 
 
 class TestAttachment(BaseTester):
