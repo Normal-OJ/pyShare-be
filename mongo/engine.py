@@ -430,6 +430,12 @@ class School(Document):
         }
 
 
+class Sandbox(Document):
+    url = URLField(requried=True, unique=True)
+    token = StringFIeld(required=True)
+    alias = StringFIeld(max_length=32)
+
+
 # register delete rule. execute here to resolve `NotRegistered`
 # exception caused by two-way reference
 # see detailed info at https://github.com/MongoEngine/mongoengine/issues/1707

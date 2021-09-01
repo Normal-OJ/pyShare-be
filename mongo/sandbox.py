@@ -4,6 +4,7 @@ import tempfile
 from abc import ABC, abstractmethod
 from zipfile import ZipFile
 import requests as rq
+from . import engine
 from .utils import doc_required, logger
 from .submission import Submission
 from .token import Token
@@ -11,7 +12,12 @@ from .token import Token
 __all__ = (
     'ISandbox',
     'Sandbox',
+    'SandboxNotFound',
 )
+
+
+class SandboxNotFound(Exception):
+    pass
 
 
 class ISandbox(ABC):
@@ -28,15 +34,13 @@ class ISandbox(ABC):
         cls.cls = _cls
 
 
+# TODO: inherit MongoBase
 class Sandbox(ISandbox):
-    JUDGE_URL = os.getenv(
-        'JUDGE_URL',
-        'http://sandbox:1450',
-    )
-    SANDBOX_TOKEN = os.getenv(
-        'SANDBOX_TOKEN',
-        'KoNoSandboxDa',
-    )
+    def get_loading(sandbox: engine.Sandbox) -> float:
+        resp = rq.get(f'{sandbox.url}/status')
+        if not resp.ok:
+            return 1
+        return resp.json()['load']
 
     @doc_required('submission', Submission)
     def send(self, submission: Submission) -> bool:
@@ -56,10 +60,15 @@ class Sandbox(ISandbox):
                     tmp_f.name,
                     io.BytesIO(tmp_f.read()),
                 )))
-        token = Token(self.SANDBOX_TOKEN).assign(submission.id)
+        try:
+            target = min(engine.Sandbox.objects, key=self.get_loading)
+        # engine.Sandbox.objects is empty
+        except ValueError:
+            raise SandboxNotFound
+        token = Token(target.token).assign(submission.id)
         try:
             resp = rq.post(
-                f'{self.JUDGE_URL}/{submission.id}',
+                f'{target.url}/{submission.id}',
                 files=files,
                 data={
                     'src': submission.code,
