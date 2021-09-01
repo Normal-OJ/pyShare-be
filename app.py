@@ -26,6 +26,7 @@ api2name = [
     (attachment_api, '/attachment'),
     (notif_api, '/notif'),
     (school_api, '/school'),
+    (sandbox_api, '/sandbox'),
 ]
 for api, name in api2name:
     app.register_blueprint(api, url_prefix=name)
@@ -140,7 +141,7 @@ def setup_course(courses):
                 for s in students:
                     s.update(add_to_set__courses=c.obj)
                 c.update(push_all__students=students)
-            # add problems if specified !!! TODO !!!
+            # Add problems if specified
             problems = course_data.get('problems')
             if problems is not None:
                 problems = [*map(Problem, problems)]
