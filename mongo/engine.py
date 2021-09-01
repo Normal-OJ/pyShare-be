@@ -428,7 +428,8 @@ class School(Document):
 
 
 class Sandbox(Document):
-    url = URLField(requried=True, unique=True)
+    # TODO: URL validation
+    url = StringField(requried=True, unique=True)
     token = StringField(required=True)
     alias = StringField(max_length=32)
 

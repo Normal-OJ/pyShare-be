@@ -36,7 +36,7 @@ class ISandbox(ABC):
 
 # TODO: inherit MongoBase
 class Sandbox(ISandbox):
-    def get_loading(sandbox: engine.Sandbox) -> float:
+    def get_loading(self, sandbox: engine.Sandbox) -> float:
         resp = rq.get(f'{sandbox.url}/status')
         if not resp.ok:
             return 1
