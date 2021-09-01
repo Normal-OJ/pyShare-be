@@ -1,5 +1,5 @@
 # TODO: move test dependencies to tests/requirements.txt
-flask==1.1.2
+flask==2.0.1
 gunicorn==20.0.4
 mongoengine==0.19.1
 PyJWT==1.7.1
