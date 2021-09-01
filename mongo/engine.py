@@ -5,9 +5,6 @@ import os
 import re
 import hashlib
 from datetime import datetime
-
-from mongoengine.fields import StringField
-
 from .utils import Enum
 
 __all__ = mongoengine.__all__
@@ -432,8 +429,8 @@ class School(Document):
 
 class Sandbox(Document):
     url = URLField(requried=True, unique=True)
-    token = StringFIeld(required=True)
-    alias = StringFIeld(max_length=32)
+    token = StringField(required=True)
+    alias = StringField(max_length=32)
 
 
 # register delete rule. execute here to resolve `NotRegistered`

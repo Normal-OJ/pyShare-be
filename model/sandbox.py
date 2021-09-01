@@ -14,7 +14,7 @@ sandbox_api = Blueprint('sandbox_api', __name__)
 
 @sandbox_api.before_request
 @login_required
-@identity_verify(User.Role.ADMIN)
+@identity_verify(User.engine.Role.ADMIN)
 def before_sandbox_api(user):
     '''
     Only admin can use this route
