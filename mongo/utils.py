@@ -2,6 +2,7 @@ import hashlib
 import json
 import os
 from functools import wraps
+from typing import Optional
 from bson import ObjectId
 import redis
 from . import engine
@@ -30,13 +31,25 @@ class Enum:
 
     @classmethod
     def choices(cls):
-        return [val for key, val in cls.items()]
+        return [val for _, val in cls.items()]
 
 
-def hash_id(salt, text):
+def hash_id(
+    salt: Optional[str],
+    text: Optional[str],
+):
     text = ((salt or '') + (text or '')).encode()
     sha = hashlib.sha3_512(text)
     return sha.hexdigest()[:24]
+
+
+def logger():
+    try:
+        from flask import current_app
+        return current_app.logger
+    except RuntimeError:
+        import logging
+        return logging.getLogger('gunicorn.error')
 
 
 def to_bool(s: str):
@@ -95,10 +108,8 @@ def doc_required(
                 raise engine.DoesNotExist(f'{doc} not found!')
             # replace original paramters
             del ks[src]
-            # FIXME: current_app is not defined
             if des in ks:
-                current_app.logger.warning(
-                    f'replace a existed argument in {func}')
+                logger().warning(f'Replace a existed argument in {func}')
             ks[des] = doc
             return func(*args, **ks)
 
@@ -138,12 +149,3 @@ def get_redis_client():
                 db=0,
             )
         return redis.Redis(connection_pool=redis_pool)
-
-
-def logger():
-    try:
-        from flask import current_app
-        return current_app.logger
-    except RuntimeError:
-        import logging
-        return logging.getLogger('gunicorn.error')
