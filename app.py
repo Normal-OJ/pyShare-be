@@ -13,7 +13,7 @@ app = Flask(__name__)
 app.url_map.strict_slashes = False
 app.json_encoder = PyShareJSONEncoder
 
-# Regist flask blueprint
+# Register flask blueprint
 api2name = [
     (auth_api, '/auth'),
     (problem_api, '/problem'),
@@ -30,11 +30,16 @@ api2name = [
 ]
 for api, name in api2name:
     app.register_blueprint(api, url_prefix=name)
-
 # Setup SocketIO server
 socketio = SocketIO(cors_allowed_origins='*')
 socketio.on_namespace(Notifier(Notifier.namespace))
 socketio.init_app(app)
+
+
+# Register error handler
+@app.errorhandler(SandboxNotFound)
+def on_sandbox_not_found(_):
+    return HTTPError('There are no sandbox available', 503)
 
 
 def setup_user(usernames):

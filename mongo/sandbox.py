@@ -1,4 +1,3 @@
-import os
 import io
 import tempfile
 from abc import ABC, abstractmethod
