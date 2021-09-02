@@ -68,6 +68,8 @@ def add_attachment(
         )
     except FileExistsError as e:
         return HTTPError(e, 400)
+    except PermissionError as e:
+        return HTTPError(e, 403)
     except (FileNotFoundError, engine.DoesNotExist) as e:
         return HTTPError(e, 404)
     except ValidationError as ve:
