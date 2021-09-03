@@ -5,7 +5,7 @@ from flask_socketio import SocketIO
 from model import *
 from model.utils import *
 from mongo import *
-from mongo import engine, config
+from mongo import engine, config as config_lib
 import io
 
 
@@ -25,6 +25,8 @@ def setup_app(
     app = Flask(__name__)
     app.url_map.strict_slashes = False
     app.json_encoder = PyShareJSONEncoder
+    # read flask app config from module
+    app.config.from_object(config)
     # Regist flask blueprint
     api2name = [
         (auth_api, '/auth'),
@@ -41,12 +43,13 @@ def setup_app(
     ]
     for api, name in api2name:
         app.register_blueprint(api, url_prefix=name)
+    if config_lib.ConfigLoader.get('DEBUG') == True:
+        from model.dummy import dummy_api
+        app.register_blueprint(dummy_api, url_prefix='/dummy')
     # Setup SocketIO server
     socketio = SocketIO(cors_allowed_origins='*')
     socketio.on_namespace(Notifier(Notifier.namespace))
     socketio.init_app(app)
-    # read flask app config from module
-    app.config.from_object(config)
     # setup environment for testing
     if env:
         setup_env(env)
@@ -56,10 +59,10 @@ def setup_app(
 def gunicorn_prod_app():
     # get production app
     app = setup_app(
-        config='mongo.config.ProdConfig',
+        config_mod='mongo.config.ProdConfig',
         env='prod',
     )
-    config.ConfigLoader.load(config.ProdConfig)
+    config_lib.ConfigLoader.load(config_lib.ProdConfig)
     ISandbox.use(Sandbox)
     # let flask app user gunicorn error logger
     g_logger = logging.getLogger('gunicorn.error')
