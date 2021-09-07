@@ -22,8 +22,10 @@ def comment_data(
     if problem is None:
         problem = problem_lib.lazy_add()
     # Convert to problem
-    if not isinstance(problem, Problem):
+    elif not isinstance(problem, Problem):
         problem = Problem(problem)
+        if not problem:
+            raise Problem.engine.DoesNotExist
     if author is None:
         author = course_lib.student(problem.course)
     ret.update(

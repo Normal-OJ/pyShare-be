@@ -39,3 +39,16 @@ def health_check():
 def create_user(**ks):
     u = utils.user.lazy_signup(**drop_none(ks))
     return HTTPResponse(data=u.info)
+
+
+@dummy_api.post('/comment')
+@Request.json(
+    'title',
+    'content',
+    'author',
+    'problem',
+    'code',
+)
+def create_comment(**ks):
+    c = utils.comment.lazy_add_comment(**ks)
+    return HTTPResponse(data=c.to_dict())
