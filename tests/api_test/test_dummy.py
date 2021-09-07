@@ -95,3 +95,51 @@ class TestCreateDummyResource:
                 '/dummy/comment',
                 json={res: val},
             )
+
+    def test_create_reply(
+        self,
+        forge_client: Callable[[str], FlaskClient],
+    ):
+        client = forge_client(self.admin.username)
+        title = secrets.token_hex()
+        content = secrets.token_hex()
+        rv = client.post(
+            '/dummy/reply',
+            json={
+                'title': title,
+                'content': content,
+            },
+        )
+        assert rv.status_code == 200, rv.get_json()
+        rv_reply = rv.get_json()['data']
+        assert rv_reply['title'] == title
+        assert rv_reply['content'] == content
+
+    def test_create_course(
+        self,
+        forge_client: Callable[[str], FlaskClient],
+    ):
+        client = forge_client(self.admin.username)
+        name = secrets.token_hex()[:16]
+        rv = client.post(
+            '/dummy/course',
+            json={'name': name},
+        )
+        assert rv.status_code == 200, rv.get_json()
+        rv_course = Course(rv.get_json()['data']['id'])
+        assert rv_course
+        assert rv_course.name == name
+
+    def test_create_problem(
+        self,
+        forge_client: Callable[[str], FlaskClient],
+    ):
+        client = forge_client(self.admin.username)
+        course = utils.course.lazy_add()
+        rv = client.post(
+            '/dummy/problem',
+            json={'course': str(course.id)},
+        )
+        assert rv.status_code == 200, rv.get_json()
+        rv_problem = rv.get_json()['data']
+        assert rv_problem['course'] == str(course.id)
