@@ -25,8 +25,12 @@ def setup_app(
     app = Flask(__name__)
     app.url_map.strict_slashes = False
     app.json_encoder = PyShareJSONEncoder
-    # read flask app config from module
-    app.config.from_object(config)
+    # Override flask's config by core config
+    # Note: Although the config is overridden, `ENV` and `DEBUG` should
+    #   still set by env var (according to official document)
+    # Ref: https://flask.palletsprojects.com/en/2.0.x/config/#environment-and-debug-features
+    for k in ('TESTING', 'ENV', 'DEBUG'):
+        app.config[k] = config_lib.config[k]
     # Regist flask blueprint
     api2name = [
         (auth_api, '/auth'),
@@ -44,6 +48,9 @@ def setup_app(
     for api, name in api2name:
         app.register_blueprint(api, url_prefix=name)
     if config_lib.ConfigLoader.get('DEBUG') == True:
+        logger().warning(
+            'Load dummy resource API, don\'t'
+            ' use this under production mode', )
         from model.dummy import dummy_api
         app.register_blueprint(dummy_api, url_prefix='/dummy')
     # Setup SocketIO server
