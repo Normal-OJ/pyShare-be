@@ -2,6 +2,7 @@ from dynaconf import Dynaconf, Validator
 
 __all__ = ('ConfigLoader', )
 
+DEFAULT_SECRET = 'SuperSecretString'
 config = Dynaconf(
     envvar_prefix='PYSHARE',
     settings_files=[
@@ -36,11 +37,7 @@ config = Dynaconf(
         #         env='production',
         #         ne='SuperSecretString',
         #     ),
-        #     Validator(
-        #         'JWT.SECRET',
-        #         default='SuperSecretString',
-        #         env='development',
-        #     ),
+        Validator('JWT.SECRET', default=DEFAULT_SECRET),
         #     Validator(
         #         'SMTP.SERVER',
         #         'SMTP.ADMIN',

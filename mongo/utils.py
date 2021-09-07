@@ -5,7 +5,7 @@ from functools import wraps
 from bson import ObjectId
 import redis
 from . import engine
-from .config import ConfigLoader
+from .config import config
 
 __all__ = [
     'hash_id',
@@ -122,7 +122,7 @@ redis_pool = None
 
 def get_redis_client():
     # Only import fakeredis in testing environment
-    if ConfigLoader.get('TESTING') == True:
+    if config['TESTING'] == True:
         import fakeredis
         global server
         if server is None:
@@ -133,8 +133,8 @@ def get_redis_client():
         global redis_pool
         if redis_pool is None:
             redis_pool = redis.ConnectionPool(
-                host=os.getenv('REDIS_HOST'),
-                port=os.getenv('REDIS_PORT'),
+                host=config['REDIS']['HOST'],
+                port=config['REDIS']['PORT'],
                 db=0,
             )
         return redis.Redis(connection_pool=redis_pool)
