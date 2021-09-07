@@ -9,11 +9,11 @@ test:
     - pip install -r requirements.txt
     - pip install -r tests/requirements.txt
     - yapf -pqr .
-    - pytest --cov=./ --cov-config=.coveragerc --junitxml=report.xml
+    - pytest --cov=./ --cov-config=.coveragerc --junitxml=$IMAGE-report.xml
   artifacts:
     when: always
     reports:
-      junit: report.xml
+      junit: $IMAGE-report.xml
   parallel:
     matrix:
       - IMAGE:
