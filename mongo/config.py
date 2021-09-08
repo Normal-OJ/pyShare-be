@@ -1,4 +1,4 @@
-from dynaconf import Dynaconf, Validator
+from dynaconf import Dynaconf, Validator, ValidationError
 
 __all__ = ('ConfigLoader', )
 
@@ -12,48 +12,27 @@ config = Dynaconf(
     ],
     validators=[
         Validator('ENV', default='development'),
-        #     Validator('MONGO.DB', default='pyShare'),
-        #     Validator(
-        #         'MONGO.HOST',
-        #         env='production',
-        #         must_exist=True,
-        #     ),
-        #     Validator(
-        #         'MONGO.HOST',
-        #         default='mongomock://localhost',
-        #         env='development',
-        #     ),
-        #     Validator(
-        #         'REDIS.HOST',
-        #         'REDIS.PORT',
-        #         must_exist=True,
-        #         env='production',
-        #     ),
-        #     Validator('JWT.EXP', default='30'),
-        #     Validator('JWT.ISS', default='test.test'),
-        #     # Don't use default secret under production mode
-        #     Validator(
-        #         'JWT.SECRET',
-        #         env='production',
-        #         ne='SuperSecretString',
-        #     ),
         Validator('JWT.SECRET', default=DEFAULT_SECRET),
-        #     Validator(
-        #         'SMTP.SERVER',
-        #         'SMTP.ADMIN',
-        #         'SMTP.ADMIN_PASSWORD',
-        #         'SMTP.NOREPLY',
-        #         'SMTP.NO_REPLY_PASSWORD',
-        #         env='production',
-        #         must_exist=True,
-        #     ),
         # If no specified, decided by env
-        Validator('DEBUG',
-                  default=lambda setting, _: setting.ENV != 'production'),
-        Validator('TESTING',
-                  default=lambda setting, _: setting.ENV != 'production'),
+        Validator('DEBUG', default=True),
+        Validator('TESTING', default=True),
     ],
 )
+
+# TODO: implement custom validator
+if config['ENV'] != 'development':
+    requireds = (
+        'SMTP.SERVER',
+        'SMTP.NOREPLY',
+        'SMTP.NO_REPLY_PASSWORD',
+    )
+    for req in requireds:
+        if config.get(req) is None:
+            raise ValidationError(f'{req} are required in env {config["ENV"]}')
+    if config['JWT']['SECRET'] == DEFAULT_SECRET:
+        raise ValidationError(f'Use default secret in env {config["ENV"]}')
+    config['DEBUG'] = False
+    config['TESTING'] = False
 
 
 class ConfigLoader:

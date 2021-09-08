@@ -1,6 +1,5 @@
 import hashlib
 import json
-import os
 from functools import wraps
 from bson import ObjectId
 import redis
