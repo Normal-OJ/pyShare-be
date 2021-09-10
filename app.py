@@ -65,11 +65,7 @@ def setup_app(
 
 def gunicorn_prod_app():
     # get production app
-    app = setup_app(
-        config_mod='mongo.config.ProdConfig',
-        env='prod',
-    )
-    config_lib.ConfigLoader.load(config_lib.ProdConfig)
+    app = setup_app(env='prod')
     ISandbox.use(Sandbox)
     # let flask app user gunicorn error logger
     g_logger = logging.getLogger('gunicorn.error')
