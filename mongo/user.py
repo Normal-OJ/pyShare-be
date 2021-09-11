@@ -220,7 +220,7 @@ class User(MongoBase, engine=engine.User):
             JWT_SECRET,
             algorithm='HS256',
             json_encoder=ObjectIdEncoder,
-        ).decode()
+        )
 
     def change_password(self, password):
         user_id = hash_id(self.username, password)

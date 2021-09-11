@@ -5,6 +5,7 @@ from mongo import engine
 from .auth import *
 from .course import *
 from .utils import *
+
 __all__ = ['attachment_api']
 
 attachment_api = Blueprint('attachment_api', __name__)
