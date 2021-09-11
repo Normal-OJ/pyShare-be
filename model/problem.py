@@ -129,8 +129,8 @@ def get_problem_permission(user, problem):
 @login_required
 @fe_update('PROBLEM', 'course')
 def create_problem(
-    user,
-    **p_ks,  # problem args
+        user,
+        **p_ks,  # problem args
 ):
     '''
     create a new problem
