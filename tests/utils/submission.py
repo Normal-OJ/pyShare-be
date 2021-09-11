@@ -17,11 +17,11 @@ from . import course as course_lib
 
 class Payload:
     def __init__(
-            self,
-            stdout: str = '',
-            stderr: str = '',
-            token: Optional[str] = None,
-            files: List[FileStorage] = [],
+        self,
+        stdout: str = '',
+        stderr: str = '',
+        token: Optional[str] = None,
+        files: List[FileStorage] = [],
     ) -> None:
         self.stdout = stdout
         self.stderr = stderr

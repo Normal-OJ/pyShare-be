@@ -8,19 +8,19 @@ from typing import (
     TYPE_CHECKING,
 )
 from hmac import compare_digest
-
 from . import engine
 from .utils import *
 from .base import *
-
+from .config import config
 import jwt
-import os
 
-__all__ = ['User', 'jwt_decode']
-
-JWT_EXP = timedelta(days=int(os.getenv('JWT_EXP', '30')))
-JWT_ISS = os.getenv('JWT_ISS', 'test.test')
-JWT_SECRET = os.getenv('JWT_SECRET', 'SuperSecretString')
+__all__ = (
+    'User',
+    'jwt_decode',
+)
+JWT_EXP = timedelta(days=config['JWT']['EXP'])
+JWT_ISS = config['JWT']['ISS']
+JWT_SECRET = config['JWT']['SECRET']
 
 if TYPE_CHECKING:
     from .problem import Problem
