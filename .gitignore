@@ -1,25 +1,20 @@
-Dockerfile.prod
-
 # log file
 *.log
-
 # Python
 __pycache__
-
 # Mac
 .DS_Store
-
 # virtual env
 .venv
 venv
 .env
-
 # vs & vs code cache
 .vs
 .vscode
-
 # coverage
 .coverage
 .coverage.*
 coverage.html
 htmlcov
+# Secrets
+.secret.*

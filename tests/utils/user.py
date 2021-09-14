@@ -3,7 +3,7 @@ from typing import Optional
 from mongo import *
 from .utils import drop_none
 
-__all__ = ('data', 'lazy_signup', 'Factory')
+__all__ = ('data', 'lazy_signup', 'Factory', 'random_username')
 
 
 def random_username():

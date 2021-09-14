@@ -12,9 +12,3 @@ test_api = Blueprint('test_api', __name__)
 @login_required
 def test(user):
     return HTTPResponse(user.username)
-
-
-@test_api.route('/role')
-@identity_verify(0, 1, ...)
-def role(user):
-    return HTTPResponse(user.obj.role)
