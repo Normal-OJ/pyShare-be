@@ -71,8 +71,6 @@ def login_required(func):
 
 def identity_verify(*roles):
     '''Verify a logged in user's identity
-
-    You can find an example in `model/test.py`
     '''
     def verify(func):
         @wraps(func)

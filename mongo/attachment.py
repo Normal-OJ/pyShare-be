@@ -96,6 +96,8 @@ class Attachment(MongoBase, engine=engine.Attachment):
         '''
         add an attachment to db
         '''
+        if author < 'teacher':
+            raise PermissionError('students can\'t creat attachments', )
         if file_obj is None:
             raise FileNotFoundError('you need to upload a file')
         tags = cls.to_tag_list(tags_str)

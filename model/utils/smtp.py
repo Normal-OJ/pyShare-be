@@ -1,20 +1,23 @@
 from email.message import EmailMessage
 from smtplib import SMTP_SSL
-
-import os
 import threading
+from typing import Sequence
+from mongo.utils import *
+from mongo.config import config
 
-__all__ = ['send_noreply']
-
-SMTP_SERVER = os.getenv('SMTP_SERVER')
-SMTP_ADMIN = os.getenv('SMTP_ADMIN')
-SMTP_ADMIN_PASSWORD = os.getenv('SMTP_PASSWORD')
-SMTP_NOREPLY = os.getenv('SMTP_NOREPLY')
-SMTP_NOREPLY_PASSWORD = os.getenv('SMTP_NOREPLY_PASSWORD')
+__all__ = ('send_noreply', )
 
 
-def send(from_addr, password, to_addrs, subject, content):
+def send(
+    from_addr: str,
+    password: str,
+    to_addrs: Sequence[str],
+    subject: str,
+    content: str,
+):
+    SMTP_SERVER = config.get('SMTP.SERVER')
     if SMTP_SERVER is None:
+        logger().error('SMTP.SERVER is not set')
         return
     with SMTP_SSL(SMTP_SERVER) as server:
         server.login(from_addr, password)
@@ -26,6 +29,19 @@ def send(from_addr, password, to_addrs, subject, content):
         server.send_message(msg, from_addr, to_addrs)
 
 
-def send_noreply(to_addrs, subject, content):
-    args = (SMTP_NOREPLY, SMTP_NOREPLY_PASSWORD, to_addrs, subject, content)
+def send_noreply(
+    to_addrs: Sequence[str],
+    subject: str,
+    content: str,
+):
+    if config['ENV'] == 'development':
+        logger().debug('Send email is disabled in dev mode.')
+        return
+    args = (
+        config['SMTP']['NOREPLY'],
+        config['SMTP']['NOREPLY_PASSWORD'],
+        to_addrs,
+        subject,
+        content,
+    )
     threading.Thread(target=send, args=args).start()

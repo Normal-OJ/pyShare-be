@@ -253,11 +253,11 @@ class Problem(MongoBase, engine=engine.Problem):
     @doc_required('author', 'author', User)
     @doc_required('course', 'course', Course)
     def add(
-            cls,
-            author: User,
-            course: Course,
-            tags: List[str] = [],
-            **ks,
+        cls,
+        author: User,
+        course: Course,
+        tags: List[str] = [],
+        **ks,
     ) -> 'Problem':
         '''
         add a problem to db

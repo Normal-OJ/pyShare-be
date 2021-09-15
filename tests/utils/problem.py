@@ -18,6 +18,10 @@ def data(
     # Ensure course
     if course is None:
         course = course_lib.lazy_add(teacher=user_lib.Factory.teacher())
+    elif isinstance(course, str):
+        course = Course(course)
+        if not course:
+            raise Course.engine.DoesNotExist
     # Randomly pick one from course
     if author is None:
         author = random.choice((

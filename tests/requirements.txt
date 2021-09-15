@@ -1,4 +1,4 @@
-mongomock
-pytest
-pytest-cov
-lupa==1.9
+mongomock==3.23.0
+pytest==6.2.5
+pytest-cov==2.12.1
+lupa==1.10

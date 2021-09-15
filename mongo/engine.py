@@ -1,16 +1,17 @@
 from mongoengine import *
 from bson import ObjectId
 import mongoengine
-import os
 import re
 import hashlib
 from datetime import datetime
+from .config import config
 from .utils import Enum
 
 __all__ = mongoengine.__all__
 
-MONGO_HOST = os.getenv('MONGO_HOST', 'mongomock://localhost')
-connect('pyShare', host=MONGO_HOST)
+MOCK_URL = 'mongomock://localhost'
+MONGO_HOST = config['MONGO']['HOST'] if config.TESTING else MOCK_URL
+connect(config['MONGO']['DB'], host=MONGO_HOST)
 
 
 class User(Document):

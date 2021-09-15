@@ -5,41 +5,80 @@ from flask_socketio import SocketIO
 from model import *
 from model.utils import *
 from mongo import *
-from mongo import engine, config
+from mongo import engine, config as config_lib
 import io
 
-# Create a flask app
-app = Flask(__name__)
-app.url_map.strict_slashes = False
-app.json_encoder = PyShareJSONEncoder
 
-# Register flask blueprint
-api2name = [
-    (auth_api, '/auth'),
-    (problem_api, '/problem'),
-    (test_api, '/test'),
-    (user_api, '/user'),
-    (comment_api, '/comment'),
-    (submission_api, '/submission'),
-    (tag_api, '/tag'),
-    (course_api, '/course'),
-    (attachment_api, '/attachment'),
-    (notif_api, '/notif'),
-    (school_api, '/school'),
-    (sandbox_api, '/sandbox'),
-]
-for api, name in api2name:
-    app.register_blueprint(api, url_prefix=name)
-# Setup SocketIO server
-socketio = SocketIO(cors_allowed_origins='*')
-socketio.on_namespace(Notifier(Notifier.namespace))
-socketio.init_app(app)
+def setup_app(
+    config: str = 'mongo.config.Config',
+    env=None,
+):
+    '''
+    setup flask app from config and pre-configured env
+    '''
+    # Reserve a "empty" school
+    try:
+        engine.School(abbr='', name='無').save()
+    except NotUniqueError:
+        pass
+    # Create a flask app
+    app = Flask(__name__)
+
+    # Register error handler
+    @app.errorhandler(SandboxNotFound)
+    def on_sandbox_not_found(_):
+        return HTTPError('There are no sandbox available', 503)
+
+    app.url_map.strict_slashes = False
+    app.json_encoder = PyShareJSONEncoder
+    # Override flask's config by core config
+    # Note: Although the config is overridden, `ENV` and `DEBUG` should
+    #   still set by env var (according to official document)
+    # Ref: https://flask.palletsprojects.com/en/2.0.x/config/#environment-and-debug-features
+    for k in ('TESTING', 'ENV', 'DEBUG'):
+        app.config[k] = config_lib.config[k]
+    # Register flask blueprint
+    api2name = [
+        (auth_api, '/auth'),
+        (problem_api, '/problem'),
+        (test_api, '/test'),
+        (user_api, '/user'),
+        (comment_api, '/comment'),
+        (submission_api, '/submission'),
+        (tag_api, '/tag'),
+        (course_api, '/course'),
+        (attachment_api, '/attachment'),
+        (notif_api, '/notif'),
+        (sandbox_api, '/sandbox'),
+        (school_api, '/school'),
+    ]
+    for api, name in api2name:
+        app.register_blueprint(api, url_prefix=name)
+    if config_lib.ConfigLoader.get('DEBUG') == True:
+        logger().warning(
+            'Load dummy resource API, don\'t'
+            ' use this under production mode', )
+        from model.dummy import dummy_api
+        app.register_blueprint(dummy_api, url_prefix='/dummy')
+    # Setup SocketIO server
+    socketio = SocketIO(cors_allowed_origins='*')
+    socketio.on_namespace(Notifier(Notifier.namespace))
+    socketio.init_app(app)
+    # setup environment for testing
+    if env:
+        setup_env(env)
+    return app
 
 
-# Register error handler
-@app.errorhandler(SandboxNotFound)
-def on_sandbox_not_found(_):
-    return HTTPError('There are no sandbox available', 503)
+def gunicorn_prod_app():
+    # get production app
+    app = setup_app(env='prod')
+    ISandbox.use(Sandbox)
+    # let flask app user gunicorn error logger
+    g_logger = logging.getLogger('gunicorn.error')
+    app.logger.handlers = g_logger.handlers
+    app.logger.setLevel(g_logger.level)
+    return app
 
 
 def setup_user(usernames):
@@ -230,38 +269,3 @@ def setup_env(env):
     for key, func in setup_funcs:
         if key in j:
             func(j[key])
-
-
-def setup_app(
-    config: str = 'mongo.config.Config',
-    env=None,
-):
-    '''
-    setup flask app from config and pre-configured env
-    '''
-    # Reserve a "empty" school
-    try:
-        engine.School(abbr='', name='無').save()
-    except NotUniqueError:
-        pass
-    # read flask app config from module
-    app.config.from_object(config)
-    # setup environment for testing
-    if env:
-        setup_env(env)
-    return app
-
-
-def gunicorn_prod_app():
-    # get production app
-    app = setup_app(
-        config='mongo.config.ProdConfig',
-        env='prod',
-    )
-    config.ConfigLoader.load(config.ProdConfig)
-    ISandbox.use(Sandbox)
-    # let flask app user gunicorn error logger
-    g_logger = logging.getLogger('gunicorn.error')
-    app.logger.handlers = g_logger.handlers
-    app.logger.setLevel(g_logger.level)
-    return app
