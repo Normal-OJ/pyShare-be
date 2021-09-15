@@ -1,13 +1,13 @@
+from mongo.config import config
 from mongoengine import connect, disconnect
-
-MONGO_HOST = 'mongomock://localhost'
-DB = 'pyShare'
 
 
 def drop_db():
+    HOST = config['MONGO']['HOST']
+    DB = config['MONGO']['DB']
     disconnect()
     conn = connect(
         db=DB,
-        host=MONGO_HOST,
+        host=HOST,
     )
     conn.drop_database(DB)

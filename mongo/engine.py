@@ -10,7 +10,7 @@ from .utils import Enum
 __all__ = mongoengine.__all__
 
 MOCK_URL = 'mongomock://localhost'
-MONGO_HOST = config['MONGO']['HOST'] if config.TESTING else MOCK_URL
+MONGO_HOST = MOCK_URL if config.TESTING else config['MONGO']['HOST']
 connect(config['MONGO']['DB'], host=MONGO_HOST)
 
 
