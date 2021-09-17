@@ -1,5 +1,6 @@
 import json
 import logging
+from mongo.utils import logger
 from flask import Flask
 from flask_socketio import SocketIO
 from model import *
@@ -64,9 +65,18 @@ def setup_app(
     socketio = SocketIO(cors_allowed_origins='*')
     socketio.on_namespace(Notifier(Notifier.namespace))
     socketio.init_app(app)
-    # setup environment for testing
-    if env:
+    try:
+        init = engine.AppConfig.objects(key='init').get()
+    except DoesNotExist:
+        init = engine.AppConfig(
+            id='init',
+            value=True,
+        ).save()
+    # Setup environment for testing
+    if env and init.value == True:
+        logger().info('First run. Start setup process')
         setup_env(env)
+        init.update(value=False)
     return app
 
 

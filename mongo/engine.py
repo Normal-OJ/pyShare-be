@@ -5,13 +5,14 @@ import re
 import hashlib
 from datetime import datetime
 from .config import config
-from .utils import Enum
+from .utils import Enum, logger
 
 __all__ = mongoengine.__all__
 
 MOCK_URL = 'mongomock://localhost'
 MONGO_HOST = MOCK_URL if config.TESTING else config['MONGO']['HOST']
 connect(config['MONGO']['DB'], host=MONGO_HOST)
+logger().info(f'Connect to {MONGO_HOST}')
 
 
 class User(Document):
@@ -433,6 +434,10 @@ class Sandbox(Document):
     url = StringField(requried=True, unique=True)
     token = StringField(required=True)
     alias = StringField(max_length=32)
+
+
+class AppConfig(DynamicDocument):
+    key = StringField(primary_key=True)
 
 
 # register delete rule. execute here to resolve `NotRegistered`
