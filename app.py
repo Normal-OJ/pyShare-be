@@ -70,6 +70,25 @@ def setup_app(
     return app
 
 
+# TODO: revise setup process
+def setup_env(env):
+    '''
+    setup environment (insert document into DB)
+    '''
+    with open(f'env_data/env/{env}.json') as f:
+        j = json.load(f)
+    setup_funcs = [
+        ('user', setup_user),
+        ('tag', setup_tag),
+        ('course', setup_course),
+        ('attachment', setup_attachment),
+        ('problem', setup_problem),
+    ]
+    for key, func in setup_funcs:
+        if key in j:
+            func(j[key])
+
+
 def gunicorn_prod_app():
     # get production app
     app = setup_app(env='prod')
@@ -250,22 +269,3 @@ def setup_problem(problems):
             logging.error(
                 f'Try to setup with problem that is not in problem.json: {problem}'
             )
-
-
-# TODO: revise setup process
-def setup_env(env):
-    '''
-    setup environment (insert document into DB)
-    '''
-    with open(f'env_data/env/{env}.json') as f:
-        j = json.load(f)
-    setup_funcs = [
-        ('user', setup_user),
-        ('tag', setup_tag),
-        ('course', setup_course),
-        ('attachment', setup_attachment),
-        ('problem', setup_problem),
-    ]
-    for key, func in setup_funcs:
-        if key in j:
-            func(j[key])
