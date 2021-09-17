@@ -12,9 +12,6 @@ from tests.api_test.test_homework import CourseData
 from tests.api_test.test_problem import get_file
 from tests import utils
 
-MONGO_MOCK_HOST = 'mongomock://localhost'
-DB = 'pyShare'
-
 
 @pytest.fixture
 def config_app():
