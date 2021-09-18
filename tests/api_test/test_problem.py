@@ -27,7 +27,15 @@ def get_file(file):
         return {'case': (io.BytesIO(f.read()), "test_case.zip")}
 
 
-class TestProblem(BaseTester):
+class ProblemTester(BaseTester):
+    def setup_method(self, method):
+        setup_function(method)
+
+    def teardown_method(self, method):
+        teardown_function(method)
+
+
+class TestProblem(ProblemTester):
     def test_get_problems(
         self,
         forge_client: Callable[[str, Optional[str]], FlaskClient],
@@ -338,7 +346,7 @@ class TestAttachment(BaseTester):
         assert rv.data == b'att'
 
 
-class TestComment(BaseTester):
+class TestComment(ProblemTester):
     def test_get_comments(self, forge_client, problem_ids, config_app):
         # Get comments
         config_app(env='test')

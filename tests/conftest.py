@@ -1,3 +1,4 @@
+from typing import Optional
 from app import setup_app
 from mongo import *
 from mongo import engine
@@ -13,16 +14,12 @@ from tests.api_test.test_problem import get_file
 from tests import utils
 
 
-@pytest.fixture
+@pytest.fixture(scope='function')
 def config_app():
     def config_app(config=None, env=None):
-        ks = {
-            'config': config,
-            'env': env,
-        }
-        ISandbox.use(utils.submission.MockSandbox)
-        return setup_app(**ks)
+        return setup_app(config, env)
 
+    ISandbox.use(utils.submission.MockSandbox)
     yield config_app
     # clean db
     utils.mongo.drop_db()
@@ -39,16 +36,24 @@ def config_client(config_app):
 
 @pytest.fixture
 def client(config_client):
+    '''
+    Leave here for backward compatibility.
+    '''
     return config_client()
 
 
 @pytest.fixture
-def forge_client(client):
-    def cookied(username: str, school: str = ''):
+def forge_client(config_client):
+    def cookied(
+        username: str,
+        school: str = '',
+        env: Optional[str] = None,
+    ):
         user = User.get_by_username(
             username=username,
             school=school,
         )
+        client = config_client(env=env)
         client.set_cookie('test.test', 'piann', user.secret)
         return client
 

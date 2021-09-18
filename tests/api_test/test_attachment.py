@@ -1,5 +1,6 @@
 import pytest
 from tests.base_tester import BaseTester
+from tests import utils
 from mongo import *
 import io
 import mongomock.gridfs
