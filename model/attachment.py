@@ -19,8 +19,8 @@ def get_attachment(user, attachment):
     return send_file(
         attachment.file,
         as_attachment=True,
-        cache_timeout=30,
-        attachment_filename=attachment.filename,
+        max_age=30,
+        download_name=attachment.filename,
     )
 
 
