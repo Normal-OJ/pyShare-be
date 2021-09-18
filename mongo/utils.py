@@ -1,7 +1,7 @@
 import hashlib
 import json
 from functools import wraps
-from typing import Optional
+from typing import Optional, Dict
 from bson import ObjectId
 import redis
 from . import engine
@@ -15,6 +15,7 @@ __all__ = [
     'ObjectIdEncoder',
     'get_redis_client',
     'logger',
+    'drop_none',
 ]
 
 
@@ -148,3 +149,7 @@ def get_redis_client():
                 db=0,
             )
         return redis.Redis(connection_pool=redis_pool)
+
+
+def drop_none(d: Dict):
+    return {k: v for k, v in d.items() if v is not None}
