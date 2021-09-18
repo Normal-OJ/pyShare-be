@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from zipfile import ZipFile
 import requests as rq
 from . import engine
-from .utils import doc_required, logger
+from .utils import doc_required, logger, drop_none
 from .submission import Submission
 from .token import Token
 from .config import config
@@ -85,12 +85,18 @@ class Sandbox(ISandbox):
 
 
 def init():
-    sandbox = config.get('SANDBOX', None)
-    if sandbox is None:
+    if 'sandbox' not in config:
         logger().info('No init sandbox set')
         return
-    if sandbox is not dict:
-        logger().warning(
-            f'Sandbox config should be a dict, got {type(sandbox)}')
+    url = config.get('SANDBOX.URL')
+    token = config.get('SANDBOX.TOKEN')
+    alias = config.get('SANDBOX.ALIAS')
+    if url is None or token is None:
+        logger().warning('Sandbox url and token are required. Won\'t create')
         return
-    engine.Sandbox(**{k.lower(): v for k, v in sandbox.items()}).save()
+    args = dict(
+        url=url,
+        token=token,
+        alias=alias,
+    )
+    engine.Sandbox(**drop_none(args)).save()
