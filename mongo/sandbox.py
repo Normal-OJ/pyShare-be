@@ -7,6 +7,7 @@ from . import engine
 from .utils import doc_required, logger
 from .submission import Submission
 from .token import Token
+from .config import config
 
 __all__ = (
     'ISandbox',
@@ -33,7 +34,7 @@ class ISandbox(ABC):
         cls.cls = _cls
 
 
-# TODO: inherit MongoBase
+# TODO: Inherit MongoBase
 class Sandbox(ISandbox):
     def get_loading(self, sandbox: engine.Sandbox) -> float:
         resp = rq.get(f'{sandbox.url}/status')
@@ -81,3 +82,15 @@ class Sandbox(ISandbox):
             if not resp.ok:
                 logger().warning(f'Got sandbox resp: {resp.text}')
             return True
+
+
+def init():
+    sandbox = config.get('SANDBOX', None)
+    if sandbox is None:
+        logger().info('No init sandbox set')
+        return
+    if sandbox is not dict:
+        logger().warning(
+            f'Sandbox config should be a dict, got {type(sandbox)}')
+        return
+    engine.Sandbox(**{k.lower(): v for k, v in sandbox.items()}).save()

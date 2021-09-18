@@ -1,18 +1,20 @@
 import json
 import logging
+from typing import Optional
 from mongo.utils import logger
 from flask import Flask
 from flask_socketio import SocketIO
 from model import *
 from model.utils import *
 from mongo import *
+from mongo import sandbox
 from mongo import engine, config as config_lib
 import io
 
 
 def setup_app(
     config: str = 'mongo.config.Config',
-    env=None,
+    env: Optional[str] = None,
 ):
     '''
     setup flask app from config and pre-configured env
@@ -73,9 +75,11 @@ def setup_app(
             value=True,
         ).save()
     # Setup environment for testing
-    if env and init.value == True:
+    if init.value == True:
         logger().info('First run. Start setup process')
-        setup_env(env)
+        if env is not None:
+            setup_env(env)
+        sandbox.init()
         init.update(value=False)
     return app
 
