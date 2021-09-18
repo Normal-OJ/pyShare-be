@@ -1,13 +1,11 @@
 from mongo.config import config
-from mongoengine import connect, disconnect
+from mongo.engine import _connect
+from mongoengine import disconnect
 
 
 def drop_db():
-    HOST = config['MONGO']['HOST']
+    # TODO: don't directly expose DB variable here
     DB = config['MONGO']['DB']
     disconnect()
-    conn = connect(
-        db=DB,
-        host=HOST,
-    )
+    conn = _connect()
     conn.drop_database(DB)

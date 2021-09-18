@@ -9,10 +9,19 @@ from .utils import Enum, logger
 
 __all__ = mongoengine.__all__
 
-MOCK_URL = 'mongomock://localhost'
-MONGO_HOST = MOCK_URL if config.TESTING else config['MONGO']['HOST']
-connect(config['MONGO']['DB'], host=MONGO_HOST)
-logger().info(f'Connect to {MONGO_HOST}')
+
+def _connect():
+    '''
+    The under score is to prevent conflicting mongoengine.connect
+    '''
+    MOCK_URL = 'mongomock://localhost'
+    MONGO_HOST = MOCK_URL if config.TESTING else config['MONGO']['HOST']
+    conn = connect(config['MONGO']['DB'], host=MONGO_HOST)
+    logger().info(f'Connect to {MONGO_HOST}')
+    return conn
+
+
+_connect()
 
 
 class User(Document):
