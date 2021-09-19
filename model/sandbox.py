@@ -1,6 +1,5 @@
-from model.utils.request import Request
 from flask import Blueprint
-
+from typing import Optional
 from mongo import *
 from mongo import engine
 from .auth import *
@@ -37,15 +36,21 @@ def get_all():
 
 
 @sandbox_api.post('/')
-@Request.json('url: str', 'token: str')
+@Request.json(
+    'url: str',
+    'token: str',
+    'alias',
+)
 def add_one(
     url: str,
     token: str,
+    alias: Optional[str],
 ):
     try:
         engine.Sandbox(
             url=url,
             token=token,
+            alias=alias,
         ).save(force_insert=True)
     except NotUniqueError:
         return HTTPError('Duplicated url', 422)
@@ -53,13 +58,21 @@ def add_one(
 
 
 @sandbox_api.put('/')
-@Request.json('url: str', 'token: str')
+@Request.json(
+    'url: str',
+    'token: str',
+    'alias',
+)
 def update_one(
     url: str,
     token: str,
+    alias: Optional[str],
 ):
     sandbox = engine.Sandbox.objects(url=url).get()
-    sandbox.update(token=token)
+    sandbox.update(
+        token=token,
+        alias=alias,
+    )
     return HTTPResponse()
 
 
