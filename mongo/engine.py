@@ -444,6 +444,12 @@ class Sandbox(Document):
     token = StringField(required=True)
     alias = StringField(max_length=32)
 
+    def to_json(self):
+        ret = {'url': self.url}
+        if self.alias:
+            ret['alias'] = self.alias
+        return ret
+
 
 class AppConfig(DynamicDocument):
     key = StringField(primary_key=True)
