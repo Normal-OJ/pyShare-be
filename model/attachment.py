@@ -5,6 +5,7 @@ from mongo import engine
 from .auth import *
 from .course import *
 from .utils import *
+
 __all__ = ['attachment_api']
 
 attachment_api = Blueprint('attachment_api', __name__)
@@ -68,6 +69,8 @@ def add_attachment(
         )
     except FileExistsError as e:
         return HTTPError(e, 400)
+    except PermissionError as e:
+        return HTTPError(e, 403)
     except (FileNotFoundError, engine.DoesNotExist) as e:
         return HTTPError(e, 404)
     except ValidationError as ve:

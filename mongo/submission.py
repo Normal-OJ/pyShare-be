@@ -23,6 +23,7 @@ class Submission(MongoBase, engine=engine.Submission):
         if isinstance(_id, self.engine):
             _id = _id.id
         self.id = str(_id)
+        self.on_complete_listeners = []
 
     @property
     def problem_id(self):
@@ -119,10 +120,19 @@ class Submission(MongoBase, engine=engine.Submission):
             f = self.new_file(f, filename=f.filename)
             self.result.files.append(f)
             self.save()
-        # notify comment
-        if self.comment is not None:
-            Comment(self.comment).finish_submission()
+        # Notify listeners
+        for listener in self.on_complete_listeners:
+            listener()
         return True
+
+    def add_on_complete_listener(self, listener):
+        '''
+        Register a event listener for on_complete even.
+        `listener` must allow to be called without parameters.
+        '''
+        if not callable(listener):
+            raise TypeError(f'{listener} is not callable')
+        self.on_complete_listeners.append(listener)
 
     def get_file(self, filename):
         if self.result is None:
@@ -151,11 +161,11 @@ class Submission(MongoBase, engine=engine.Submission):
     @doc_required('user', User)
     @doc_required('comment', Comment, null=True)
     def add(
-            cls,
-            problem: Problem,
-            user: User,
-            comment: Optional[Comment],
-            code: str,
+        cls,
+        problem: Problem,
+        user: User,
+        comment: Optional[Comment],
+        code: str,
     ) -> 'Submission':
         '''
         Insert a new submission into db

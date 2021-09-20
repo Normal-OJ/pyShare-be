@@ -7,6 +7,7 @@ from mongo import engine
 from .auth import *
 from .course import *
 from .utils import *
+
 __all__ = ['tag_api']
 
 tag_api = Blueprint('tag_api', __name__)

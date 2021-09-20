@@ -1,0 +1,9 @@
+mongo:
+  db: pyShare
+  host: mongo
+redis:
+  host: redis
+  port: 6379
+jwt:
+  iss: test.test
+  exp: 30

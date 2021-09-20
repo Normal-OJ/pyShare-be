@@ -309,9 +309,9 @@ class TestBatchSignup:
 
     @classmethod
     def dicts_to_csv_string(
-            cls,
-            ds: List[Dict[str, str]],
-            keys: Optional[Iterable[str]] = None,
+        cls,
+        ds: List[Dict[str, str]],
+        keys: Optional[Iterable[str]] = None,
     ) -> str:
         from tests.utils.utils import partial_dict
         d = ds[0]

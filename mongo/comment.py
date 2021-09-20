@@ -56,7 +56,7 @@ class Comment(MongoBase, engine=engine.Comment):
         if user == self.author:
             _permission |= {*'wjd'}
         # Course teacher can rejudge and delete comment
-        elif user == c.teacher:
+        elif c.permission(user=user, req='w'):
             _permission |= {*'jd'}
         # Course teacher and admin can update state
         if user == c.teacher or user >= 'admin':
@@ -155,12 +155,17 @@ class Comment(MongoBase, engine=engine.Comment):
         from .submission import Submission
         if not self.is_comment:
             raise NotAComment
-        if not Submission(self.submission.id):
+        self.reload('submissions')
+        if self.submission is None:
             raise SubmissionNotFound
         if self.submission.result.stderr:
             self.update(inc__fail=1)
         else:
             self.update(inc__success=1)
+        # Process OJ problem
+        if self.problem.is_OJ:
+            is_ac = lambda s: s.result.judge_result == Submission.engine.JudgeResult.AC
+            self.update(has_accepted=any(map(is_ac, self.submissions)))
 
     @classmethod
     @doc_required('author', User)
@@ -200,13 +205,7 @@ class Comment(MongoBase, engine=engine.Comment):
                     problem=target,
                     **ks,
                 )
-                # try create a submission
-                submission = Submission.add(
-                    problem=target,
-                    user=author,
-                    comment=comment,
-                    code=code,
-                )
+                submission = comment.new_submission(code)
                 submission.submit()
                 comment.update(push__submissions=submission.obj)
                 # append to problem
@@ -220,6 +219,22 @@ class Comment(MongoBase, engine=engine.Comment):
             notif = Notif.new(info)
             target.author.update(push__notifs=notif.pk)
         return comment.reload()
+
+    def new_submission(self, code: str):
+        '''
+        Create submission and register callback
+        '''
+        from .submission import Submission
+        if not self.is_comment:
+            raise NotAComment
+        submission = Submission.add(
+            problem=self.problem,
+            user=self.author,
+            comment=self,
+            code=code,
+        )
+        submission.add_on_complete_listener(self.finish_submission)
+        return submission
 
     @classmethod
     def add_to_comment(
@@ -285,15 +300,7 @@ class Comment(MongoBase, engine=engine.Comment):
         return cls(comment)
 
     def add_new_submission(self, code):
-        from .submission import Submission
-        if not self.is_comment:
-            raise NotAComment
-        submission = Submission.add(
-            problem=self.problem,
-            user=self.author,
-            comment=self,
-            code=code,
-        )
+        submission = self.new_submission(code)
         submission.submit()
         self.update(push__submissions=submission.obj)
         return submission

@@ -5,15 +5,15 @@ import os
 import re
 import hashlib
 from datetime import datetime
-
-from mongoengine.fields import StringField
+from .config import config
 
 from .utils import Enum
 
 __all__ = mongoengine.__all__
 
-MONGO_HOST = os.getenv('MONGO_HOST', 'mongomock://localhost')
-connect('pyShare', host=MONGO_HOST)
+MOCK_URL = 'mongomock://localhost'
+MONGO_HOST = config['MONGO']['HOST'] if config.TESTING else MOCK_URL
+connect(config['MONGO']['DB'], host=MONGO_HOST)
 
 
 class User(Document):
@@ -278,11 +278,18 @@ class Problem(Document):
 class Submission(Document):
     meta = {'allow_inheritance': True}
 
+    # TODO: Use more meaningful names for status, state and result
+
     class Result(EmbeddedDocument):
         files = ListField(FileField(), default=[])
         stdout = StringField(max_length=10**6, default='')
         stderr = StringField(max_length=10**6, default='')
         judge_result = IntField(default=None)
+
+    class JudgeResult(Enum):
+        AC = 0
+        WA = 1
+        OLE = 3
 
     class Status(Enum):
         PENDING = 0
@@ -300,7 +307,6 @@ class Submission(Document):
     code = StringField(max_length=10**6, default='')
     timestamp = DateTimeField(default=datetime.now)
     result = EmbeddedDocumentField(Result, default=None)
-    # TODO: use a more meaningful name
     status = IntField(
         default=Status.PENDING,
         choices=Status.choices(),

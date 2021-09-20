@@ -86,6 +86,23 @@ def get_single_problem(user, problem):
     )
 
 
+@problem_api.route('/<int:pid>/io', methods=['GET'])
+@login_required
+@Request.doc('pid', 'problem', Problem)
+def get_single_problem_io(user, problem):
+    if not problem.permission(user=user, req={'r'}):
+        return HTTPError('Not enough permission', 403)
+    if not problem.is_OJ:
+        return HTTPError('Not an OJ problem', 400)
+    return HTTPResponse(
+        'here you are, bro',
+        data={
+            'input': problem.extra.input,
+            'output': problem.extra.output
+        },
+    )
+
+
 @problem_api.route('/<int:pid>/permission', methods=['GET'])
 @login_required
 @Request.doc('pid', 'problem', Problem)
@@ -112,8 +129,8 @@ def get_problem_permission(user, problem):
 @login_required
 @fe_update('PROBLEM', 'course')
 def create_problem(
-    user,
-    **p_ks,  # problem args
+        user,
+        **p_ks,  # problem args
 ):
     '''
     create a new problem
@@ -295,9 +312,25 @@ def clone_problem(user, problem, course, is_template):
     if not problem.permission(user=user, req={'c'}):
         return HTTPError('Permission denied.', 403)
     try:
-        problem.copy(target_course=course, is_template=(is_template == 'true'))
+        problem.copy(target_course=course,
+                     is_template=(is_template == 'true'),
+                     user=user)
     except engine.ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())
     except PermissionError as e:
         return HTTPError(e, 403)
     return HTTPResponse('Success.')
+
+
+@problem_api.route('/<int:pid>/rejudge', methods=['GET'])
+@login_required
+@Request.doc('pid', 'problem', Problem)
+def rejudge_problem(user, problem):
+    if not problem.permission(user=user, req={'w'}):
+        return HTTPError('Permission denied.', 403)
+
+    try:
+        problem.rejudge()
+    except Submission.Pending as e:
+        return HTTPError(e, 503)
+    return HTTPResponse('success')

@@ -18,6 +18,30 @@ type_map = {
 }
 
 
+def map_dec_params(params):
+    str_list_map = map(lambda s: s.split(':', 1), params)
+    return map(conv_type, str_list_map)
+
+
+def conv_type(str_list):
+    type_result = (str_list[1:] or None) and type_map.get(str_list[1].strip())
+    return (str_list[0]), (type_result)
+
+
+def repl_underscore(key):
+    split_key = filter(bool, key.split('_'))
+    join_capitalize = lambda first, * \
+        others: (first + ''.join(map(str.capitalize, others)))
+    return join_capitalize(*split_key)
+
+
+def check_val_type(val, val_type):
+    if (val_type is None) or (type(val) is val_type):
+        return val
+    else:
+        raise ValueError(f"val:{val} is not matched type {val_type}")
+
+
 class _Request(type):
     def __getattr__(self, content_type):
         def get(*keys, vars_dict={}):
@@ -29,20 +53,10 @@ class _Request(type):
                         return HTTPError(
                             f'Unaccepted Content-Type {content_type}', 415)
                     try:
-                        # Magic
-                        # yapf: disable
-                        kwargs.update({
-                            k: (lambda v: v
-                                if t is None or type(v) is t else int(''))(
-                                    data.get((lambda s, *t: s + ''.join(
-                                        map(str.capitalize, t))
-                                              )(*filter(bool, k.split('_')))))
-                            for k, t in map(
-                                lambda x:
-                                (x[0], (x[1:] or None) and type_map.get(x[1].strip())),
-                                map(lambda q: q.split(':', 1), keys))
-                        })
-                        # yapf: enable
+                        for k, t in map_dec_params(keys):
+                            repl_k = repl_underscore(k)
+                            kwargs.update(
+                                {k: check_val_type(data.get(repl_k), t)})
                     except ValueError as ve:
                         return HTTPError(
                             'Requested Value With Wrong Type',

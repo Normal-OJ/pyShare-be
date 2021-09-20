@@ -19,8 +19,8 @@ class Problem(MongoBase, engine=engine.Problem):
     @doc_required('user', 'user', User)
     def own_permission(self, user: User):
         '''
-        {'r', 'w', 'd', 'c'}
-        represent read, write, delete, clone respectively
+        {'r', 'w', 'd', 'c', 'j'}
+        represent read, write, delete, clone, rejudge respectively
         '''
         _permission = set()
         if self.online:
@@ -37,6 +37,9 @@ class Problem(MongoBase, engine=engine.Problem):
         # teachers and above can clone
         if user >= 'teacher':
             _permission.add('c')
+        # people who can write the course can rejudge problem
+        if Course(self.course).permission(user=user, req={'w'}):
+            _permission.add('j')
         return _permission
 
     @doc_required('user', 'user', User)
@@ -55,7 +58,8 @@ class Problem(MongoBase, engine=engine.Problem):
         return req in _permission
 
     @doc_required('target_course', 'target_course', Course)
-    def copy(self, target_course: Course, is_template: bool):
+    @doc_required('user', 'user', User)
+    def copy(self, target_course: Course, is_template: bool, user: User):
         '''
         copy the problem to another course, and drop all comments & replies
         '''
@@ -72,6 +76,7 @@ class Problem(MongoBase, engine=engine.Problem):
         p['default_code'] = p['defaultCode']
         p['is_template'] = is_template
         p['allow_multiple_comments'] = p['allowMultipleComments']
+        p['author'] = user
         del p['defaultCode']
         del p['isTemplate']
         del p['allowMultipleComments']
@@ -108,6 +113,9 @@ class Problem(MongoBase, engine=engine.Problem):
         ret['comments'] = [str(c) for c in ret['comments']]
         for k in ('_id', 'height'):
             del ret[k]
+        if self.is_OJ:
+            for k in ('input', 'output'):
+                del ret['extra'][k]
         return ret
 
     def delete(self):
@@ -167,6 +175,11 @@ class Problem(MongoBase, engine=engine.Problem):
                 return True
         raise FileNotFoundError(
             f'can not find a attachment named [{filename}]')
+
+    def rejudge(self):
+        from .comment import Comment
+        for comment in self.comments:
+            Comment(comment).submit()
 
     @classmethod
     def filter(
@@ -240,11 +253,11 @@ class Problem(MongoBase, engine=engine.Problem):
     @doc_required('author', 'author', User)
     @doc_required('course', 'course', Course)
     def add(
-            cls,
-            author: User,
-            course: Course,
-            tags: List[str] = [],
-            **ks,
+        cls,
+        author: User,
+        course: Course,
+        tags: List[str] = [],
+        **ks,
     ) -> 'Problem':
         '''
         add a problem to db

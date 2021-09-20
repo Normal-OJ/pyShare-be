@@ -1,8 +1,9 @@
 import os
+from mongo.config import config
 from pymongo import MongoClient
 
-client = MongoClient(os.getenv('MONGO_HOST'))
-db = client['pyShare']
+client = MongoClient(config['MONGO']['HOST'])
+db = client[config['MONGO']['DB']]
 # Update problem attachments
 attachments = {}
 for problem in db['problem'].find():
