@@ -26,11 +26,11 @@ def test_tag_delete():
 
 def test_tag_used_courses_count():
     t = Tag.add('tag')
-    assert t.used_courses_count() == 0
+    assert t.used_count() == 0
     c = utils.course.lazy_add(tags=['tag'])
-    assert t.used_courses_count() == 1
+    assert t.used_count() == 1
     c.patch_tag([], ['tag'])
-    assert t.used_courses_count() == 0
+    assert t.used_count() == 0
 
 
 def test_delete_tag_used_by_course():
