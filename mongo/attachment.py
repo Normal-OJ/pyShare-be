@@ -10,6 +10,7 @@ from .notif import Notif
 __all__ = ['Attachment']
 
 
+# FIXME: Add unittest
 class Attachment(MongoBase, engine=engine.Attachment):
     @doc_required('user', 'user', User)
     def own_permission(self, user: User):
