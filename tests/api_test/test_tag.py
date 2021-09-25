@@ -1,8 +1,5 @@
-from re import A
 import secrets
 from typing import Callable
-from _pytest.mark import param
-import pytest
 from flask.testing import FlaskClient
 from mongo import Tag
 from tests import utils
@@ -59,3 +56,19 @@ def test_get_course_tags(forge_client: Callable[[str], FlaskClient], ):
     rv_tags = rv.get_json()['data']
     excepted = course.tags
     assert sorted(rv_tags) == sorted(excepted)
+
+
+def test_delete_tag(forge_client: Callable[[str], FlaskClient]):
+    t = Tag.add(random_tag_str())
+    user = utils.user.Factory.teacher()
+    client = forge_client(user.username)
+    rv = client.delete('/tag', json={'tags': [str(t.pk)]})
+    assert rv.status_code == 200, rv.data
+
+
+def test_student_cannot_delete_tag(forge_client: Callable[[str], FlaskClient]):
+    t = Tag.add(random_tag_str())
+    user = utils.user.Factory.student()
+    client = forge_client(user.username)
+    rv = client.delete('/tag', json={'tags': [str(t.pk)]})
+    assert rv.status_code == 403, rv.data
