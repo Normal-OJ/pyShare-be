@@ -1,3 +1,4 @@
+import io
 import secrets
 from typing import Callable
 from flask.testing import FlaskClient
@@ -72,3 +73,60 @@ def test_student_cannot_delete_tag(forge_client: Callable[[str], FlaskClient]):
     client = forge_client(user.username)
     rv = client.delete('/tag', json={'tags': [str(t.pk)]})
     assert rv.status_code == 403, rv.data
+
+
+def test_cannot_delete_tag_used_by_course(forge_client: Callable[[str],
+                                                                 FlaskClient]):
+    tag = random_tag_str()
+    course = utils.course.lazy_add(
+        tags=[tag],
+        auto_insert_tags=True,
+    )
+    client = forge_client(course.teacher.username)
+    rv = client.delete('/tag', json={'tags': [tag]})
+    assert rv.status_code == 400
+    rv_data = rv.get_json()['data']
+    assert rv_data['fails'] == [tag]
+
+
+def test_cannot_delete_tag_used_by_course(forge_client: Callable[[str],
+                                                                 FlaskClient]):
+    tag = random_tag_str()
+    course = utils.course.lazy_add(
+        tags=[tag],
+        auto_insert_tags=True,
+    )
+    client = forge_client(course.teacher.username)
+    rv = client.delete('/tag', json={'tags': [tag]})
+    assert rv.status_code == 400
+    rv_data = rv.get_json()['data']
+    fail = rv_data['fail']
+    assert isinstance(fail, list) and len(fail) == 1
+    assert 'used' in fail[0]['msg']
+    assert fail[0]['value'] == tag
+
+
+def test_cannot_delete_tag_used_by_attachment(
+        forge_client: Callable[[str], FlaskClient]):
+    tag = Tag.add(random_tag_str())
+    user = utils.user.Factory.admin()
+    # Create attachment with tag
+    client = forge_client(user.username)
+    rv = client.post(
+        '/attachment',
+        data={
+            'filename': 'test',
+            'description': 'test',
+            'fileObj': (io.BytesIO(b'test'), 'test'),
+            'patchNote': '',
+            'tags': str(tag.pk),
+        },
+    )
+    assert rv.status_code == 200, rv.data
+    rv = client.delete('/tag', json={'tags': [str(tag.pk)]})
+    assert rv.status_code == 400
+    rv_data = rv.get_json()['data']
+    fail = rv_data['fail']
+    assert isinstance(fail, list) and len(fail) == 1
+    assert 'used' in fail[0]['msg']
+    assert fail[0]['value'] == tag
