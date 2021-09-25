@@ -21,8 +21,9 @@ class Tag(MongoBase, engine=engine.Tag):
         '''
         Return the number of resources use this tag
         '''
-        used_courses_count = engine.Course.objects(tags=self.value)
-        return len(used_courses_count)
+        courses = engine.Course.objects(tags=self.value)
+        attachments = engine.Attachment.objects(tags=self.value)
+        return len(courses) + len(attachments)
 
     def is_used(self):
         '''

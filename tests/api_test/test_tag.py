@@ -129,4 +129,4 @@ def test_cannot_delete_tag_used_by_attachment(
     fail = rv_data['fail']
     assert isinstance(fail, list) and len(fail) == 1
     assert 'used' in fail[0]['msg']
-    assert fail[0]['value'] == tag
+    assert fail[0]['value'] == str(tag.pk)
