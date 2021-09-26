@@ -65,6 +65,7 @@ def test_delete_tag(forge_client: Callable[[str], FlaskClient]):
     client = forge_client(user.username)
     rv = client.delete('/tag', json={'tags': [str(t.pk)]})
     assert rv.status_code == 200, rv.data
+    assert not Tag(t.pk)
 
 
 def test_student_cannot_delete_tag(forge_client: Callable[[str], FlaskClient]):
@@ -73,20 +74,6 @@ def test_student_cannot_delete_tag(forge_client: Callable[[str], FlaskClient]):
     client = forge_client(user.username)
     rv = client.delete('/tag', json={'tags': [str(t.pk)]})
     assert rv.status_code == 403, rv.data
-
-
-def test_cannot_delete_tag_used_by_course(forge_client: Callable[[str],
-                                                                 FlaskClient]):
-    tag = random_tag_str()
-    course = utils.course.lazy_add(
-        tags=[tag],
-        auto_insert_tags=True,
-    )
-    client = forge_client(course.teacher.username)
-    rv = client.delete('/tag', json={'tags': [tag]})
-    assert rv.status_code == 400
-    rv_data = rv.get_json()['data']
-    assert rv_data['fails'] == [tag]
 
 
 def test_cannot_delete_tag_used_by_course(forge_client: Callable[[str],

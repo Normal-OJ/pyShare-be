@@ -159,7 +159,7 @@ class Course(MongoBase, engine=engine.Course):
         push: List[str] = [],
         pop: List[str] = [],
     ):
-        if not all(map(Tag, push)) or not all(map(Tag, pop)):
+        if not all(map(Tag, push + pop)):
             raise Tag.engine.DoesNotExist(
                 'Some tag can not be '
                 'found in system', )
