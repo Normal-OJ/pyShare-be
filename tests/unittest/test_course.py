@@ -1,3 +1,4 @@
+from typing import List
 import pytest
 from mongo import *
 from mongo import engine
@@ -15,16 +16,32 @@ def setup_function(_):
         ['tag1', 'tag2'],
     ],
 )
-def test_course_check_tags(tags):
-    c = utils.course.lazy_add(tags=tags)
+def test_course_check_tags(tags: List[str]):
+    c = utils.course.lazy_add(
+        tags=tags,
+        auto_insert_tags=True,
+    )
     for tag in tags:
         assert c.check_tag(tag)
 
 
 def test_course_update_tags():
+    tags = ['tag1', 'tag2', 'tag3']
+    for tag in tags:
+        Tag.add(tag)
     c = utils.course.lazy_add(tags=['tag1', 'tag2'])
     c.patch_tag(['tag3'], ['tag1'])
     assert c.tags == ['tag2', 'tag3']
+
+
+def test_cannot_remove_nonexistent_tag():
+    c = utils.course.lazy_add()
+    tag = Tag.add('random-tag')
+    with pytest.raises(
+            ValueError,
+            match=r'.*not in.*',
+    ):
+        c.patch_tag([], [str(tag.pk)])
 
 
 def test_course_statistic():

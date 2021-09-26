@@ -2,10 +2,13 @@ from __future__ import annotations
 import csv
 import tempfile
 from typing import List, TYPE_CHECKING
+
+from mongoengine.errors import ValidationError
 from . import engine
 from .base import MongoBase
 from .user import User
 from .utils import *
+from .tag import Tag
 
 __all__ = ['Course']
 
@@ -66,6 +69,11 @@ class Course(MongoBase, engine=engine.Course):
             raise PermissionError(
                 'only those who has more permission'
                 ' than teacher can create course', )
+        # Tags should exist in collection
+        if 'tags' in ks and not all(map(Tag, ks['tags'])):
+            raise Tag.engine.DoesNotExist(
+                'Some tag can not be '
+                'found in system', )
         # insert a new course into DB
         c = cls.engine(
             teacher=teacher.pk,
@@ -146,7 +154,21 @@ class Course(MongoBase, engine=engine.Course):
             'users': student_stats,
         }
 
-    def patch_tag(self, push, pop):
+    def patch_tag(
+        self,
+        push: List[str] = [],
+        pop: List[str] = [],
+    ):
+        if not all(map(Tag, push + pop)):
+            raise Tag.engine.DoesNotExist(
+                'Some tag can not be '
+                'found in system', )
+        if {*pop} & {*push}:
+            raise ValueError('Tag appears in both list')
+        if {*push} & {*self.tags}:
+            raise ValueError('Some pushed tags are already in course')
+        if not {*pop} <= {*self.tags}:
+            raise ValueError('Some popped tags are not in course')
         # popped tags have to be removed from problem that is using it
         for p in self.problems:
             p.tags = list(filter(lambda x: x not in pop, p.tags))

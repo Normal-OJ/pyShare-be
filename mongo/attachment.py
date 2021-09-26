@@ -1,7 +1,8 @@
+from typing import Optional
+from datetime import datetime
 from . import engine
 from .base import MongoBase
 from .engine import GridFSProxy
-from datetime import datetime
 from .utils import doc_required
 from .user import User
 from .tag import Tag
@@ -10,6 +11,7 @@ from .notif import Notif
 __all__ = ['Attachment']
 
 
+# FIXME: Add unittest
 class Attachment(MongoBase, engine=engine.Attachment):
     @doc_required('user', 'user', User)
     def own_permission(self, user: User):
@@ -45,7 +47,14 @@ class Attachment(MongoBase, engine=engine.Attachment):
         self.file.delete()
         self.obj.delete()
 
-    def update(self, filename, file_obj, description, patch_note, tags_str):
+    def update(
+        self,
+        filename: str,
+        file_obj,
+        description: str,
+        patch_note: str,
+        tags_str: str,
+    ):
         '''
         update an attachment from db
         '''
@@ -74,7 +83,7 @@ class Attachment(MongoBase, engine=engine.Attachment):
                     problem.author.update(push__notifs=notif.pk)
 
     @classmethod
-    def to_tag_list(cls, tags_str):
+    def to_tag_list(cls, tags_str: Optional[str]):
         if tags_str == '' or tags_str is None:
             return False
         tags = tags_str.split(',')
