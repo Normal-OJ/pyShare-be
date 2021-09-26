@@ -167,6 +167,8 @@ class Course(MongoBase, engine=engine.Course):
             raise ValueError('Tag appears in both list')
         if {*push} & {*self.tags}:
             raise ValueError('Some pushed tags are already in course')
+        if not {*pop} <= {*self.tags}:
+            raise ValueError('Some popped tags are not in course')
         # popped tags have to be removed from problem that is using it
         for p in self.problems:
             p.tags = list(filter(lambda x: x not in pop, p.tags))
