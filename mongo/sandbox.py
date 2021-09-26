@@ -1,17 +1,23 @@
-import os
 import io
 import tempfile
 from abc import ABC, abstractmethod
 from zipfile import ZipFile
 import requests as rq
-from .utils import doc_required, logger
+from . import engine
+from .utils import doc_required, logger, drop_none
 from .submission import Submission
 from .token import Token
+from .config import config
 
 __all__ = (
     'ISandbox',
     'Sandbox',
+    'SandboxNotFound',
 )
+
+
+class SandboxNotFound(Exception):
+    pass
 
 
 class ISandbox(ABC):
@@ -28,15 +34,13 @@ class ISandbox(ABC):
         cls.cls = _cls
 
 
+# TODO: Inherit MongoBase
 class Sandbox(ISandbox):
-    JUDGE_URL = os.getenv(
-        'JUDGE_URL',
-        'http://sandbox:1450',
-    )
-    SANDBOX_TOKEN = os.getenv(
-        'SANDBOX_TOKEN',
-        'KoNoSandboxDa',
-    )
+    def get_loading(self, sandbox: engine.Sandbox) -> float:
+        resp = rq.get(f'{sandbox.url}/status')
+        if not resp.ok:
+            return 1
+        return resp.json()['load']
 
     @doc_required('submission', Submission)
     def send(self, submission: Submission) -> bool:
@@ -56,10 +60,15 @@ class Sandbox(ISandbox):
                     tmp_f.name,
                     io.BytesIO(tmp_f.read()),
                 )))
-        token = Token(self.SANDBOX_TOKEN).assign(submission.id)
+        try:
+            target = min(engine.Sandbox.objects, key=self.get_loading)
+        # engine.Sandbox.objects is empty
+        except ValueError:
+            raise SandboxNotFound
+        token = Token(target.token).assign(submission.id)
         try:
             resp = rq.post(
-                f'{self.JUDGE_URL}/{submission.id}',
+                f'{target.url}/{submission.id}',
                 files=files,
                 data={
                     'src': submission.code,
@@ -73,3 +82,21 @@ class Sandbox(ISandbox):
             if not resp.ok:
                 logger().warning(f'Got sandbox resp: {resp.text}')
             return True
+
+
+def init():
+    if 'sandbox' not in config:
+        logger().info('No init sandbox set')
+        return
+    url = config.get('SANDBOX.URL')
+    token = config.get('SANDBOX.TOKEN')
+    alias = config.get('SANDBOX.ALIAS')
+    if url is None or token is None:
+        logger().warning('Sandbox url and token are required. Won\'t create')
+        return
+    args = dict(
+        url=url,
+        token=token,
+        alias=alias,
+    )
+    engine.Sandbox(**drop_none(args)).save()

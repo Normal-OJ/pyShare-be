@@ -292,8 +292,8 @@ def get_attachment(user, problem, name):
             return send_file(
                 att.file,
                 as_attachment=True,
-                cache_timeout=30,
-                attachment_filename=att.filename,
+                max_age=30,
+                download_name=att.filename,
             )
     return HTTPError('file not found', 404)
 

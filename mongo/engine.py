@@ -1,19 +1,27 @@
 from mongoengine import *
 from bson import ObjectId
 import mongoengine
-import os
 import re
 import hashlib
 from datetime import datetime
 from .config import config
-
-from .utils import Enum
+from .utils import Enum, logger
 
 __all__ = mongoengine.__all__
 
-MOCK_URL = 'mongomock://localhost'
-MONGO_HOST = config['MONGO']['HOST'] if config.TESTING else MOCK_URL
-connect(config['MONGO']['DB'], host=MONGO_HOST)
+
+def _connect():
+    '''
+    The under score is to prevent conflicting mongoengine.connect
+    '''
+    MOCK_URL = 'mongomock://localhost'
+    MONGO_HOST = MOCK_URL if config.TESTING else config['MONGO']['HOST']
+    conn = connect(config['MONGO']['DB'], host=MONGO_HOST)
+    logger().info(f'Connect to {MONGO_HOST}')
+    return conn
+
+
+_connect()
 
 
 class User(Document):
@@ -428,6 +436,23 @@ class School(Document):
             'abbr': self.abbr,
             'name': self.name,
         }
+
+
+class Sandbox(Document):
+    # TODO: URL validation
+    url = StringField(requried=True, unique=True)
+    token = StringField(required=True)
+    alias = StringField(max_length=32)
+
+    def to_json(self):
+        ret = {'url': self.url}
+        if self.alias:
+            ret['alias'] = self.alias
+        return ret
+
+
+class AppConfig(DynamicDocument):
+    key = StringField(primary_key=True)
 
 
 # register delete rule. execute here to resolve `NotRegistered`

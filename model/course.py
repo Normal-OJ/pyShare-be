@@ -253,6 +253,6 @@ def get_statistic_file(user, course: Course):
     return send_file(
         f,
         as_attachment=True,
-        cache_timeout=30,
-        attachment_filename=f'{course.name}-statistic.csv',
+        max_age=30,
+        download_name=f'{course.name}-statistic.csv',
     )

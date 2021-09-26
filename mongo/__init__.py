@@ -1,3 +1,4 @@
+from . import config
 from . import engine
 from . import user
 from . import submission
@@ -9,7 +10,6 @@ from . import utils
 from . import comment
 from . import attachment
 from . import notif
-from . import config
 from . import sandbox
 from . import token
 

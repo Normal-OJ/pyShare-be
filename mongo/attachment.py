@@ -84,8 +84,15 @@ class Attachment(MongoBase, engine=engine.Attachment):
 
     @classmethod
     @doc_required('author', User)
-    def add(cls, author: User, file_obj, filename, description, patch_note,
-            tags_str):
+    def add(
+        cls,
+        author: User,
+        file_obj,
+        filename: str,
+        description: str,
+        patch_note: str,
+        tags_str: str,
+    ):
         '''
         add an attachment to db
         '''

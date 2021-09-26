@@ -2,9 +2,7 @@ import secrets
 from typing import Callable, Optional
 from flask.testing import FlaskClient
 import pytest
-import os
 import itertools
-import pathlib
 from pprint import pprint
 
 from mongo import *
@@ -352,10 +350,6 @@ class TestTeacherGetSubmission(SubmissionTester):
 
 
 class TestCreateSubmission:
-    @classmethod
-    def setup_class(cls):
-        utils.mongo.drop_db()
-
     def test_add_in_self_course(
         self,
         forge_client: Callable[[str, Optional[str]], FlaskClient],

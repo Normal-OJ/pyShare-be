@@ -177,8 +177,6 @@ class Comment(MongoBase, engine=engine.Comment):
         author: User,
         **ks,
     ):
-        # TODO: solve circular import between submission and comment
-        from .submission import Submission
         redis = get_redis_client()
         # Ensure that comment field is sync with db
         with redis.lock(f'{author}-{target}'):
@@ -224,6 +222,7 @@ class Comment(MongoBase, engine=engine.Comment):
         '''
         Create submission and register callback
         '''
+        # TODO: solve circular import between submission and comment
         from .submission import Submission
         if not self.is_comment:
             raise NotAComment

@@ -1,17 +1,20 @@
 import json
 import logging
+from typing import Optional
+from mongo.utils import logger
 from flask import Flask
 from flask_socketio import SocketIO
 from model import *
 from model.utils import *
 from mongo import *
+from mongo import sandbox
 from mongo import engine, config as config_lib
 import io
 
 
 def setup_app(
     config: str = 'mongo.config.Config',
-    env=None,
+    env: Optional[str] = None,
 ):
     '''
     setup flask app from config and pre-configured env
@@ -23,6 +26,12 @@ def setup_app(
         pass
     # Create a flask app
     app = Flask(__name__)
+
+    # Register error handler
+    @app.errorhandler(SandboxNotFound)
+    def on_sandbox_not_found(_):
+        return HTTPError('There are no sandbox available', 503)
+
     app.url_map.strict_slashes = False
     app.json_encoder = PyShareJSONEncoder
     # Override flask's config by core config
@@ -31,7 +40,7 @@ def setup_app(
     # Ref: https://flask.palletsprojects.com/en/2.0.x/config/#environment-and-debug-features
     for k in ('TESTING', 'ENV', 'DEBUG'):
         app.config[k] = config_lib.config[k]
-    # Regist flask blueprint
+    # Register flask blueprint
     api2name = [
         (auth_api, '/auth'),
         (problem_api, '/problem'),
@@ -43,6 +52,7 @@ def setup_app(
         (course_api, '/course'),
         (attachment_api, '/attachment'),
         (notif_api, '/notif'),
+        (sandbox_api, '/sandbox'),
         (school_api, '/school'),
     ]
     for api, name in api2name:
@@ -57,10 +67,40 @@ def setup_app(
     socketio = SocketIO(cors_allowed_origins='*')
     socketio.on_namespace(Notifier(Notifier.namespace))
     socketio.init_app(app)
-    # setup environment for testing
-    if env:
-        setup_env(env)
+    try:
+        init = engine.AppConfig.objects(key='init').get()
+    except DoesNotExist:
+        init = engine.AppConfig(
+            id='init',
+            value=True,
+        ).save()
+    # Setup environment for testing
+    if init.value == True:
+        logger().info('First run. Start setup process')
+        if env is not None:
+            setup_env(env)
+        sandbox.init()
+        init.update(value=False)
     return app
+
+
+# TODO: revise setup process
+def setup_env(env):
+    '''
+    setup environment (insert document into DB)
+    '''
+    with open(f'env_data/env/{env}.json') as f:
+        j = json.load(f)
+    setup_funcs = [
+        ('user', setup_user),
+        ('tag', setup_tag),
+        ('course', setup_course),
+        ('attachment', setup_attachment),
+        ('problem', setup_problem),
+    ]
+    for key, func in setup_funcs:
+        if key in j:
+            func(j[key])
 
 
 def gunicorn_prod_app():
@@ -178,7 +218,7 @@ def setup_course(courses):
                 for s in students:
                     s.update(add_to_set__courses=c.obj)
                 c.update(push_all__students=students)
-            # add problems if specified !!! TODO !!!
+            # Add problems if specified
             problems = course_data.get('problems')
             if problems is not None:
                 problems = [*map(Problem, problems)]
@@ -243,22 +283,3 @@ def setup_problem(problems):
             logging.error(
                 f'Try to setup with problem that is not in problem.json: {problem}'
             )
-
-
-# TODO: revise setup process
-def setup_env(env):
-    '''
-    setup environment (insert document into DB)
-    '''
-    with open(f'env_data/env/{env}.json') as f:
-        j = json.load(f)
-    setup_funcs = [
-        ('user', setup_user),
-        ('tag', setup_tag),
-        ('course', setup_course),
-        ('attachment', setup_attachment),
-        ('problem', setup_problem),
-    ]
-    for key, func in setup_funcs:
-        if key in j:
-            func(j[key])

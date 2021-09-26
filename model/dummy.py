@@ -1,16 +1,10 @@
 from flask import Blueprint
-from typing import Dict
 from mongo import *
 from tests import utils
 from .utils import *
 from .auth import identity_verify
 
 __all__ = ['dummy_api']
-
-
-def drop_none(d: Dict):
-    return {k: v for k, v in d.items() if v is not None}
-
 
 dummy_api = Blueprint('dummy_api', __name__)
 
