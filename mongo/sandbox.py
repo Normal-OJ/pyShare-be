@@ -52,7 +52,6 @@ class Sandbox(ISandbox):
                     tmp_f.name,
                     io.BytesIO(tmp_f.read()),
                 )))
-                tmp_f.seek(0)
         token = Token(self.SANDBOX_TOKEN).assign(submission.id)
         try:
             resp = rq.post(

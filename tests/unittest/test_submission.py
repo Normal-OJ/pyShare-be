@@ -109,8 +109,7 @@ def test_oj_problem_file_is_correct():
     problem.extra.output = 'out'
     problem.save()
     problem.reload()
-    tmp_f = problem.OJ_file()
-
-    with zipfile.ZipFile(tmp_f) as zip_ref:
-        assert zip_ref.read('input') == b'in'
-        assert zip_ref.read('output') == b'out'
+    with problem.OJ_file() as tmp_f:
+        with zipfile.ZipFile(tmp_f) as zip_ref:
+            assert zip_ref.read('input') == b'in'
+            assert zip_ref.read('output') == b'out'
