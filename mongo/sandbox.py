@@ -47,11 +47,7 @@ class Sandbox(ISandbox):
         ) for a in submission.problem.attachments]
         # Attatch standard input / output
         if submission.problem.is_OJ:
-            with tempfile.NamedTemporaryFile('wb+') as tmp_f:
-                with ZipFile(tmp_f, 'w') as zf:
-                    # Add multiple files to the zip
-                    zf.writestr('input', submission.problem.extra.input)
-                    zf.writestr('output', submission.problem.extra.output)
+            with submission.problem.OJ_file() as tmp_f:
                 files.append(('testcase', (
                     tmp_f.name,
                     io.BytesIO(tmp_f.read()),
