@@ -1,3 +1,4 @@
+import pytest
 import secrets
 from mongo import Tag
 from tests import utils
@@ -33,6 +34,14 @@ def test_tag_used_courses_count():
     assert t.used_count() == 0
 
 
-def test_delete_tag_used_by_course():
-    tag_str = random_tag_str()
-    tag = Tag.add(tag_str)
+def test_cannot_delete_tag_used_by_course():
+    tag = Tag.add(random_tag_str())
+    course = utils.course.lazy_add(
+        tags=[str(tag.pk)],
+        auto_insert_tags=True,
+    )
+    with pytest.raises(
+            PermissionError,
+            match=r'.*used.*',
+    ):
+        tag.delete()
