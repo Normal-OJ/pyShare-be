@@ -5,6 +5,7 @@ from mongo.comment import Comment
 from mongo.submission import Submission
 from mongo.sandbox import ISandbox
 from werkzeug.datastructures import FileStorage
+import zipfile
 
 
 def setup_function(_):
@@ -97,3 +98,17 @@ def test_oj_problem_has_accepted_shoulde_update():
     submission.reload('comment')
     assert submission.result.judge_result == Submission.engine.JudgeResult.AC
     assert submission.comment.has_accepted == True
+
+
+def test_oj_problem_file_is_correct():
+    problem = utils.problem.lazy_add(
+        allow_multiple_comments=True,
+        is_oj=True,
+        input='in',
+        output='out',
+    )
+
+    with problem.OJ_file() as tmp_f:
+        with zipfile.ZipFile(tmp_f) as zip_ref:
+            assert zip_ref.read('input') == b'in'
+            assert zip_ref.read('output') == b'out'

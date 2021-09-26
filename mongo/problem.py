@@ -7,6 +7,9 @@ from .base import MongoBase
 from .course import Course
 from .user import User
 from .utils import doc_required, get_redis_client
+from zipfile import ZipFile
+import tempfile
+from contextlib import contextmanager
 
 __all__ = ['Problem', 'TagNotFoundError']
 
@@ -180,6 +183,15 @@ class Problem(MongoBase, engine=engine.Problem):
         from .comment import Comment
         for comment in self.comments:
             Comment(comment).submit()
+
+    @contextmanager
+    def OJ_file(self):
+        with tempfile.NamedTemporaryFile('wb+') as tmp_f:
+            with ZipFile(tmp_f, 'w') as zf:
+                # Add multiple files to the zip
+                zf.writestr('input', self.extra.input)
+                zf.writestr('output', self.extra.output)
+            yield tmp_f
 
     @classmethod
     def filter(
