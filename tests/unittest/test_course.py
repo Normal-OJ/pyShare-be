@@ -34,6 +34,16 @@ def test_course_update_tags():
     assert c.tags == ['tag2', 'tag3']
 
 
+def test_cannot_remove_nonexistent_tag():
+    c = utils.course.lazy_add()
+    tag = Tag.add('random-tag')
+    with pytest.raises(
+            ValueError,
+            match=r'.*not in.*',
+    ):
+        c.patch_tag([], [str(tag.pk)])
+
+
 def test_course_statistic():
     c = utils.course.lazy_add()
     student = utils.user.lazy_signup(username='student')
