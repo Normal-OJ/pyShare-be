@@ -104,11 +104,10 @@ def test_oj_problem_file_is_correct():
     problem = utils.problem.lazy_add(
         allow_multiple_comments=True,
         is_oj=True,
+        input='in',
+        output='out',
     )
-    problem.extra.input = 'in'
-    problem.extra.output = 'out'
-    problem.save()
-    problem.reload()
+
     with problem.OJ_file() as tmp_f:
         with zipfile.ZipFile(tmp_f) as zip_ref:
             assert zip_ref.read('input') == b'in'

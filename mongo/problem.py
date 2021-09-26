@@ -192,7 +192,6 @@ class Problem(MongoBase, engine=engine.Problem):
                 zf.writestr('input', self.extra.input)
                 zf.writestr('output', self.extra.output)
             yield tmp_f
-            tmp_f.seek(0)
 
     @classmethod
     def filter(
