@@ -2,6 +2,10 @@ workflow:
   rules:
     - if: "$CI_COMMIT_BRANCH"
 
+stages:
+  - test
+  - build
+
 test:
   image: $IMAGE
   stage: test
@@ -17,7 +21,19 @@ test:
   parallel:
     matrix:
       - IMAGE:
-        - 'python:3.7-slim'
-        - 'python:3.8-slim'
-        # Temporarily disable it
-        # - 'python:3.9-slim'
+          - "python:3.7-slim"
+          - "python:3.8-slim"
+          # Temporarily disable it
+          # - "python:3.9-slim"
+
+build:
+  image: docker:19.03.12
+  stage: build
+  services:
+    - docker:19.03.12-dind
+  variables:
+    IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $IMAGE_TAG .
+    - docker push $IMAGE_TAG
