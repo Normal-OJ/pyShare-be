@@ -9,6 +9,9 @@ stages:
 test:
   image: $IMAGE
   stage: test
+  retry:
+    when: script_failure
+    max: 1
   script:
     - pip install -r requirements.txt
     - pip install -r tests/requirements.txt
