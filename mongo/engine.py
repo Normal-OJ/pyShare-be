@@ -140,6 +140,12 @@ class Comment(Document):
         HIDDEN = 0
         SHOW = 1
 
+    class UserStatus(Enum):
+        ACCEPTED = 0
+        REJECTED = 1
+        PENDING = 2
+        NOT_TRY = 3
+
     meta = {'indexes': ['floor', 'created', 'updated']}
     title = StringField(required=True, max_length=128)
     floor = IntField(required=True)
@@ -164,7 +170,10 @@ class Comment(Document):
     # successed / failed execution counter
     success = IntField(default=0)
     fail = IntField(default=0)
-    has_accepted = BooleanField(db_field='hasAccepted', default=False)
+    user_status = IntField(
+        default=UserStatus.NOT_TRY,
+        choices=UserStatus.choices(),
+    )
 
     @property
     def is_comment(self):

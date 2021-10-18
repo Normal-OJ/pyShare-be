@@ -165,7 +165,10 @@ class Comment(MongoBase, engine=engine.Comment):
         # Process OJ problem
         if self.problem.is_OJ:
             is_ac = lambda s: s.result.judge_result == Submission.engine.JudgeResult.AC
-            self.update(has_accepted=any(map(is_ac, self.submissions)))
+            self.update(user_status=self.UserStatus.ACCEPTED if any(
+                map(is_ac, self.submissions)) else self.UserStatus.REJECTED)
+        elif self.user_status == self.UserStatus.NOT_TRY:
+            self.update(user_status=self.UserStatus.PENDING)
 
     @classmethod
     @doc_required('author', User)

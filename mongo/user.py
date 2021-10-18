@@ -284,7 +284,7 @@ class User(MongoBase, engine=engine.User):
             },
             'pid': c.problem.pid,
             'floor': c.floor,
-            'accepted': c.has_accepted,
+            'userStatus': c.user_status,
         } for c in filter(include_comment, self.comments)]
         ret['replies'] = [{
             'course': {
