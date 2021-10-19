@@ -61,10 +61,12 @@ def get_problem_list(
     )
     # check whether user has read permission
     ps = map(Problem, ps)
-    ps = [p.to_dict(user=user) for p in ps if p.permission(
-        user=user,
-        req={'r'},
-    )]
+    ps = [
+        p.to_dict(user=user) for p in ps if p.permission(
+            user=user,
+            req={'r'},
+        )
+    ]
     return HTTPResponse('here you are, bro', data=ps)
 
 

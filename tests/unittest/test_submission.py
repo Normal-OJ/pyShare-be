@@ -87,7 +87,8 @@ def test_oj_problem_has_accepted_should_update():
         allow_multiple_comments=True,
         is_oj=True,
     )
-    submission = utils.submission.lazy_add_new(problem=problem)
+    user = utils.user.Factory.student()
+    submission = utils.submission.lazy_add_new(problem=problem, user=user)
     submission.complete(
         files=[],
         stderr='err',
@@ -98,6 +99,9 @@ def test_oj_problem_has_accepted_should_update():
     submission.reload('comment')
     assert submission.result.judge_result == Submission.engine.JudgeResult.AC
     assert submission.comment.user_status == Comment.engine.UserStatus.ACCEPTED
+    problem.reload()
+    assert problem.to_dict(
+        user=user)['user_status'] == Comment.engine.UserStatus.ACCEPTED
 
 
 def test_oj_problem_file_is_correct():
