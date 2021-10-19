@@ -61,7 +61,7 @@ def get_problem_list(
     )
     # check whether user has read permission
     ps = map(Problem, ps)
-    ps = [p.to_dict() for p in ps if p.permission(
+    ps = [p.to_dict(user=user) for p in ps if p.permission(
         user=user,
         req={'r'},
     )]
@@ -75,7 +75,7 @@ def get_single_problem(user, problem):
     if not problem.permission(user=user, req={'r'}):
         return HTTPError('Not enough permission', 403)
     # Filter comments (according to read permission)
-    p = problem.to_dict()
+    p = problem.to_dict(user=user)
     p['comments'] = [
         str(c.id) for c in map(Comment, problem.comments)
         if c.permission(user=user, req='r')
