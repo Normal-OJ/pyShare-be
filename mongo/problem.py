@@ -191,6 +191,7 @@ class Problem(MongoBase, engine=engine.Problem):
                 # Add multiple files to the zip
                 zf.writestr('input', self.extra.input)
                 zf.writestr('output', self.extra.output)
+            tmp_f.seek(0)
             yield tmp_f
 
     @classmethod
