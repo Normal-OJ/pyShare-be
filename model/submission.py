@@ -117,11 +117,11 @@ def change_state(user, submission: Submission, state):
             data=ve.to_dict(),
         )
     is_accepted = lambda s: s.state == submission.State.ACCEPT
-    comment.update(user_status=comment.UserStatus.
+    comment.update(acceptance=comment.Acceptance.
                    ACCEPTED if any(filter(
                        is_accepted,
                        comment.submissions,
-                   )) else comment.UserStatus.REJECTED)
+                   )) else comment.Acceptance.REJECTED)
     # notify the author of the creation
     info = Notif.types.Grade(
         comment=comment.pk,

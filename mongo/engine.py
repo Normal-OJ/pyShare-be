@@ -140,7 +140,7 @@ class Comment(Document):
         HIDDEN = 0
         SHOW = 1
 
-    class UserStatus(Enum):
+    class Acceptance(Enum):
         ACCEPTED = 0
         REJECTED = 1
         PENDING = 2
@@ -170,9 +170,9 @@ class Comment(Document):
     # successed / failed execution counter
     success = IntField(default=0)
     fail = IntField(default=0)
-    user_status = IntField(
-        default=UserStatus.NOT_TRY,
-        choices=UserStatus.choices(),
+    acceptance = IntField(
+        default=Acceptance.NOT_TRY,
+        choices=Acceptance.choices(),
     )
 
     @property

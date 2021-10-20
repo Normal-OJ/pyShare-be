@@ -93,15 +93,14 @@ def test_oj_problem_has_accepted_should_update():
         files=[],
         stderr='err',
         stdout='output',
-        judge_result=Submission.engine.JudgeResult.AC,
+        judge_result=None,
     )
     Comment(submission.comment).finish_submission()
     submission.reload('comment')
     assert submission.result.judge_result == Submission.engine.JudgeResult.AC
-    assert submission.comment.user_status == Comment.engine.UserStatus.ACCEPTED
+    assert submission.comment.acceptance == Comment.engine.Acceptance.ACCEPTED
     problem.reload()
-    assert problem.to_dict(
-        user=user)['user_status'] == Comment.engine.UserStatus.ACCEPTED
+    assert problem.acceptance(user) == Comment.engine.Acceptance.ACCEPTED
 
 
 def test_oj_problem_file_is_correct():

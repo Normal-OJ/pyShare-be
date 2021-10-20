@@ -99,7 +99,7 @@ class Problem(MongoBase, engine=engine.Problem):
     def online(self):
         return self.status == 1
 
-    def to_dict(self, user: User = None):
+    def to_dict(self):
         '''
         cast self to python dictionary for serialization
         '''
@@ -119,12 +119,13 @@ class Problem(MongoBase, engine=engine.Problem):
         if self.is_OJ:
             for k in ('input', 'output'):
                 del ret['extra'][k]
-        if user is not None:
-            user_status = list(c.user_status for c in self.comments
-                               if user.obj == c.author)
-            ret['user_status'] = engine.Comment.UserStatus.NOT_TRY if len(
-                user_status) == 0 else min(user_status)
         return ret
+
+    def acceptance(self, user: User):
+        acceptance = list(c.acceptance for c in self.comments
+                          if user.obj == c.author)
+        return engine.Comment.Acceptance.NOT_TRY if len(
+            acceptance) == 0 else min(acceptance)
 
     def delete(self):
         '''
