@@ -100,7 +100,7 @@ def test_oj_problem_has_accepted_shoulde_update():
     assert submission.comment.has_accepted == True
 
 
-def test_oj_problem_file_is_correct():
+def test_problem_file_is_correct():
     problem = utils.problem.lazy_add(
         allow_multiple_comments=True,
         is_oj=True,
@@ -108,7 +108,6 @@ def test_oj_problem_file_is_correct():
         output='out',
     )
 
-    with problem.OJ_file() as tmp_f:
-        with zipfile.ZipFile(tmp_f) as zip_ref:
-            assert zip_ref.read('input') == b'in'
-            assert zip_ref.read('output') == b'out'
+    with zipfile.ZipFile(problem.get_file()[0][1][1]) as zip_ref:
+        assert zip_ref.read('input') == b'in'
+        assert zip_ref.read('output') == b'out'
