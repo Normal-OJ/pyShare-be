@@ -193,7 +193,7 @@ class TestProblem(ProblemTester):
             files=[],
             stderr='err',
             stdout='output',
-            judge_result=engine.Submission.JudgeResult.AC,
+            judge_result=None,
         )
         Comment(submission.comment).finish_submission()
         assert user_client.get(f'problem/{problem.id}').get_json(

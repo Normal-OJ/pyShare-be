@@ -93,7 +93,7 @@ def test_oj_problem_has_accepted_should_update():
         files=[],
         stderr='err',
         stdout='output',
-        judge_result=None,
+        judge_result=Submission.engine.JudgeResult.AC,
     )
     Comment(submission.comment).finish_submission()
     submission.reload('comment')
