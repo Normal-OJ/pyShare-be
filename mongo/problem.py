@@ -10,6 +10,7 @@ from .utils import doc_required, get_redis_client
 from zipfile import ZipFile
 import tempfile
 from contextlib import contextmanager
+import io
 
 __all__ = ['Problem', 'TagNotFoundError']
 
@@ -184,14 +185,27 @@ class Problem(MongoBase, engine=engine.Problem):
         for comment in self.comments:
             Comment(comment).submit()
 
-    @contextmanager
-    def OJ_file(self):
-        with tempfile.NamedTemporaryFile('wb+') as tmp_f:
-            with ZipFile(tmp_f, 'w') as zf:
-                # Add multiple files to the zip
-                zf.writestr('input', self.extra.input)
-                zf.writestr('output', self.extra.output)
-            yield tmp_f
+    def get_file(self):
+        # Extract problem attachments
+        files = [(
+            'attachments',
+            (a.filename, a.file),
+        ) for a in self.attachments]
+
+        # Attatch standard input / output
+        if self.is_OJ:
+            with tempfile.NamedTemporaryFile('wb+') as tmp_f:
+                with ZipFile(tmp_f, 'w') as zf:
+                    # Add multiple files to the zip
+                    zf.writestr('input', self.extra.input)
+                    zf.writestr('output', self.extra.output)
+                tmp_f.seek(0)
+                files.append(('testcase', (
+                    tmp_f.name,
+                    io.BytesIO(tmp_f.read()),
+                )))
+
+        return files
 
     @classmethod
     def filter(
