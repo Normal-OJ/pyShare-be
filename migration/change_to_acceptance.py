@@ -4,7 +4,7 @@ from pymongo import MongoClient
 client = MongoClient(config['MONGO']['HOST'])
 db = client[config['MONGO']['DB']]
 
-comments = db['comment'].find()
+comments = list(comment for comment in db['comment'].find())
 for comment in comments:
     submission_ids = comment['submissions']
     if len(submission_ids) == 0:
