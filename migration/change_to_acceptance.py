@@ -4,7 +4,8 @@ from pymongo import MongoClient
 client = MongoClient(config['MONGO']['HOST'])
 db = client[config['MONGO']['DB']]
 
-for comment in db['comment'].find():
+comments = db['comment'].find()
+for comment in comments:
     submission_ids = comment['submissions']
     if len(submission_ids) == 0:
         acceptance = 3  # NOT_TRY
