@@ -12,7 +12,7 @@ for comment in comments:
     else:
         acceptance = 2  # PENDING
         for id in submission_ids:
-            submission = db['submission'].find({'_id': id})
+            submission = db['submission'].find_one({'_id': id})
             if submission['state'] == 1:  # ACCEPT
                 acceptance = 0  # ACCEPTED
                 break
