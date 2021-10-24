@@ -77,16 +77,13 @@ def test_update_sandbox(forge_client: Callable[[str, Optional[str]],
     ).save(force_insert=True)
     admin = utils.user.Factory.admin()
     client = forge_client(admin.username)
-    token = secrets.token_urlsafe()
     rv = client.put(
         '/sandbox',
         json={
             'url': url,
-            'token': token,
             'alias': 'sandbox',
         },
     )
     assert rv.status_code == 200
     sandbox = engine.Sandbox.objects(url=url).get()
-    assert sandbox.token == token
     assert sandbox.alias == 'sandbox'
