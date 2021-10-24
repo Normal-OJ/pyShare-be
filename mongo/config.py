@@ -3,11 +3,32 @@ from dynaconf import Dynaconf, Validator, ValidationError
 __all__ = ('ConfigLoader', )
 
 DEFAULT_SECRET = 'SuperSecretString'
+
+
+# TODO: implement custom validator
+def non_dev_check(_config: Dynaconf):
+    requireds = (
+        'SMTP.SERVER',
+        'SMTP.NOREPLY',
+        'SMTP.NOREPLY_PASSWORD',
+    )
+    for req in requireds:
+        if _config.get(req) is None:
+            raise ValidationError(
+                f'{req} are required in env {_config["ENV"]}')
+    if _config['JWT']['SECRET'] == DEFAULT_SECRET:
+        raise ValidationError(f'Use default secret in env {_config["ENV"]}')
+    _config['DEBUG'] = False
+    _config['TESTING'] = False
+
+
 config = Dynaconf(
     envvar_prefix='PYSHARE',
     settings_files=[
         'settings.yaml',
         'settings.prod.yaml',
+    ],
+    includes=[
         '.secrets.yaml',
     ],
     validators=[
@@ -19,20 +40,8 @@ config = Dynaconf(
     ],
 )
 
-# TODO: implement custom validator
 if config['ENV'] != 'development':
-    requireds = (
-        'SMTP.SERVER',
-        'SMTP.NOREPLY',
-        'SMTP.NO_REPLY_PASSWORD',
-    )
-    for req in requireds:
-        if config.get(req) is None:
-            raise ValidationError(f'{req} are required in env {config["ENV"]}')
-    if config['JWT']['SECRET'] == DEFAULT_SECRET:
-        raise ValidationError(f'Use default secret in env {config["ENV"]}')
-    config['DEBUG'] = False
-    config['TESTING'] = False
+    non_dev_check(config)
 
 
 class ConfigLoader:
