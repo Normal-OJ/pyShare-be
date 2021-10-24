@@ -87,3 +87,25 @@ def test_update_sandbox(forge_client: Callable[[str, Optional[str]],
     assert rv.status_code == 200
     sandbox = engine.Sandbox.objects(url=url).get()
     assert sandbox.alias == 'sandbox'
+
+
+def test_cannot_update_sandbox_token(
+        forge_client: Callable[[str, Optional[str]], FlaskClient]):
+    url = 'http://test.sandbox'
+    engine.Sandbox(
+        url=url,
+        token=secrets.token_urlsafe(),
+    ).save(force_insert=True)
+    admin = utils.user.Factory.admin()
+    client = forge_client(admin.username)
+    new_token = secrets.token_urlsafe()
+    rv = client.put(
+        '/sandbox',
+        json={
+            'url': url,
+            'token': new_token,
+        },
+    )
+    assert rv.status_code == 200
+    sandbox = engine.Sandbox.objects(url=url).get()
+    assert sandbox.token != new_token
