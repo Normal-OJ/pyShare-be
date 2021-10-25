@@ -82,12 +82,13 @@ def test_complete_multiple():
         assert submission.result.stderr == err
 
 
-def test_oj_problem_has_accepted_shoulde_update():
+def test_oj_problem_has_accepted_should_update():
     problem = utils.problem.lazy_add(
         allow_multiple_comments=True,
         is_oj=True,
     )
-    submission = utils.submission.lazy_add_new(problem=problem)
+    user = utils.user.Factory.student()
+    submission = utils.submission.lazy_add_new(problem=problem, user=user)
     submission.complete(
         files=[],
         stderr='err',
@@ -97,7 +98,9 @@ def test_oj_problem_has_accepted_shoulde_update():
     Comment(submission.comment).finish_submission()
     submission.reload('comment')
     assert submission.result.judge_result == Submission.engine.JudgeResult.AC
-    assert submission.comment.has_accepted == True
+    assert submission.comment.acceptance == Comment.engine.Acceptance.ACCEPTED
+    problem.reload()
+    assert problem.acceptance(user) == Comment.engine.Acceptance.ACCEPTED
 
 
 def test_problem_file_is_correct():

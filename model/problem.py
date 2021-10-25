@@ -61,7 +61,9 @@ def get_problem_list(
     )
     # check whether user has read permission
     ps = map(Problem, ps)
-    ps = [p.to_dict() for p in ps if p.permission(
+    ps = [{
+        **p.to_dict(), 'acceptance': p.acceptance(user=user)
+    } for p in ps if p.permission(
         user=user,
         req={'r'},
     )]
@@ -80,6 +82,7 @@ def get_single_problem(user, problem):
         str(c.id) for c in map(Comment, problem.comments)
         if c.permission(user=user, req='r')
     ]
+    p['acceptance'] = problem.acceptance(user=user)
     return HTTPResponse(
         'here you are, bro',
         data=p,

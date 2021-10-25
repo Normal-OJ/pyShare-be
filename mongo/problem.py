@@ -122,6 +122,12 @@ class Problem(MongoBase, engine=engine.Problem):
                 del ret['extra'][k]
         return ret
 
+    def acceptance(self, user: User):
+        acceptance = list(c.acceptance for c in self.comments
+                          if user.obj == c.author)
+        return engine.Comment.Acceptance.NOT_TRY if len(
+            acceptance) == 0 else min(acceptance)
+
     def delete(self):
         '''
         delete the problem
