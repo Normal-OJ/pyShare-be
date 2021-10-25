@@ -395,7 +395,7 @@ def active(token=None):
 @Request.json('email: str')
 def password_recovery(email):
     try:
-        User.get_by_email(email)
+        user = User.get_by_email(email)
     except DoesNotExist:
         return HTTPError('User Not Exists', 404)
     new_password = secrets.token_urlsafe()
@@ -403,8 +403,7 @@ def password_recovery(email):
     user.update(user_id2=user_id2)
     send_noreply(
         [email],
-        '[pyShare] Password Recovery',
-        f'Your alternative password is {new_password}.\n'
-        'Please login and change your password.',
+        '[Python 創作分享平台] 密碼復原信',
+        f'請使用這組替代密碼進行登入：{new_password}，並於登入後更換密碼。\n'
     )
     return HTTPResponse('Recovery Email Has Been Sent')
