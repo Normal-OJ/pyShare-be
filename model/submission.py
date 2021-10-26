@@ -88,6 +88,10 @@ def complete(_id):
     submission = Submission(_id)
     if not submission:
         return HTTPError(f'{submission} not exists!', 404)
+    # FIXME: submission shouldn't know where is the callbacks
+    if submission.comment:
+        callback = Comment(submission.comment).finish_submission
+        submission.add_on_complete_listener(callback)
     files = request.files.getlist('files')
     submission.complete(
         files,
