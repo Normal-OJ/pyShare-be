@@ -6,6 +6,7 @@ import requests as rq
 from . import engine
 from .utils import doc_required, logger, drop_none
 from .submission import Submission
+from .problem import Problem
 from .token import Token
 from .config import config
 
