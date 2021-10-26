@@ -208,6 +208,44 @@ class TestProblem(ProblemTester):
         )['data']['acceptance'] == engine.Comment.Acceptance.REJECTED
 
 
+    def test_oj_problem_acceptance(
+        self,
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
+    ):
+
+        teacher = utils.user.Factory.teacher()
+        user = utils.user.Factory.student()
+        course = utils.course.lazy_add(teacher=teacher)
+        problem = utils.problem.lazy_add(course=course, is_oj=True)
+        user_client = forge_client(user.username)
+
+        assert user_client.get(f'problem/{problem.id}').get_json(
+        )['data']['acceptance'] == engine.Comment.Acceptance.NOT_TRY
+        submission = utils.submission.lazy_add_new(problem=problem, user=user)
+        submission.complete(
+            files=[],
+            stderr='err',
+            stdout='output',
+            judge_result=Submission.engine.JudgeResult.WA,
+        )
+        comment = Comment(submission.comment)
+        comment.finish_submission()
+        comment.reload()
+        assert user_client.get(f'problem/{problem.id}').get_json(
+        )['data']['acceptance'] == engine.Comment.Acceptance.REJECTED
+        json = user_client.post(f'/comment/{comment.id}/submission',
+                           json={'code': ''}).get_json()
+        Submission(json['data']['submissionId']).complete(
+            files=[],
+            stderr='err',
+            stdout='output',
+            judge_result=Submission.engine.JudgeResult.AC,
+        )
+        comment.finish_submission()
+        assert user_client.get(f'problem/{problem.id}').get_json(
+        )['data']['acceptance'] == engine.Comment.Acceptance.ACCEPTED
+
+
 class TestAttachment(BaseTester):
     @pytest.mark.parametrize('key, value, status_code, message', [
         ('attachmentId', None, 200, 'your file'),
