@@ -1,4 +1,4 @@
-from typing import List, Literal, Optional
+from typing import List, Optional
 from functools import reduce
 from mongoengine.queryset.visitor import Q
 from . import engine
@@ -224,7 +224,7 @@ class Problem(MongoBase, engine=engine.Problem):
         only: Optional[List[str]] = None,
         is_template: Optional[bool] = None,
         allow_multiple_comments: Optional[bool] = None,
-        type: Optional[Literal['NormalProblem', 'OJProblem']] = None,
+        type: Optional[str] = None,
     ) -> List[engine.Problem]:
         '''
         read a list of problem filtered by given paramter
