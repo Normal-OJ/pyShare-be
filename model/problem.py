@@ -22,6 +22,7 @@ problem_api = Blueprint('problem_api', __name__)
     'course',
     'is_template',
     'allow_multiple_comments',
+    'type',
 )
 @login_required
 def get_problem_list(
