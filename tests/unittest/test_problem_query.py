@@ -53,3 +53,25 @@ def test_problem_filter_with_tag():
             course=course,
         )
     assert len(Problem.filter(tags=target_tag)) == cnt
+
+
+def test_problem_filter_normal_problem():
+    cnt = 7
+    excepted_pids = [utils.problem.lazy_add().pid for _ in range(cnt)]
+    non_target_cnt = 13
+    for _ in range(non_target_cnt):
+        utils.problem.lazy_add(is_oj=True)
+    result_pids = [p.pid for p in Problem.filter(type='NormalProblem')]
+    assert sorted(excepted_pids) == sorted(result_pids)
+
+
+def test_problem_filter_oj_problem():
+    cnt = 7
+    excepted_pids = [
+        utils.problem.lazy_add(is_oj=True).pid for _ in range(cnt)
+    ]
+    non_target_cnt = 13
+    for _ in range(non_target_cnt):
+        utils.problem.lazy_add()
+    result_pids = [p.pid for p in Problem.filter(type='OJProblem')]
+    assert sorted(excepted_pids) == sorted(result_pids)
