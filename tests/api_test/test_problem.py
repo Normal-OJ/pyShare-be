@@ -50,6 +50,24 @@ class TestProblem(ProblemTester):
         assert rv.status_code == 200, (rv, client.cookie_jar)
         assert len(json['data']) == 3, json
 
+    def test_filter_problem_with_type(
+        self,
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
+    ):
+        admin = utils.user.Factory.admin()
+        client = forge_client(admin.username)
+        oj_cnt = 7
+        oj_pids = [
+            utils.problem.lazy_add(is_oj=True).pid for _ in range(oj_cnt)
+        ]
+        non_oj_cnt = 13
+        for _ in range(non_oj_cnt):
+            utils.problem.lazy_add()
+        rv = client.get('/problem?type=OJProblem')
+        assert rv.status_code == 200, rv.data
+        result_pids = [p['pid'] for p in rv.get_json()['data']]
+        assert sorted(result_pids) == sorted(oj_pids)
+
     def test_get_input_ouput(self, forge_client, config_app):
         config_app(env='test')
         client = forge_client('teacher1')
