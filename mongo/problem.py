@@ -216,14 +216,15 @@ class Problem(MongoBase, engine=engine.Problem):
     @classmethod
     def filter(
         cls,
-        offset=0,
-        count=-1,
+        offset: int = 0,
+        count: int = -1,
         name: Optional[str] = None,
         course: Optional[str] = None,
         tags: Optional[List[str]] = None,
         only: Optional[List[str]] = None,
         is_template: Optional[bool] = None,
         allow_multiple_comments: Optional[bool] = None,
+        type: Optional[str] = None,
     ) -> List[engine.Problem]:
         '''
         read a list of problem filtered by given paramter
@@ -243,6 +244,10 @@ class Problem(MongoBase, engine=engine.Problem):
                     lambda x, y: x & y,
                     (Q(tags=t) for t in tags),
                 ))
+        # Filter problem type
+        if type is not None:
+            ps = ps.filter(Q(__raw__={'extra._cls': type}))
+        # TODO: Support fuzzy search
         # search for title
         if name is not None:
             ps = ps.filter(title__icontains=name)
