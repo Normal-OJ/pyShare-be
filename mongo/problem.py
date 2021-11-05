@@ -63,7 +63,12 @@ class Problem(MongoBase, engine=engine.Problem):
 
     @doc_required('target_course', 'target_course', Course)
     @doc_required('user', 'user', User)
-    def copy(self, target_course: Course, is_template: bool, user: User):
+    def copy(
+        self,
+        target_course: Course,
+        is_template: bool,
+        user: User,
+    ):
         '''
         copy the problem to another course, and drop all comments & replies
         '''
@@ -74,21 +79,19 @@ class Problem(MongoBase, engine=engine.Problem):
                 'comments',
                 'attachments',
                 'height',
+                '_id',
+                'isTemplate',
         ):
             del p[field]
         # field conversion
-        p['default_code'] = p['defaultCode']
-        p['is_template'] = is_template
-        p['allow_multiple_comments'] = p['allowMultipleComments']
-        p['author'] = user
-        del p['defaultCode']
-        del p['isTemplate']
-        del p['allowMultipleComments']
-        del p['_id']
-        # add it to DB
+        p['default_code'] = p.pop('defaultCode')
+        p['allow_multiple_comments'] = p.pop('allowMultipleComments')
         p = Problem.add(**p)
-        # update info
-        p.update(course=target_course.obj)
+        p.update(
+            course=target_course.obj,
+            author=user.pk,
+            is_template=is_template,
+        )
         target_course.update(push__problems=p.obj)
         with get_redis_client().lock(f'{p}-att'):
             # update attachments
