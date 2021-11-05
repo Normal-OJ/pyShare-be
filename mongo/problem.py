@@ -72,7 +72,6 @@ class Problem(MongoBase, engine=engine.Problem):
         '''
         copy the problem to another course, and drop all comments & replies
         '''
-        # serialize
         p = self.to_mongo()
         # delete non-shared datas
         for field in (
@@ -81,20 +80,30 @@ class Problem(MongoBase, engine=engine.Problem):
                 'height',
                 '_id',
                 'isTemplate',
+                'author',
+                'course',
         ):
             del p[field]
-        # field conversion
+        # field name conversion
         p['default_code'] = p.pop('defaultCode')
         p['allow_multiple_comments'] = p.pop('allowMultipleComments')
-        p = Problem.add(**p)
-        p.update(
-            course=target_course.obj,
-            author=user.pk,
-            is_template=is_template,
-        )
+        new_tags = [*({*p['tags']} - {*target_course.tags})]
+        target_course.push_tags(new_tags)
+        try:
+            p = Problem.add(
+                **p,
+                author=user,
+                course=target_course,
+                is_template=is_template,
+            )
+        # FIXME: Use transaction to restore DB, wait for mongoengine to
+        #   implement it
+        except:
+            target_course.pull_tags(new_tags)
+            raise
         target_course.update(push__problems=p.obj)
+        # update attachments
         with get_redis_client().lock(f'{p}-att'):
-            # update attachments
             p.attachments = [*map(self.copy_attachment, self.attachments)]
             p.save()
         return p.reload()
