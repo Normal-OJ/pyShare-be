@@ -33,7 +33,9 @@ class MongoBase:
             super().__setattr__(name, value)
 
     def __eq__(self, other):
-        return self and other is not None and self.pk == other.pk
+        if not hasattr(other, 'id'):
+            return False
+        return self.id == other.id
 
     def __bool__(self):
         try:
