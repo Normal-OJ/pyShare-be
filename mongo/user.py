@@ -44,6 +44,8 @@ class User(MongoBase, engine=engine.User):
         school: Optional[str] = None,
         role: int = engine.User.Role.STUDENT,
     ):
+        if len(password) == 0:
+            raise ValueError('password cannot be empty')
         user_id = hash_id(username, password)
         if email is not None:
             email = cls.formated_email(email)
