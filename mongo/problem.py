@@ -63,35 +63,47 @@ class Problem(MongoBase, engine=engine.Problem):
 
     @doc_required('target_course', 'target_course', Course)
     @doc_required('user', 'user', User)
-    def copy(self, target_course: Course, is_template: bool, user: User):
+    def copy(
+        self,
+        target_course: Course,
+        is_template: bool,
+        user: User,
+    ):
         '''
         copy the problem to another course, and drop all comments & replies
         '''
-        # serialize
         p = self.to_mongo()
         # delete non-shared datas
         for field in (
                 'comments',
                 'attachments',
                 'height',
+                '_id',
+                'isTemplate',
+                'author',
+                'course',
         ):
             del p[field]
-        # field conversion
-        p['default_code'] = p['defaultCode']
-        p['is_template'] = is_template
-        p['allow_multiple_comments'] = p['allowMultipleComments']
-        p['author'] = user
-        del p['defaultCode']
-        del p['isTemplate']
-        del p['allowMultipleComments']
-        del p['_id']
-        # add it to DB
-        p = Problem.add(**p)
-        # update info
-        p.update(course=target_course.obj)
+        # field name conversion
+        p['default_code'] = p.pop('defaultCode')
+        p['allow_multiple_comments'] = p.pop('allowMultipleComments')
+        new_tags = [*({*p['tags']} - {*target_course.tags})]
+        target_course.push_tags(new_tags)
+        try:
+            p = Problem.add(
+                **p,
+                author=user,
+                course=target_course,
+                is_template=is_template,
+            )
+        # FIXME: Use transaction to restore DB, wait for mongoengine to
+        #   implement it
+        except:
+            target_course.pull_tags(new_tags)
+            raise
         target_course.update(push__problems=p.obj)
+        # update attachments
         with get_redis_client().lock(f'{p}-att'):
-            # update attachments
             p.attachments = [*map(self.copy_attachment, self.attachments)]
             p.save()
         return p.reload()

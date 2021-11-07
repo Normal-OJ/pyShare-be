@@ -154,6 +154,12 @@ class Course(MongoBase, engine=engine.Course):
             'users': student_stats,
         }
 
+    def push_tags(self, tags: List[str]):
+        self.patch_tag(push=tags)
+
+    def pull_tags(self, tags: List[str]):
+        self.patch_tag(pop=tags)
+
     def patch_tag(
         self,
         push: List[str] = [],
