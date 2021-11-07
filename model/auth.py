@@ -243,16 +243,16 @@ def batch_signup(user, csv_string, course):
                     role=role,
                 )
                 users[':'.join((_u['school'], _u['username']))] = new_user.pk
-            except ValidationError as ve:
+            except (ValidationError, ValueError) as e:
+                err = str(e)
                 fails.append({
                     'username': _u['username'],
                     'school': _u['school'],
-                    'err': ve.to_dict(),
+                    'err': err,
                 })
                 current_app.logger.error(
                     f'fail to sign up for {_u["username"]}\n'
-                    f'error: {ve}\n'
-                    f'data: {ve.to_dict()}', )
+                    f'error: {err}\n', )
     if exists or fails:
         exists = [{
             'username': e[1],
