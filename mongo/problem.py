@@ -96,16 +96,17 @@ class Problem(MongoBase, engine=engine.Problem):
                 course=target_course,
                 is_template=is_template,
             )
+            # update attachments
+            with get_redis_client().lock(f'{p}-att'):
+                p.attachments = [*map(self.copy_attachment, self.attachments)]
+                p.save()
         # FIXME: Use transaction to restore DB, wait for mongoengine to
         #   implement it
         except:
             target_course.pull_tags(new_tags)
             raise
         target_course.update(push__problems=p.obj)
-        # update attachments
-        with get_redis_client().lock(f'{p}-att'):
-            p.attachments = [*map(self.copy_attachment, self.attachments)]
-            p.save()
+        self.update(inc__reference_count=1)
         return p.reload()
 
     @property

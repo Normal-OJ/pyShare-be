@@ -288,6 +288,7 @@ class Problem(Document):
         choices=Type.choices(),
         default=Type.NormalProblem(),
     )
+    reference_count = IntField(default=0)
 
     @property
     def online(self):
