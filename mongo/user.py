@@ -267,6 +267,7 @@ class User(MongoBase, engine=engine.User):
                 'id': p.course.id
             },
             'pid': p.pid,
+            'referenceCount': p.reference_count,
         } for p in filter(include_problem, self.problems)]
         # liked comments
         ret['likes'] = [{
