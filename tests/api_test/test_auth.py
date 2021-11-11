@@ -175,6 +175,7 @@ class TestLogin:
         rv = client.post(
             '/auth/session',
             json={
+                'school': '',
                 'username': 'test',
                 'password': 'tset'
             },
