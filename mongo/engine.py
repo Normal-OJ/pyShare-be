@@ -264,8 +264,10 @@ class Problem(Document):
     description = StringField(max_length=5000000, required=True)
     author = ReferenceField('User', requried=True)
     tags = ListField(StringField(max_length=16), default=[])
-    attachments = ListField(EmbeddedDocumentField(ProblemAttachment),
-                            default=[])
+    attachments = ListField(
+        EmbeddedDocumentField(ProblemAttachment),
+        default=[],
+    )
     comments = ListField(ReferenceField('Comment'), default=[])
     timestamp = DateTimeField(default=datetime.now)
     status = IntField(
@@ -278,10 +280,14 @@ class Problem(Document):
         db_field='defaultCode',
     )
     is_template = BooleanField(db_field='isTemplate', default=False)
-    allow_multiple_comments = BooleanField(db_field='allowMultipleComments',
-                                           default=False)
-    extra = GenericEmbeddedDocumentField(choices=Type.choices(),
-                                         default=Type.NormalProblem())
+    allow_multiple_comments = BooleanField(
+        db_field='allowMultipleComments',
+        default=False,
+    )
+    extra = GenericEmbeddedDocumentField(
+        choices=Type.choices(),
+        default=Type.NormalProblem(),
+    )
 
     @property
     def online(self):
