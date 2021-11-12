@@ -49,3 +49,16 @@ def test_problem_copy_should_add_tag_to_target_course():
     )
     course_dst.reload('tags')
     assert sorted(course_dst.tags) == sorted(tags)
+
+
+def test_problem_copy_should_add_reference_count():
+    src_problem = utils.problem.lazy_add()
+    for i in range(5):
+        target_course = utils.course.lazy_add()
+        src_problem.copy(
+            target_course=target_course,
+            is_template=False,
+            user=target_course.teacher,
+        )
+        src_problem.reload('reference_count')
+        assert src_problem.reference_count == i + 1
