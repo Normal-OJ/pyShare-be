@@ -114,11 +114,18 @@ def session():
             - 401 Login Failed
         '''
         try:
-            # login by email
             if email is not None:
                 user = User.login_by_email(email, u_ks['password'])
-            # login by username and school
             else:
+                missing_field = [
+                    f for f in ('username', 'school') if u_ks.get(f) is None
+                ]
+                if len(missing_field):
+                    return HTTPError(
+                        'Missing field',
+                        400,
+                        data={'field': missing_field},
+                    )
                 user = User.login(**u_ks)
         except DoesNotExist:
             return HTTPError('Login Failed', 401)
