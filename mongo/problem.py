@@ -135,6 +135,14 @@ class Problem(MongoBase, engine=engine.Problem):
                 del ret['extra'][k]
         return ret
 
+    @doc_required('user', 'user', User)
+    def to_dict_without_others_OJ(self, user: User):
+        ret = self.to_dict()
+        if self.is_OJ:
+            ret['comments'] = list(
+                str(c.id) for c in self.comments if user == c.author)
+        return ret
+
     def acceptance(self, user: User):
         acceptance = list(c.acceptance for c in self.comments
                           if user.obj == c.author)
