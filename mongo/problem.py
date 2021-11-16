@@ -6,6 +6,7 @@ from .engine import GridFSProxy
 from .base import MongoBase
 from .course import Course
 from .user import User
+from .tag import Tag
 from .utils import doc_required, get_redis_client
 from zipfile import ZipFile
 import tempfile
@@ -318,7 +319,11 @@ class Problem(MongoBase, engine=engine.Problem):
         # if allow_multiple_comments is None or False
         if author < 'teacher' and not ks.get('allow_multiple_comments'):
             raise PermissionError('Students have to allow multiple comments')
-        if not all(course.check_tag(tag) for tag in tags):
+        category = engine.Tag.Category.OJ_PROBLEM if 'extra' in ks and ks[
+            'extra']['_cls'] == 'OJ' else engine.Tag.Category.NORMAL_PROBLEM
+        if not all(
+                course.check_tag(tag) and Tag.is_tag(tag, category)
+                for tag in tags):
             raise TagNotFoundError(
                 'Exist tag that is not allowed to use in this course')
         # insert a new problem into DB

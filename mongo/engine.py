@@ -132,7 +132,14 @@ class Course(Document):
 
 
 class Tag(Document):
+    class Category(Enum):
+        COURSE = 0
+        ATTACHMENT = 1
+        NORMAL_PROBLEM = 2
+        OJ_PROBLEM = 3
+
     value = StringField(primary_key=True, required=True, max_length=16)
+    categories = ListField(IntField(choices=Category.choices()), default=[])
 
 
 class Comment(Document):

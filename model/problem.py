@@ -189,7 +189,9 @@ def modify_problem(
         return HTTPError('Students have to allow multiple comments.', 403)
     c = Course(problem.course)
     for tag in tags:
-        if not c.check_tag(tag):
+        if not c.check_tag(tag) or not Tag.is_tag(
+                tag, engine.Tag.Category.OJ_PROBLEM
+                if problem.is_OJ else engine.Tag.Category.NORMAL_PROBLEM):
             return HTTPError(
                 'Exist tag that is not allowed to use in this course', 400)
     if extra is not None:

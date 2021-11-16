@@ -70,7 +70,7 @@ class Course(MongoBase, engine=engine.Course):
                 'only those who has more permission'
                 ' than teacher can create course', )
         # Tags should exist in collection
-        if 'tags' in ks and not all(map(Tag, ks['tags'])):
+        if 'tags' in ks and not all(map(Tag.is_course_tag, ks['tags'])):
             raise Tag.engine.DoesNotExist(
                 'Some tag can not be '
                 'found in system', )
@@ -165,7 +165,7 @@ class Course(MongoBase, engine=engine.Course):
         push: List[str] = [],
         pop: List[str] = [],
     ):
-        if not all(map(Tag, push + pop)):
+        if not all(map(Tag.is_course_tag, push + pop)):
             raise Tag.engine.DoesNotExist(
                 'Some tag can not be '
                 'found in system', )

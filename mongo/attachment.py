@@ -87,7 +87,9 @@ class Attachment(MongoBase, engine=engine.Attachment):
         if tags_str == '' or tags_str is None:
             return False
         tags = tags_str.split(',')
-        if not all(map(Tag, tags)):
+        if not all(
+                Tag.is_tag(tag, engine.Tag.Category.ATTACHMENT)
+                for tag in tags):
             raise engine.DoesNotExist
         return tags
 

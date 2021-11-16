@@ -5,36 +5,68 @@ __all__ = ['Tag']
 
 
 class Tag(MongoBase, engine=engine.Tag):
-    def delete(self):
+    def delete(self, category):
         '''
         Remove the tag
         '''
-        if self.used_count() > 0:
-            raise PermissionError('tag is used by others')
-        # remove tag from course if it has
-        engine.Course.objects(tags=self.value).update(pull__tags=self.value)
-        # remove tag from problem if it has
-        engine.Problem.objects(tags=self.value).update(pull__tags=self.value)
-        self.obj.delete()
+        if self.used_count(category) > 0:
+            raise PermissionError('tag is used by others')\
 
-    def used_count(self):
+        objects = None
+        if category == engine.Tag.Category.COURSE:
+            objects = engine.Course.objects(tags=self.value)
+        if category == engine.Tag.Category.ATTACHMENT:
+            objects = engine.Attachment.objects(tags=self.value)
+        if category == engine.Tag.Category.NORMAL_PROBLEM:
+            objects = engine.Problem.objects(tags=self.value,
+                                             extra___cls='Normal')
+        if category == engine.Tag.Category.OJ_PROBLEM:
+            objects = engine.Problem.objects(tags=self.value, extra___cls='OJ')
+        if objects is not None:
+            objects.update(pull__tags=self.value)
+
+        self.update(pull__categories=category)
+        self.reload()
+        if len(self.categories) == 0:
+            self.obj.delete()
+
+    def used_count(self, category):
         '''
         Return the number of resources use this tag
         '''
-        courses = engine.Course.objects(tags=self.value)
-        attachments = engine.Attachment.objects(tags=self.value)
-        return len(courses) + len(attachments)
+        if category == engine.Tag.Category.COURSE:
+            return len(engine.Course.objects(tags=self.value))
+        if category == engine.Tag.Category.ATTACHMENT:
+            return len(engine.Attachment.objects(tags=self.value))
+        if category == engine.Tag.Category.NORMAL_PROBLEM:
+            return len(
+                engine.Problem.objects(tags=self.value, extra___cls='Normal'))
+        if category == engine.Tag.Category.OJ_PROBLEM:
+            return len(
+                engine.Problem.objects(tags=self.value, extra___cls='OJ'))
 
-    def is_used(self):
+    def is_used(self, category):
         '''
         Check whether this tag is used by others
         '''
-        return self.used_count() != 0
+        return self.used_count(category) != 0
 
     @classmethod
-    def add(cls, value):
+    def add(cls, value, category):
         '''
         Add a tag to DB
         '''
-        t = cls.engine(value=value).save()
+        t = cls(value)
+        if t is None:
+            t = cls.engine(value=value).save()
+        t.update(add_to_set=category)
+        t.reload()
         return cls(t)
+
+    @classmethod
+    def is_tag(cls, value, category):
+        return cls.engine(value=value, categories=category) is not None
+
+    @classmethod
+    def is_course_tag(cls, value):
+        return cls.is_tag(value, engine.Tag.Category.COURSE)
