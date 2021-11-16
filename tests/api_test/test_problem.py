@@ -488,3 +488,8 @@ class TestComment(ProblemTester):
         json = rv.get_json()
         assert len(json['data']['comments']) == 1, json['data']['comments']
         assert rv.status_code == 200
+
+        rv = clients[0].get(f'/comment/{json["data"]["comments"][0]}')
+        json = rv.get_json()
+        assert rv.status_code == 200
+        assert json['data']['author']['username'] == 'teacher1'

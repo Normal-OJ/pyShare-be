@@ -63,8 +63,9 @@ def get_problem_list(
     # check whether user has read permission
     ps = map(Problem, ps)
     ps = [{
-        **p.to_dict_without_others_OJ(user=user), 'acceptance':
-        p.acceptance(user=user)
+        **p.to_dict_without_others_OJ(user=user),
+        'acceptance':
+        p.acceptance(user=user),
     } for p in ps if p.permission(
         user=user,
         req={'r'},
