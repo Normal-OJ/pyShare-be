@@ -60,7 +60,7 @@ def get_single_course(user, course):
 @login_required
 @Request.doc('course', Course)
 def statistic(user, course):
-    if not course.permission(user=user, req={'r'}):
+    if not course.permission(user=user, req={'p'}):
         return HTTPError('Not enough permission', 403)
     users = map(User, course.students)
     ret = []
@@ -76,7 +76,7 @@ def statistic(user, course):
 @Request.args('pids')
 @Request.doc('course', Course)
 def oj_statistic(user, course, pids: str):
-    if not course.permission(user=user, req={'r'}):
+    if not course.permission(user=user, req={'p'}):
         return HTTPError('Not enough permission', 403)
     if pids == '' or pids is None:
         return HTTPError('pids are required', 400)
