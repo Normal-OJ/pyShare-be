@@ -140,7 +140,7 @@ class Problem(MongoBase, engine=engine.Problem):
         ret = self.to_dict()
         if self.is_OJ:
             ret['comments'] = list(
-                str(c) for c in self.comments if user == c.author)
+                str(c.id) for c in self.comments if user == c.author)
         return ret
 
     def acceptance(self, user: User):

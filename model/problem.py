@@ -81,7 +81,7 @@ def get_single_problem(user, problem):
     # Filter comments (according to read permission)
     p = problem.to_dict_without_others_OJ(user=user)
     p['comments'] = [
-        str(c.id) for c in map(Comment, problem.comments)
+        str(c.id) for c in map(Comment, p['comments'])
         if c.permission(user=user, req='r')
     ]
     p['acceptance'] = problem.acceptance(user=user)

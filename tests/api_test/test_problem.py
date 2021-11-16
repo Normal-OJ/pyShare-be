@@ -467,3 +467,24 @@ class TestComment(ProblemTester):
         rv_json = rv.get_json()
         assert rv.status_code == 200, rv_json
         assert {*rv_json['data']} == set()
+
+    def test_get_own_OJ_comments(self, forge_client, problem_ids, config_app):
+        # Get comments
+        config_app(env='test')
+        clients = [forge_client('teacher1'), forge_client('admin')]
+
+        for client in clients:
+            rv = client.post('/comment',
+                             json={
+                                 'target': 'problem',
+                                 'id': 1,
+                                 'title': 'comment',
+                                 'content': '',
+                                 'code': ''
+                             })
+            assert rv.status_code == 200
+
+        rv = clients[0].get(f'/problem/1')
+        json = rv.get_json()
+        assert len(json['data']['comments']) == 1, json['data']['comments']
+        assert rv.status_code == 200
