@@ -1,4 +1,5 @@
 from enum import Enum
+from blinker import signal
 from . import engine
 from .base import MongoBase
 from .problem import Problem
@@ -29,6 +30,8 @@ class TooManyComments(Exception):
 
 
 class Comment(MongoBase, engine=engine.Comment):
+    initialized = False
+
     class Permission(Enum):
         READ = 'r'
         WRITE = 'w'
@@ -36,10 +39,23 @@ class Comment(MongoBase, engine=engine.Comment):
         REJUDGE = 'j'
         UPDATE_STATE = 's'
 
+    def __new__(cls, pk, *args, **kwargs):
+        if not cls.initialized:
+            signal('submission_completed').connect(cls.on_submission_completed)
+            cls.initialized = True
+        return super().__new__(cls, pk, *args, **kwargs)
+
     def __init__(self, _id):
         if isinstance(_id, self.engine):
             _id = _id.id
         self.id = _id
+
+    @classmethod
+    def on_submission_completed(cls, submission):
+        if submission.comment is None:
+            return
+        comment = cls(submission.comment)
+        comment.on_submission_completed_ins()
 
     @doc_required('user', 'user', User)
     def own_permission(self, user: User):
@@ -148,16 +164,15 @@ class Comment(MongoBase, engine=engine.Comment):
             submission.update(code=code)
         submission.submit()
 
-    def finish_submission(self):
-        '''
-        called after a submission finish
-        '''
-        from .submission import Submission
+    def on_submission_completed_ins(self):
         if not self.is_comment:
             raise NotAComment
+        from .submission import Submission
         self.reload('submissions')
         if self.submission is None:
             raise SubmissionNotFound
+        if self.submission.result is None:
+            return
         if self.submission.result.stderr:
             self.update(inc__fail=1)
         else:
@@ -235,7 +250,6 @@ class Comment(MongoBase, engine=engine.Comment):
             comment=self,
             code=code,
         )
-        submission.add_on_complete_listener(self.finish_submission)
         return submission
 
     @classmethod
@@ -284,9 +298,9 @@ class Comment(MongoBase, engine=engine.Comment):
         problem: engine.Problem,
     ):
         # check permission
-        if not Problem(problem.pk).permission(user=author, req={
-                'r'
-        }) or not Course(problem.course.pk).permission(user=author, req={'p'}):
+        if (not Problem(problem.pk).permission(user=author, req={'r'})
+                or not Course(problem.course.pk).permission(user=author,
+                                                            req={'p'})):
             raise PermissionError('Not enough permission')
         # insert into DB
         comment = cls.engine(

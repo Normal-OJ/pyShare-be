@@ -1,9 +1,7 @@
-import os
 from typing import Optional
 import base64
-
+from blinker import signal
 from . import engine
-from .config import ConfigLoader
 from .base import MongoBase
 from .user import User
 from .problem import Problem
@@ -15,6 +13,8 @@ __all__ = ('Submission', )
 
 
 class Submission(MongoBase, engine=engine.Submission):
+    on_complete = signal('submission_completed')
+
     class Pending(Exception):
         def __init__(self, _id):
             super().__init__(f'{_id} still pending.')
@@ -23,7 +23,6 @@ class Submission(MongoBase, engine=engine.Submission):
         if isinstance(_id, self.engine):
             _id = _id.id
         self.id = str(_id)
-        self.on_complete_listeners = []
 
     @property
     def problem_id(self):
@@ -121,18 +120,9 @@ class Submission(MongoBase, engine=engine.Submission):
             self.result.files.append(f)
             self.save()
         # Notify listeners
-        for listener in self.on_complete_listeners:
-            listener()
+        if self.on_complete:
+            self.on_complete.send(self)
         return True
-
-    def add_on_complete_listener(self, listener):
-        '''
-        Register a event listener for on_complete even.
-        `listener` must allow to be called without parameters.
-        '''
-        if not callable(listener):
-            raise TypeError(f'{listener} is not callable')
-        self.on_complete_listeners.append(listener)
 
     def get_file(self, filename):
         if self.result is None:

@@ -213,7 +213,6 @@ class TestProblem(ProblemTester):
             stdout='output',
             judge_result=None,
         )
-        Comment(submission.comment).finish_submission()
         assert user_client.get(f'problem/{problem.id}').get_json(
         )['data']['acceptance'] == engine.Comment.Acceptance.PENDING
         teacher_client.put(f'/submission/{submission.id}/state',
