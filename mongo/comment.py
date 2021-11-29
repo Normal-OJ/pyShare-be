@@ -30,6 +30,7 @@ class TooManyComments(Exception):
 
 
 class Comment(MongoBase, engine=engine.Comment):
+    on_created = signal('comment_created')
     initialized = False
 
     class Permission(Enum):
@@ -203,10 +204,7 @@ class Comment(MongoBase, engine=engine.Comment):
             if not target.allow_multiple_comments:
                 comments = map(
                     lambda c: author == c.author,
-                    filter(
-                        lambda c: c.status == engine.Comment.Status.SHOW,
-                        target.comments,
-                    ),
+                    filter(lambda c: c.show, target.comments),
                 )
                 if any(comments):
                     raise TooManyComments
@@ -234,11 +232,12 @@ class Comment(MongoBase, engine=engine.Comment):
         if target.author != comment.author:
             notif = Notif.new(info)
             target.author.update(push__notifs=notif.pk)
-        return comment.reload()
+        cls.on_created.send(comment.reload())
+        return comment
 
     def new_submission(self, code: str):
         '''
-        Create submission and register callback
+        Create submission attached to this comment
         '''
         # TODO: solve circular import between submission and comment
         from .submission import Submission
@@ -284,7 +283,8 @@ class Comment(MongoBase, engine=engine.Comment):
             notif = Notif.new(info)
         for author in authors:
             author.update(push__notifs=notif.pk)
-        return comment.reload()
+        cls.on_created.send(comment.reload())
+        return comment
 
     @classmethod
     @doc_required('author', User)
