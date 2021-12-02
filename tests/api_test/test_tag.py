@@ -2,7 +2,7 @@ import io
 import secrets
 from typing import Callable
 from flask.testing import FlaskClient
-from mongo import Tag
+from mongo import Tag, engine
 from tests import utils
 
 
@@ -31,7 +31,7 @@ def test_add_tag(forge_client: Callable[[str], FlaskClient]):
 def test_get_all_tag(forge_client: Callable[[str], FlaskClient]):
     tags = [random_tag_str() for _ in range(10)]
     for tag in tags:
-        Tag.add(tag)
+        Tag.add(tag, engine.Tag.Category.NORMAL_PROBLEM)
     teacher = utils.user.Factory.teacher()
     client = forge_client(teacher.username)
     rv = client.get('/tag')
@@ -60,19 +60,27 @@ def test_get_course_tags(forge_client: Callable[[str], FlaskClient], ):
 
 
 def test_delete_tag(forge_client: Callable[[str], FlaskClient]):
-    t = Tag.add(random_tag_str())
+    t = Tag.add(random_tag_str(), engine.Tag.Category.NORMAL_PROBLEM)
     user = utils.user.Factory.teacher()
     client = forge_client(user.username)
-    rv = client.delete('/tag', json={'tags': [str(t.pk)]})
+    rv = client.delete('/tag',
+                       json={
+                           'tags': [str(t.pk)],
+                           'category': engine.Tag.Category.NORMAL_PROBLEM
+                       })
     assert rv.status_code == 200, rv.data
-    assert not Tag(t.pk)
+    assert not Tag.is_tag(t.pk, engine.Tag.Category.NORMAL_PROBLEM)
 
 
 def test_student_cannot_delete_tag(forge_client: Callable[[str], FlaskClient]):
-    t = Tag.add(random_tag_str())
+    t = Tag.add(random_tag_str(), engine.Tag.Category.NORMAL_PROBLEM)
     user = utils.user.Factory.student()
     client = forge_client(user.username)
-    rv = client.delete('/tag', json={'tags': [str(t.pk)]})
+    rv = client.delete('/tag',
+                       json={
+                           'tags': [str(t.pk)],
+                           'category': engine.Tag.Category.NORMAL_PROBLEM
+                       })
     assert rv.status_code == 403, rv.data
 
 
@@ -84,7 +92,11 @@ def test_cannot_delete_tag_used_by_course(forge_client: Callable[[str],
         auto_insert_tags=True,
     )
     client = forge_client(course.teacher.username)
-    rv = client.delete('/tag', json={'tags': [tag]})
+    rv = client.delete('/tag',
+                       json={
+                           'tags': [tag],
+                           'category': engine.Tag.Category.COURSE
+                       })
     assert rv.status_code == 400
     rv_data = rv.get_json()['data']
     fail = rv_data['fail']
@@ -95,7 +107,7 @@ def test_cannot_delete_tag_used_by_course(forge_client: Callable[[str],
 
 def test_cannot_delete_tag_used_by_attachment(
         forge_client: Callable[[str], FlaskClient]):
-    tag = Tag.add(random_tag_str())
+    tag = Tag.add(random_tag_str(), engine.Tag.Category.ATTACHMENT)
     user = utils.user.Factory.admin()
     # Create attachment with tag
     client = forge_client(user.username)
@@ -110,7 +122,11 @@ def test_cannot_delete_tag_used_by_attachment(
         },
     )
     assert rv.status_code == 200, rv.data
-    rv = client.delete('/tag', json={'tags': [str(tag.pk)]})
+    rv = client.delete('/tag',
+                       json={
+                           'tags': [str(tag.pk)],
+                           'category': engine.Tag.Category.ATTACHMENT
+                       })
     assert rv.status_code == 400
     rv_data = rv.get_json()['data']
     fail = rv_data['fail']

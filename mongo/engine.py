@@ -120,6 +120,8 @@ class Course(Document):
     )
     teacher = ReferenceField('User', required=True)
     tags = ListField(StringField(max_length=16), default=list)
+    normal_problem_tags = ListField(StringField(max_length=16), default=list)
+    OJ_problem_tags = ListField(StringField(max_length=16), default=list)
     students = ListField(ReferenceField('User'), default=[])
     problems = ListField(ReferenceField('Problem'), default=[])
     year = IntField(required=True)

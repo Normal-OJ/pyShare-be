@@ -18,12 +18,23 @@ class Tag(MongoBase, engine=engine.Tag):
         if category == engine.Tag.Category.ATTACHMENT:
             objects = engine.Attachment.objects(tags=self.value)
         if category == engine.Tag.Category.NORMAL_PROBLEM:
-            objects = engine.Problem.objects(tags=self.value,
-                                             extra___cls='Normal')
+            objects = engine.Problem.objects(
+                tags=self.value,
+                __raw__={'extra': {
+                    '_cls': 'Normal'
+                }},
+            )
         if category == engine.Tag.Category.OJ_PROBLEM:
-            objects = engine.Problem.objects(tags=self.value, extra___cls='OJ')
+            objects = engine.Problem.objects(
+                tags=self.value,
+                __raw__={'extra': {
+                    '_cls': 'OJ'
+                }},
+            )
         if objects is not None:
             objects.update(pull__tags=self.value)
+        else:
+            raise ValueError('category not exist')
 
         self.update(pull__categories=category)
         self.reload()
@@ -40,10 +51,22 @@ class Tag(MongoBase, engine=engine.Tag):
             return len(engine.Attachment.objects(tags=self.value))
         if category == engine.Tag.Category.NORMAL_PROBLEM:
             return len(
-                engine.Problem.objects(tags=self.value, extra___cls='Normal'))
+                engine.Problem.objects(
+                    tags=self.value,
+                    __raw__={'extra': {
+                        '_cls': 'Normal'
+                    }},
+                ))
         if category == engine.Tag.Category.OJ_PROBLEM:
             return len(
-                engine.Problem.objects(tags=self.value, extra___cls='OJ'))
+                engine.Problem.objects(
+                    tags=self.value,
+                    __raw__={'extra': {
+                        '_cls': 'OJ'
+                    }},
+                ))
+
+        raise ValueError('category not exist')
 
     def is_used(self, category):
         '''
@@ -57,15 +80,15 @@ class Tag(MongoBase, engine=engine.Tag):
         Add a tag to DB
         '''
         t = cls(value)
-        if t is None:
+        if not t:
             t = cls.engine(value=value).save()
-        t.update(add_to_set=category)
+        t.update(add_to_set__categories=category)
         t.reload()
         return cls(t)
 
     @classmethod
     def is_tag(cls, value, category):
-        return cls.engine(value=value, categories=category) is not None
+        return len(cls.engine.objects(value=value, categories=category)) > 0
 
     @classmethod
     def is_course_tag(cls, value):

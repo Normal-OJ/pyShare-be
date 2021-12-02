@@ -321,9 +321,7 @@ class Problem(MongoBase, engine=engine.Problem):
             raise PermissionError('Students have to allow multiple comments')
         category = engine.Tag.Category.OJ_PROBLEM if 'extra' in ks and ks[
             'extra']['_cls'] == 'OJ' else engine.Tag.Category.NORMAL_PROBLEM
-        if not all(
-                course.check_tag(tag) and Tag.is_tag(tag, category)
-                for tag in tags):
+        if not all(course.check_tag(tag, category) for tag in tags):
             raise TagNotFoundError(
                 'Exist tag that is not allowed to use in this course')
         # insert a new problem into DB

@@ -1,7 +1,7 @@
 import secrets
 import random
 from tests import utils
-from mongo import (Problem, Tag)
+from mongo import (Problem, Tag, engine)
 
 
 def setup_function(_):
@@ -31,11 +31,11 @@ def test_problem_filter_with_tag():
     cnt = 10
     random_tag = [secrets.token_hex(4) for _ in range(5)]
     for t in random_tag:
-        Tag.add(t)
+        Tag.add(t, engine.Tag.Category.NORMAL_PROBLEM)
     for _ in range(cnt):
         selected_tags = random.sample(random_tag, 2)
         course = utils.course.lazy_add(
-            tags=selected_tags,
+            normal_problem_tags=selected_tags,
             auto_insert_tags=True,
         )
         utils.problem.lazy_add(
@@ -44,7 +44,7 @@ def test_problem_filter_with_tag():
         )
     target_tag = [secrets.token_hex(6) for _ in range(3)]
     course = utils.course.lazy_add(
-        tags=target_tag,
+        normal_problem_tags=target_tag,
         auto_insert_tags=True,
     )
     for _ in range(cnt):

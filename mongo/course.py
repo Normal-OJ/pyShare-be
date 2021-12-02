@@ -17,8 +17,17 @@ if TYPE_CHECKING:
 
 
 class Course(MongoBase, engine=engine.Course):
-    def check_tag(self, tag):
-        return (tag in self.tags)
+    def check_tag(self, tag, category):
+        if not Tag.is_tag(tag, category):
+            return False
+        tags = {
+            engine.Tag.Category.COURSE: self.tags,
+            engine.Tag.Category.NORMAL_PROBLEM: self.normal_problem_tags,
+            engine.Tag.Category.OJ_PROBLEM: self.OJ_problem_tags,
+        }.get(category, None)
+        if tags is None:
+            raise ValueError('invalid category')
+        return (tag in tags)
 
     @doc_required('user', 'user', User)
     def own_permission(self, user: User):
@@ -164,23 +173,32 @@ class Course(MongoBase, engine=engine.Course):
         self,
         push: List[str] = [],
         pop: List[str] = [],
+        category: int = engine.Tag.Category.NORMAL_PROBLEM,
     ):
-        if not all(map(Tag.is_course_tag, push + pop)):
+        tags = {
+            engine.Tag.Category.COURSE: self.tags,
+            engine.Tag.Category.NORMAL_PROBLEM: self.normal_problem_tags,
+            engine.Tag.Category.OJ_PROBLEM: self.OJ_problem_tags,
+        }.get(category, None)
+        if tags is None:
+            raise ValueError('invalid category')
+        if not all(Tag.is_tag(tag, category) for tag in push + pop):
             raise Tag.engine.DoesNotExist(
                 'Some tag can not be '
                 'found in system', )
         if {*pop} & {*push}:
             raise ValueError('Tag appears in both list')
-        if {*push} & {*self.tags}:
+        if {*push} & {*tags}:
             raise ValueError('Some pushed tags are already in course')
-        if not {*pop} <= {*self.tags}:
+        if not {*pop} <= {*tags}:
             raise ValueError('Some popped tags are not in course')
         # popped tags have to be removed from problem that is using it
         for p in self.problems:
             p.tags = list(filter(lambda x: x not in pop, p.tags))
             p.save()
         # add pushed tags
-        self.tags += push
+        tags += push
         # remove popped tags
-        self.tags = list(filter(lambda x: x not in pop, self.tags))
+        # this will modify the original list without assign to a new one
+        tags[:] = list(filter(lambda x: x not in pop, tags))
         self.save()

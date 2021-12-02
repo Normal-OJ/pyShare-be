@@ -219,19 +219,16 @@ def update_students(user, course, users):
 
 @course_api.route('/<course>/tag', methods=['PATCH'])
 @login_required
-@Request.json(
-    'push: list',
-    'pop: list',
-)
+@Request.json('push: list', 'pop: list', 'category: int')
 @Request.doc('course', Course)
-def update_tags(user, course, push, pop):
+def update_tags(user, course, push, pop, category):
     '''
     push/pop tags to/from course
     '''
     if not course.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
     try:
-        course.patch_tag(push, pop)
+        course.patch_tag(push, pop, category)
     except ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())
     except ValueError as e:
