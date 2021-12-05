@@ -5,7 +5,7 @@ from . import engine
 from .base import MongoBase
 from .user import User
 from .problem import Problem
-from .comment import *
+from .comment import Comment
 from .utils import doc_required, get_redis_client
 from .token import TokenExistError
 
@@ -18,11 +18,6 @@ class Submission(MongoBase, engine=engine.Submission):
     class Pending(Exception):
         def __init__(self, _id):
             super().__init__(f'{_id} still pending.')
-
-    def __init__(self, _id):
-        if isinstance(_id, self.engine):
-            _id = _id.id
-        self.id = str(_id)
 
     @property
     def problem_id(self):
@@ -164,6 +159,7 @@ class Submission(MongoBase, engine=engine.Submission):
         Returns:
             The created submission
         '''
+        # TODO: Validate the relation of user, problem and comment
         submission = engine.Submission(
             problem=problem.obj,
             user=user.obj,
