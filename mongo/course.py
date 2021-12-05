@@ -3,7 +3,6 @@ import csv
 import tempfile
 from typing import List, TYPE_CHECKING
 
-from mongoengine.errors import ValidationError
 from . import engine
 from .base import MongoBase
 from .user import User

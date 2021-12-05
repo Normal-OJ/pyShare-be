@@ -31,7 +31,7 @@ class TooManyComments(Exception):
 
 class Comment(MongoBase, engine=engine.Comment):
     on_created = signal('comment_created')
-    initialized = False
+    __initialized = False
 
     class Permission(Enum):
         READ = 'r'
@@ -41,9 +41,10 @@ class Comment(MongoBase, engine=engine.Comment):
         UPDATE_STATE = 's'
 
     def __new__(cls, pk, *args, **kwargs):
-        if not cls.initialized:
-            signal('submission_completed').connect(cls.on_submission_completed)
-            cls.initialized = True
+        if not cls.__initialized:
+            on_completed = signal('submission_completed')
+            on_completed.connect(cls.on_submission_completed)
+            cls.__initialized = True
         return super().__new__(cls, pk, *args, **kwargs)
 
     def __init__(self, _id):
@@ -288,6 +289,7 @@ class Comment(MongoBase, engine=engine.Comment):
 
     @classmethod
     @doc_required('author', User)
+    @doc_required('problem', Problem)
     def add(
         cls,
         title: str,
@@ -295,14 +297,15 @@ class Comment(MongoBase, engine=engine.Comment):
         author: User,
         floor: int,
         depth: int,
-        problem: engine.Problem,
+        problem: Problem,
     ):
         # check permission
-        if (not Problem(problem.pk).permission(user=author, req={'r'})
-                or not Course(problem.course.pk).permission(user=author,
-                                                            req={'p'})):
+        required_permission = (
+            problem.permission(user=author, req={'r'}),
+            Course(problem.course).permission(user=author, req={'p'}),
+        )
+        if not all(required_permission):
             raise PermissionError('Not enough permission')
-        # insert into DB
         comment = cls.engine(
             title=title,
             content=content,
