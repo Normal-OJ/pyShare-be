@@ -64,6 +64,8 @@ class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
             raise ValueError('`problems` cannot be empty')
         if any(p not in task.course.problems for p in problems):
             raise ValueError('All problems must belong to the course')
+        if any(not p.is_OJ for p in problems):
+            raise ValueError('Only accept OJ problem')
         req = cls.engine(
             task=task.id,
             problems=[p.id for p in problems],
