@@ -187,23 +187,22 @@ def modify_problem(
     # if allow_multiple_comments is False
     if user < 'teacher' and p_ks.get('allow_multiple_comments') == False:
         return HTTPError('Students have to allow multiple comments.', 403)
-    c = Course(problem.course)
-    category = engine.Tag.Category.OJ_PROBLEM if problem.is_OJ else engine.Tag.Category.NORMAL_PROBLEM
-    for tag in tags:
-        if not c.check_tag(tag, category):
-            return HTTPError(
-                'Exist tag that is not allowed to use in this course', 400)
     if extra is not None:
         cls = get_document(extra['_cls'])
         extra = cls(**extra)
     try:
         p_ks = {k: v for k, v in p_ks.items() if v is not None}
-        problem.update(**p_ks, tags=tags, extra=extra)
+        problem.modify(**p_ks, tags=tags, extra=extra)
     except engine.ValidationError as ve:
         return HTTPError(
             'Invalid data',
             400,
             data=ve.to_dict(),
+        )
+    except ValueError as e:
+        return HTTPError(
+            e,
+            400,
         )
     return HTTPResponse('success')
 

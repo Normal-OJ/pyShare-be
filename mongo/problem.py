@@ -115,6 +115,15 @@ class Problem(MongoBase, engine=engine.Problem):
     def online(self):
         return self.status == 1
 
+    def modify(self, tags, **ks):
+        c = Course(self.course)
+        category = engine.Tag.Category.OJ_PROBLEM if self.is_OJ else engine.Tag.Category.NORMAL_PROBLEM
+        for tag in tags:
+            if not c.check_tag(tag, category):
+                raise ValueError(
+                    'Exist tag that is not allowed to use in this course')
+        self.update(**ks, tags=tags)
+
     def to_dict(self):
         '''
         cast self to python dictionary for serialization
