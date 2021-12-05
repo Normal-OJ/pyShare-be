@@ -17,9 +17,7 @@ if TYPE_CHECKING:
 
 
 class Course(MongoBase, engine=engine.Course):
-    def check_tag(self, tag, category):
-        if not Tag.is_tag(tag, category):
-            return False
+    def get_tags_by_category(self, category):
         tags = {
             engine.Tag.Category.COURSE: self.tags,
             engine.Tag.Category.NORMAL_PROBLEM: self.normal_problem_tags,
@@ -27,6 +25,12 @@ class Course(MongoBase, engine=engine.Course):
         }.get(category, None)
         if tags is None:
             raise ValueError('invalid category')
+        return tags
+
+    def check_tag(self, tag, category):
+        if not Tag.is_tag(tag, category):
+            return False
+        tags = self.get_tags_by_category(category)
         return (tag in tags)
 
     @doc_required('user', 'user', User)
@@ -79,7 +83,7 @@ class Course(MongoBase, engine=engine.Course):
                 'only those who has more permission'
                 ' than teacher can create course', )
         # Tags should exist in collection
-        if 'tags' in ks and not all(map(Tag.is_course_tag, ks['tags'])):
+        if not all(map(Tag.is_course_tag, ks.get('tags', []))):
             raise Tag.engine.DoesNotExist(
                 'Some tag can not be '
                 'found in system', )
@@ -163,11 +167,11 @@ class Course(MongoBase, engine=engine.Course):
             'users': student_stats,
         }
 
-    def push_tags(self, tags: List[str]):
-        self.patch_tag(push=tags)
+    def push_tags(self, tags: List[str], category: int):
+        self.patch_tag(push=tags, category=category)
 
-    def pull_tags(self, tags: List[str]):
-        self.patch_tag(pop=tags)
+    def pull_tags(self, tags: List[str], category: int):
+        self.patch_tag(pop=tags, category=category)
 
     def patch_tag(
         self,
@@ -175,13 +179,7 @@ class Course(MongoBase, engine=engine.Course):
         pop: List[str] = [],
         category: int = engine.Tag.Category.NORMAL_PROBLEM,
     ):
-        tags = {
-            engine.Tag.Category.COURSE: self.tags,
-            engine.Tag.Category.NORMAL_PROBLEM: self.normal_problem_tags,
-            engine.Tag.Category.OJ_PROBLEM: self.OJ_problem_tags,
-        }.get(category, None)
-        if tags is None:
-            raise ValueError('invalid category')
+        tags = self.get_tags_by_category(category)
         if not all(Tag.is_tag(tag, category) for tag in push + pop):
             raise Tag.engine.DoesNotExist(
                 'Some tag can not be '
@@ -194,11 +192,12 @@ class Course(MongoBase, engine=engine.Course):
             raise ValueError('Some popped tags are not in course')
         # popped tags have to be removed from problem that is using it
         for p in self.problems:
-            p.tags = list(filter(lambda x: x not in pop, p.tags))
-            p.save()
+            if category == engine.Tag.Category.OJ_PROBLEM if p.is_OJ else engine.Tag.Category.NORMAL_PROBLEM:
+                p.tags = list(filter(lambda x: x not in pop, p.tags))
+                p.save()
         # add pushed tags
         tags += push
         # remove popped tags
-        # this will modify the original list without assign to a new one
+        # this will modify the original list without assigning to a new one
         tags[:] = list(filter(lambda x: x not in pop, tags))
         self.save()

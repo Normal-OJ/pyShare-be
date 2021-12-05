@@ -10,7 +10,7 @@ class Tag(MongoBase, engine=engine.Tag):
         Remove the tag
         '''
         if self.used_count(category) > 0:
-            raise PermissionError('tag is used by others')\
+            raise PermissionError('tag is used by others')
 
         objects = None
         if category == engine.Tag.Category.COURSE:

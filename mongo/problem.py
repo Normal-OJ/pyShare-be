@@ -89,7 +89,8 @@ class Problem(MongoBase, engine=engine.Problem):
         p['default_code'] = p.pop('defaultCode')
         p['allow_multiple_comments'] = p.pop('allowMultipleComments')
         new_tags = [*({*p['tags']} - {*target_course.tags})]
-        target_course.push_tags(new_tags)
+        category = engine.Tag.Category.OJ_PROBLEM if self.is_OJ else engine.Tag.Category.NORMAL_PROBLEM
+        target_course.push_tags(new_tags, category)
         try:
             p = Problem.add(
                 **p,
@@ -104,7 +105,7 @@ class Problem(MongoBase, engine=engine.Problem):
         # FIXME: Use transaction to restore DB, wait for mongoengine to
         #   implement it
         except:
-            target_course.pull_tags(new_tags)
+            target_course.pull_tags(new_tags, category)
             raise
         target_course.update(push__problems=p.obj)
         self.update(inc__reference_count=1)
@@ -319,8 +320,8 @@ class Problem(MongoBase, engine=engine.Problem):
         # if allow_multiple_comments is None or False
         if author < 'teacher' and not ks.get('allow_multiple_comments'):
             raise PermissionError('Students have to allow multiple comments')
-        category = engine.Tag.Category.OJ_PROBLEM if 'extra' in ks and ks[
-            'extra']['_cls'] == 'OJ' else engine.Tag.Category.NORMAL_PROBLEM
+        is_oj = ks.get('extra', {}).get('_cls', '') == 'OJ'
+        category = engine.Tag.Category.OJ_PROBLEM if is_oj else engine.Tag.Category.NORMAL_PROBLEM
         if not all(course.check_tag(tag, category) for tag in tags):
             raise TagNotFoundError(
                 'Exist tag that is not allowed to use in this course')
