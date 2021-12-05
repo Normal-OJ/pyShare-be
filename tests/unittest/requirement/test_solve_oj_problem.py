@@ -1,3 +1,4 @@
+import pytest
 from datetime import datetime, timedelta
 from tests import utils
 from mongo.sandbox import ISandbox
@@ -17,7 +18,7 @@ def teardown_function(_):
 # TODO: Simplify setup procedure
 
 
-def test_solve_oj_problem_can_count_AC_submission():
+def test_can_count_AC_submission():
     problem = utils.problem.lazy_add(is_oj=True)
     task = Task.add(
         course=problem.course,
@@ -37,7 +38,7 @@ def test_solve_oj_problem_can_count_AC_submission():
     assert req.reload().is_completed(submission.user)
 
 
-def test_solve_oj_problem_wont_be_triggerd_by_WA_submission():
+def test_wont_be_triggerd_by_WA_submission():
     problem = utils.problem.lazy_add(is_oj=True)
     task = Task.add(
         course=problem.course,
@@ -55,3 +56,13 @@ def test_solve_oj_problem_wont_be_triggerd_by_WA_submission():
         judge_result=submission.JudgeResult.WA,
     )
     assert not req.reload().is_completed(submission.user)
+
+
+def test_wont_accept_normal_problem():
+    problem = utils.problem.lazy_add()
+    task = Task.add(course=problem.course)
+    with pytest.raises(ValueError, match=r'.*accept.*OJ problem.*'):
+        requirement.SolveOJProblem.add(
+            task=task,
+            problems=[problem],
+        )
