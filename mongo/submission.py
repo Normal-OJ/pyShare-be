@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 import base64
 from blinker import signal
 from . import engine
@@ -6,7 +6,7 @@ from .base import MongoBase
 from .user import User
 from .problem import Problem
 from .comment import *
-from .utils import doc_required
+from .utils import doc_required, get_redis_client
 from .token import TokenExistError
 
 __all__ = ('Submission', )
@@ -97,7 +97,7 @@ class Submission(MongoBase, engine=engine.Submission):
 
     def complete(
         self,
-        files,
+        files: List,
         stderr: str,
         stdout: str,
         judge_result,
@@ -105,23 +105,24 @@ class Submission(MongoBase, engine=engine.Submission):
         '''
         judgement complete
         '''
-        # update status
-        self.update(status=self.engine.Status.COMPLETE)
-        # update result
-        result = self.engine.Result(
-            stdout=stdout,
-            stderr=stderr,
-            judge_result=judge_result,
-        )
-        self.update(result=result)
-        self.reload()
-        for f in files:
-            f = self.new_file(f, filename=f.filename)
-            self.result.files.append(f)
+        with get_redis_client().lock(f'{self}'):
+            result = self.engine.Result(
+                stdout=stdout,
+                stderr=stderr,
+                judge_result=judge_result,
+            )
+            self.update(
+                result=result,
+                status=self.engine.Status.COMPLETE,
+            )
+            files = [self.new_file(
+                f,
+                filename=f.filename,
+            ) for f in files]
+            self.reload('result', 'status')
+            self.result.files = files
             self.save()
-        # Notify listeners
-        if self.on_complete:
-            self.on_complete.send(self)
+            self.on_complete.send(self.reload())
         return True
 
     def get_file(self, filename):
