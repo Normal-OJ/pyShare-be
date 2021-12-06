@@ -88,8 +88,10 @@ class Problem(MongoBase, engine=engine.Problem):
         # field name conversion
         p['default_code'] = p.pop('defaultCode')
         p['allow_multiple_comments'] = p.pop('allowMultipleComments')
-        new_tags = [*({*p['tags']} - {*target_course.tags})]
-        category = engine.Tag.Category.OJ_PROBLEM if self.is_OJ else engine.Tag.Category.NORMAL_PROBLEM
+        category = self.tag_category
+        new_tags = [
+            *({*p['tags']} - {*target_course.get_tags_by_category(category)})
+        ]
         target_course.push_tags(new_tags, category)
         try:
             p = Problem.add(
@@ -117,9 +119,8 @@ class Problem(MongoBase, engine=engine.Problem):
 
     def modify(self, tags, **ks):
         c = Course(self.course)
-        category = engine.Tag.Category.OJ_PROBLEM if self.is_OJ else engine.Tag.Category.NORMAL_PROBLEM
         for tag in tags:
-            if not c.check_tag(tag, category):
+            if not c.check_tag(tag, self.tag_category):
                 raise ValueError(
                     'Exist tag that is not allowed to use in this course')
         self.update(**ks, tags=tags)

@@ -191,10 +191,11 @@ class Course(MongoBase, engine=engine.Course):
         if not {*pop} <= {*tags}:
             raise ValueError('Some popped tags are not in course')
         # popped tags have to be removed from problem that is using it
-        for p in self.problems:
-            if category == engine.Tag.Category.OJ_PROBLEM if p.is_OJ else engine.Tag.Category.NORMAL_PROBLEM:
-                p.tags = list(filter(lambda x: x not in pop, p.tags))
-                p.save()
+        if category == engine.Tag.Category.OJ_PROBLEM or category == engine.Tag.Category.NORMAL_PROBLEM:
+            for p in self.problems:
+                if category == p.tag_category:
+                    p.tags = list(filter(lambda x: x not in pop, p.tags))
+                    p.save()
         # add pushed tags
         tags += push
         # remove popped tags

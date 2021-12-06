@@ -307,6 +307,10 @@ class Problem(Document):
     def is_OJ(self):
         return self.extra._cls == 'OJProblem'
 
+    @property
+    def tag_category(self):
+        return Tag.Category.OJ_PROBLEM if self.is_OJ else Tag.Category.NORMAL_PROBLEM
+
 
 class Submission(Document):
     meta = {'allow_inheritance': True}
