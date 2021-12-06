@@ -192,7 +192,7 @@ def modify_problem(
         extra = cls(**extra)
     try:
         p_ks = {k: v for k, v in p_ks.items() if v is not None}
-        problem.modify(**p_ks, tags=tags, extra=extra)
+        problem.update(**p_ks, tags=tags, extra=extra)
     except engine.ValidationError as ve:
         return HTTPError(
             'Invalid data',

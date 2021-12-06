@@ -117,13 +117,13 @@ class Problem(MongoBase, engine=engine.Problem):
     def online(self):
         return self.status == 1
 
-    def modify(self, tags, **ks):
+    def update(self, **ks):
         c = Course(self.course)
-        for tag in tags:
+        for tag in ks.get('tags', []):
             if not c.check_tag(tag, self.tag_category):
                 raise ValueError(
                     'Exist tag that is not allowed to use in this course')
-        self.update(**ks, tags=tags)
+        self.obj.update(**ks)
 
     def to_dict(self):
         '''
