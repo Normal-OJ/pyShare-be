@@ -12,6 +12,7 @@ class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
     __initialized = False
 
     def __new__(cls, pk, *args, **kwargs):
+        # TODO: handle rejudge, which might convert a AC submission into WA
         if not cls.__initialized:
             on_completed = signal('submission_completed')
             on_completed.connect(cls.on_submission_completed)
@@ -19,21 +20,28 @@ class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
         return super().__new__(cls, pk, *args, **kwargs)
 
     @classmethod
+    def is_valid_submission(cls, submission):
+        return all((
+            submission.problem.is_OJ,
+            submission.result.judge_result == submission.JudgeResult.AC,
+            submission.comment is not None,
+        ))
+
+    @classmethod
     def on_submission_completed(cls, submission):
-        if not submission.problem.is_OJ:
+        if not cls.is_valid_submission(submission):
             return
-        if submission.result.judge_result != submission.JudgeResult.AC:
-            return
-        course = submission.problem.course
-        if course is None:
-            return
-        # TODO: Get this type of requirements directly
-        tasks = Task.filter(course=course)
-        reqs = cls.engine.objects(task__in=[task.id for task in tasks])
+        tasks = Task.filter(course=submission.problem.course)
+        reqs = cls.engine.objects(
+            task__in=[task.id for task in tasks],
+            problems=submission.problem,
+        )
         for req in reqs:
             cls(req).add_submission(submission)
 
     def add_submission(self, submission):
+        if not self.is_valid_submission(submission):
+            return
         if submission.problem not in self.problems:
             return
         with get_redis_client().lock(f'{self}'):
