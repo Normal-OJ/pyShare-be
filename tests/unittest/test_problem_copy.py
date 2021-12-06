@@ -33,7 +33,7 @@ def test_problem_copy():
 def test_problem_copy_should_add_tag_to_target_course():
     tags = [secrets.token_hex(5) for _ in range(5)]
     course_src = utils.course.lazy_add(
-        tags=tags,
+        normal_problem_tags=tags,
         auto_insert_tags=True,
     )
     problem_src = utils.problem.lazy_add(
@@ -48,7 +48,7 @@ def test_problem_copy_should_add_tag_to_target_course():
         user=course_dst.teacher,
     )
     course_dst.reload('tags')
-    assert sorted(course_dst.tags) == sorted(tags)
+    assert sorted(course_dst.normal_problem_tags) == sorted(tags)
 
 
 def test_problem_copy_should_add_reference_count():
