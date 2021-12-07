@@ -121,6 +121,8 @@ class Course(Document):
     )
     teacher = ReferenceField('User', required=True)
     tags = ListField(StringField(max_length=16), default=list)
+    normal_problem_tags = ListField(StringField(max_length=16), default=list)
+    OJ_problem_tags = ListField(StringField(max_length=16), default=list)
     students = ListField(ReferenceField('User'), default=[])
     problems = ListField(ReferenceField('Problem'), default=[])
     year = IntField(required=True)
@@ -133,7 +135,14 @@ class Course(Document):
 
 
 class Tag(Document):
+    class Category(Enum):
+        COURSE = 0
+        ATTACHMENT = 1
+        NORMAL_PROBLEM = 2
+        OJ_PROBLEM = 3
+
     value = StringField(primary_key=True, required=True, max_length=16)
+    categories = ListField(IntField(choices=Category.choices()), default=[])
 
 
 class Comment(Document):
@@ -298,6 +307,10 @@ class Problem(Document):
     @property
     def is_OJ(self):
         return self.extra._cls == 'OJProblem'
+
+    @property
+    def tag_category(self):
+        return Tag.Category.OJ_PROBLEM if self.is_OJ else Tag.Category.NORMAL_PROBLEM
 
 
 class Submission(Document):

@@ -6,6 +6,7 @@ from .engine import GridFSProxy
 from .base import MongoBase
 from .course import Course
 from .user import User
+from .tag import Tag
 from .utils import doc_required, get_redis_client
 from zipfile import ZipFile
 import tempfile
@@ -87,8 +88,11 @@ class Problem(MongoBase, engine=engine.Problem):
         # field name conversion
         p['default_code'] = p.pop('defaultCode')
         p['allow_multiple_comments'] = p.pop('allowMultipleComments')
-        new_tags = [*({*p['tags']} - {*target_course.tags})]
-        target_course.push_tags(new_tags)
+        category = self.tag_category
+        new_tags = [
+            *({*p['tags']} - {*target_course.get_tags_by_category(category)})
+        ]
+        target_course.push_tags(new_tags, category)
         try:
             p = Problem.add(
                 **p,
@@ -103,7 +107,7 @@ class Problem(MongoBase, engine=engine.Problem):
         # FIXME: Use transaction to restore DB, wait for mongoengine to
         #   implement it
         except:
-            target_course.pull_tags(new_tags)
+            target_course.pull_tags(new_tags, category)
             raise
         target_course.update(push__problems=p.obj)
         self.update(inc__reference_count=1)
@@ -112,6 +116,14 @@ class Problem(MongoBase, engine=engine.Problem):
     @property
     def online(self):
         return self.status == 1
+
+    def update(self, **ks):
+        c = Course(self.course)
+        for tag in ks.get('tags', []):
+            if not c.check_tag(tag, self.tag_category):
+                raise ValueError(
+                    'Exist tag that is not allowed to use in this course')
+        self.obj.update(**ks)
 
     def to_dict(self):
         '''
@@ -326,7 +338,9 @@ class Problem(MongoBase, engine=engine.Problem):
         # if allow_multiple_comments is None or False
         if author < 'teacher' and not ks.get('allow_multiple_comments'):
             raise PermissionError('Students have to allow multiple comments')
-        if not all(course.check_tag(tag) for tag in tags):
+        is_oj = ks.get('extra', {}).get('_cls', '') == 'OJ'
+        category = engine.Tag.Category.OJ_PROBLEM if is_oj else engine.Tag.Category.NORMAL_PROBLEM
+        if not all(course.check_tag(tag, category) for tag in tags):
             raise TagNotFoundError(
                 'Exist tag that is not allowed to use in this course')
         # insert a new problem into DB

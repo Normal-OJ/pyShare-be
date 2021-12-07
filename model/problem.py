@@ -189,11 +189,6 @@ def modify_problem(
     # if allow_multiple_comments is False
     if user < 'teacher' and p_ks.get('allow_multiple_comments') == False:
         return HTTPError('Students have to allow multiple comments.', 403)
-    c = Course(problem.course)
-    for tag in tags:
-        if not c.check_tag(tag):
-            return HTTPError(
-                'Exist tag that is not allowed to use in this course', 400)
     if extra is not None:
         cls = get_document(extra['_cls'])
         extra = cls(**extra)
@@ -205,6 +200,11 @@ def modify_problem(
             'Invalid data',
             400,
             data=ve.to_dict(),
+        )
+    except ValueError as e:
+        return HTTPError(
+            e,
+            400,
         )
     return HTTPResponse('success')
 

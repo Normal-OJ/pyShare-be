@@ -241,6 +241,7 @@ class User(MongoBase, engine=engine.User):
     def statistic(
         self,
         courses: Optional[Container[engine.Course]] = None,
+        full: bool = False,
     ):
         '''
         return user's statistic data in courses
@@ -288,7 +289,8 @@ class User(MongoBase, engine=engine.User):
             'pid': c.problem.pid,
             'floor': c.floor,
             'acceptance': c.acceptance,
-        } for c in filter(include_comment, self.comments)]
+        } for c in filter(include_comment, self.comments)
+                           if not c.problem.is_OJ]
         ret['replies'] = [{
             'course': {
                 'name': c.problem.course.name,
@@ -306,7 +308,8 @@ class User(MongoBase, engine=engine.User):
             'pid': c.problem.pid,
             'floor': c.floor,
             'starers': [u.info for u in c.liked],
-        } for c in filter(include_comment, self.comments)]
+        } for c in filter(include_comment, self.comments)
+                        if full or len(c.liked)]
         # success & fail
         ret['execInfo'] = [{
             'course': {
