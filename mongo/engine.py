@@ -1,7 +1,6 @@
 from __future__ import annotations
 from typing import List, Optional
 from mongoengine import *
-from bson import ObjectId
 import mongoengine
 import re
 import hashlib
@@ -497,8 +496,14 @@ class SolveOJProblem(Requirement):
     problems = ListField(ReferenceField('Problem'))
     records = MapField(EmbeddedDocumentField(Record))
 
+    def get_record(self, user) -> Optional[Record]:
+        return self.records.get(str(user.id), self.Record())
+
+    def set_record(self, user, record: Record):
+        self.update(**{f'records__{user.id}': record})
+
     def completed_at(self, user) -> Optional[datetime]:
-        record = self.records.get(user.username)
+        record = self.get_record(user)
         if record is None:
             return None
         return record.completed_at
@@ -515,8 +520,14 @@ class LeaveComment(Requirement):
     acceptance = IntField(min_value=0, max_value=3)
     records = MapField(EmbeddedDocumentField(Record))
 
+    def get_record(self, user) -> Optional[Record]:
+        return self.records.get(str(user.id), self.Record())
+
+    def set_record(self, user, record: Record):
+        self.update(**{f'records__{user.id}': record})
+
     def completed_at(self, user) -> Optional[datetime]:
-        record = self.records.get(user.username)
+        record = self.get_record(user)
         if record is None:
             return None
         return record.completed_at
@@ -530,8 +541,14 @@ class ReplyToComment(Requirement):
     required_number = IntField(min_value=1, default=1)
     records = MapField(EmbeddedDocumentField(Record))
 
+    def get_record(self, user) -> Optional[Record]:
+        return self.records.get(str(user.id), self.Record())
+
+    def set_record(self, user, record: Record):
+        self.update(**{f'records__{user.id}': record})
+
     def completed_at(self, user) -> Optional[datetime]:
-        record = self.records.get(user.username)
+        record = self.get_record(user)
         if record is None:
             return None
         return record.completed_at

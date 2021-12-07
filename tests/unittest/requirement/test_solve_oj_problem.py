@@ -20,10 +20,7 @@ def teardown_function(_):
 
 def test_can_count_AC_submission():
     problem = utils.problem.lazy_add(is_oj=True)
-    task = Task.add(
-        course=problem.course,
-        ends_at=datetime.now() + timedelta(minutes=5),
-    )
+    task = Task.add(course=problem.course)
     req = requirement.SolveOJProblem.add(
         task=task,
         problems=[problem],
@@ -34,6 +31,10 @@ def test_can_count_AC_submission():
         stdout='',
         stderr='',
         judge_result=submission.JudgeResult.AC,
+    )
+    print(
+        submission.user.id,
+        req.reload().get_record(submission.user).completes,
     )
     assert req.reload().is_completed(submission.user)
 

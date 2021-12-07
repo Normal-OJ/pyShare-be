@@ -46,20 +46,18 @@ class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
             return
         with get_redis_client().lock(f'{self}'):
             self.reload('records')
-            if self.is_completed(submission.user):
+            user = submission.user
+            if self.is_completed(user):
                 return
-            username = submission.user.username
-            record = self.records.get(
-                username,
-                self.engine.Record(),
-            )
+            record = self.get_record(user)
             completes = record.completes
             problem = submission.problem
-            if problem not in completes:
-                completes.append(problem)
-            if len(completes) == len(self.problems):
+            if problem in completes:
+                return
+            completes.append(problem.id)
+            if len(completes) >= len(self.problems):
                 record.completed_at = datetime.now()
-            self.update(**{f'records__{username}': record})
+            self.set_record(user, record)
 
     @classmethod
     @doc_required('task', Task)
@@ -117,16 +115,13 @@ class LeaveComment(MongoBase, engine=engine.LeaveComment):
             user = comment.author
             if self.is_completed(user):
                 return
-            record = self.records.get(
-                user.username,
-                self.engine.Record(),
-            )
+            record = self.get_record(user)
             if comment in record.comments:
                 return
             record.comments.append(comment.id)
             if len(record.comments) >= self.required_number:
                 record.completed_at = datetime.now()
-            self.update(**{f'records__{user.username}': record})
+            self.set_record(user, record)
 
     @classmethod
     @doc_required('problem', Problem)
@@ -180,16 +175,13 @@ class ReplyToComment(MongoBase, engine=engine.ReplyToComment):
             user = reply.author
             if self.is_completed(user):
                 return
-            record = self.records.get(
-                user.username,
-                self.engine.Record(),
-            )
+            record = self.get_record(user)
             if reply in record.replies:
                 return
             record.replies.append(reply.id)
             if len(record.replies) >= self.required_number:
                 record.completed_at = datetime.now()
-            self.update(**{f'records__{user.username}': record})
+            self.set_record(user, record)
 
     @classmethod
     @doc_required('task', Task)
