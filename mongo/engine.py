@@ -522,7 +522,7 @@ class LeaveComment(Requirement):
         return record.completed_at
 
 
-class ReplyToOthers(Requirement):
+class ReplyToComment(Requirement):
     class Record(EmbeddedDocument):
         replies = ListField(ReferenceField('Comment'))
         completed_at = DateTimeField()

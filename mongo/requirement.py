@@ -151,7 +151,7 @@ class LeaveComment(MongoBase, engine=engine.LeaveComment):
         return cls(req)
 
 
-class ReplyToOthers(MongoBase, engine=engine.ReplyToOthers):
+class ReplyToComment(MongoBase, engine=engine.ReplyToComment):
     __initialized = False
 
     def __new__(cls, pk, *args, **kwargs):

@@ -21,7 +21,7 @@ def teardown_function(_):
 def test_can_count_reply(required_number: int):
     problem = utils.problem.lazy_add()
     task = Task.add(course=problem.course)
-    req = requirement.ReplyToOthers.add(
+    req = requirement.ReplyToComment.add(
         task=task,
         required_number=required_number,
     )
