@@ -8,6 +8,7 @@ from .utils import doc_required
 
 __all__ = ['Task']
 
+
 class Task(MongoBase, engine=engine.Task):
     @classmethod
     def filter(

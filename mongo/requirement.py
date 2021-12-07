@@ -149,3 +149,59 @@ class LeaveComment(MongoBase, engine=engine.LeaveComment):
         params = {k: v for k, v in params.items() if v is not None}
         req = cls.engine(**params).save()
         return cls(req)
+
+
+class ReplyToOthers(MongoBase, engine=engine.ReplyToOthers):
+    __initialized = False
+
+    def __new__(cls, pk, *args, **kwargs):
+        if not cls.__initialized:
+            on_created = signal('reply_created')
+            on_created.connect(cls.on_reply_created)
+            cls.__initialized = True
+        return super().__new__(cls, pk, *args, **kwargs)
+
+    @classmethod
+    def is_valid_reply(cls, reply):
+        return not reply.is_comment
+
+    @classmethod
+    def on_reply_created(cls, reply):
+        if not cls.is_valid_reply(reply):
+            return
+        tasks = Task.filter(course=reply.problem.course)
+        reqs = cls.engine.objects(task__in=[t.id for t in tasks])
+        for req in reqs:
+            cls(req).add_reply(reply)
+
+    def add_reply(self, reply):
+        with get_redis_client().lock(f'{self}'):
+            self.reload('records')
+            user = reply.author
+            if self.is_completed(user):
+                return
+            record = self.records.get(
+                user.username,
+                self.engine.Record(),
+            )
+            if reply in record.replies:
+                return
+            record.replies.append(reply.id)
+            if len(record.replies) >= self.required_number:
+                record.completed_at = datetime.now()
+            self.update(**{f'records__{user.username}': record})
+
+    @classmethod
+    @doc_required('task', Task)
+    def add(
+        cls,
+        task: Task,
+        required_number: Optional[int] = None,
+    ):
+        params = {
+            'task': task.id,
+            'required_number': required_number,
+        }
+        params = {k: v for k, v in params.items() if v is not None}
+        req = cls.engine(**params).save()
+        return cls(req)

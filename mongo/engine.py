@@ -506,13 +506,28 @@ class SolveOJProblem(Requirement):
 
 class LeaveComment(Requirement):
     class Record(EmbeddedDocument):
-        comments = ListField(ReferenceField ('Comment'))
+        comments = ListField(ReferenceField('Comment'))
         completed_at = DateTimeField()
 
     problem = ReferenceField('Problem')
     required_number = IntField(min_value=1, default=1)
     # TODO: Use `EnumField`
     acceptance = IntField(min_value=0, max_value=3)
+    records = MapField(EmbeddedDocumentField(Record))
+
+    def completed_at(self, user) -> Optional[datetime]:
+        record = self.records.get(user.username)
+        if record is None:
+            return None
+        return record.completed_at
+
+
+class ReplyToOthers(Requirement):
+    class Record(EmbeddedDocument):
+        replies = ListField(ReferenceField('Comment'))
+        completed_at = DateTimeField()
+
+    required_number = IntField(min_value=1, default=1)
     records = MapField(EmbeddedDocumentField(Record))
 
     def completed_at(self, user) -> Optional[datetime]:
