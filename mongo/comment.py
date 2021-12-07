@@ -32,6 +32,8 @@ class TooManyComments(Exception):
 class Comment(MongoBase, engine=engine.Comment):
     on_created = signal('comment_created')
     on_reply_created = signal('reply_created')
+    on_liked = signal('liked')
+    on_unliked = signal('unliked')
     __initialized = False
 
     class Permission(Enum):
@@ -133,11 +135,16 @@ class Comment(MongoBase, engine=engine.Comment):
 
     @doc_required('user', 'user', User)
     def like(self, user):
+        '''
+        Like/Unlike a comment
+        '''
         # unlike
         if user.obj in self.liked:
             action = 'pull'
+            event = self.on_unliked
         else:
             action = 'add_to_set'
+            event = self.on_liked
             # notify the author of the creation
             info = Notif.types.Like(
                 comment=self.pk,
@@ -146,10 +153,11 @@ class Comment(MongoBase, engine=engine.Comment):
             )
             notif = Notif.new(info)
             self.author.update(push__notifs=notif.pk)
-        self.update(**{f'{action}__liked': user.obj})
-        user.update(**{f'{action}__likes': self.obj})
-        # reload
+        self.update(**{f'{action}__liked': user.id})
+        user.update(**{f'{action}__likes': self.id})
         self.reload()
+        user.reload()
+        event.send(self, user=user)
 
     def submit(self, code=None):
         '''
