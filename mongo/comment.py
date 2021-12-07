@@ -31,6 +31,7 @@ class TooManyComments(Exception):
 
 class Comment(MongoBase, engine=engine.Comment):
     on_created = signal('comment_created')
+    on_reply_created = signal('reply_created')
     __initialized = False
 
     class Permission(Enum):
@@ -284,7 +285,7 @@ class Comment(MongoBase, engine=engine.Comment):
             notif = Notif.new(info)
         for author in authors:
             author.update(push__notifs=notif.pk)
-        cls.on_created.send(comment.reload())
+        cls.on_reply_created.send(comment.reload())
         return comment
 
     @classmethod
