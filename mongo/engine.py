@@ -554,6 +554,27 @@ class ReplyToComment(Requirement):
         return record.completed_at
 
 
+class LikeOthersComment(Requirement):
+    class Record(EmbeddedDocument):
+        comments = ListField(ReferenceField('Comment'))
+        completed_at = DateTimeField()
+
+    required_number = IntField(min_value=1, required=True)
+    records = MapField(EmbeddedDocumentField(Record))
+
+    def get_record(self, user) -> Optional[Record]:
+        return self.records.get(str(user.id), self.Record())
+
+    def set_record(self, user, record: Record):
+        self.update(**{f'records__{user.id}': record})
+
+    def completed_at(self, user) -> Optional[datetime]:
+        record = self.get_record(user)
+        if record is None:
+            return None
+        return record.completed_at
+
+
 class Task(Document):
     course = ReferenceField('Course', required=True)
     starts_at = DateTimeField(default=datetime.now)

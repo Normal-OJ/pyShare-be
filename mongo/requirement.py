@@ -197,3 +197,55 @@ class ReplyToComment(MongoBase, engine=engine.ReplyToComment):
         params = {k: v for k, v in params.items() if v is not None}
         req = cls.engine(**params).save()
         return cls(req)
+
+
+class LikeOthersComment(MongoBase, engine=engine.LikeOthersComment):
+    __initialized = False
+
+    def __new__(cls, pk, *args, **kwargs):
+        if not cls.__initialized:
+            liked = signal('liked')
+            liked.connect(cls.on_liked)
+            cls.__initialized = True
+        return super().__new__(cls, pk, *args, **kwargs)
+
+    @classmethod
+    def is_valid_liker(cls, comment, user):
+        return user != comment.author
+
+    @classmethod
+    def on_liked(cls, comment, user):
+        if not cls.is_valid_liker(comment, user):
+            return
+        tasks = Task.filter(course=comment.problem.course)
+        reqs = cls.engine.objects(task__in=[t.id for t in tasks])
+        for req in reqs:
+            cls(req).add_like(comment, user)
+
+    def add_like(self, comment, user):
+        if not self.is_valid_liker(comment, user):
+            return
+        with get_redis_client().lock(f'{self}'):
+            self.reload('records')
+            if self.is_completed(user):
+                return
+            record = self.get_record(user)
+            if comment in record.comments:
+                return
+            record.comments.append(comment.id)
+            if len(record.comments) >= self.required_number:
+                record.completed_at = datetime.now()
+            self.set_record(user, record)
+
+    @classmethod
+    @doc_required('task', Task)
+    def add(
+        cls,
+        task: Task,
+        required_number: int,
+    ):
+        req = cls.engine(
+            task=task.id,
+            required_number=required_number,
+        ).save()
+        return cls(req)
