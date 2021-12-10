@@ -66,7 +66,7 @@ class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
         task: Task,
         problems: List[Problem],
     ):
-        if len(problems) < 0:
+        if len(problems) == 0:
             raise ValueError('`problems` cannot be empty')
         if any(p not in task.course.problems for p in problems):
             raise ValueError('All problems must belong to the course')
