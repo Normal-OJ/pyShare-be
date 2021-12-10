@@ -67,3 +67,12 @@ def test_wont_accept_normal_problem():
             task=task,
             problems=[problem],
         )
+
+
+def test_cannot_initialize_with_empty_problem_list():
+    task = Task.add(course=utils.course.lazy_add())
+    with pytest.raises(ValueError, match=r'.*empty.*'):
+        requirement.SolveOJProblem.add(
+            task=task,
+            problems=[],
+        )
