@@ -95,7 +95,6 @@ def test_oj_problem_has_accepted_should_update():
         stdout='output',
         judge_result=Submission.engine.JudgeResult.AC,
     )
-    Comment(submission.comment).finish_submission()
     submission.reload('comment')
     assert submission.result.judge_result == Submission.engine.JudgeResult.AC
     assert submission.comment.acceptance == Comment.engine.Acceptance.ACCEPTED

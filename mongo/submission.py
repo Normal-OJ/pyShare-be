@@ -1,29 +1,23 @@
-import os
-from typing import Optional
+from typing import List, Optional
 import base64
-
+from blinker import signal
 from . import engine
-from .config import ConfigLoader
 from .base import MongoBase
 from .user import User
 from .problem import Problem
-from .comment import *
-from .utils import doc_required
+from .comment import Comment
+from .utils import doc_required, get_redis_client
 from .token import TokenExistError
 
 __all__ = ('Submission', )
 
 
 class Submission(MongoBase, engine=engine.Submission):
+    on_complete = signal('submission_completed')
+
     class Pending(Exception):
         def __init__(self, _id):
             super().__init__(f'{_id} still pending.')
-
-    def __init__(self, _id):
-        if isinstance(_id, self.engine):
-            _id = _id.id
-        self.id = str(_id)
-        self.on_complete_listeners = []
 
     @property
     def problem_id(self):
@@ -98,7 +92,7 @@ class Submission(MongoBase, engine=engine.Submission):
 
     def complete(
         self,
-        files,
+        files: List,
         stderr: str,
         stdout: str,
         judge_result,
@@ -106,33 +100,25 @@ class Submission(MongoBase, engine=engine.Submission):
         '''
         judgement complete
         '''
-        # update status
-        self.update(status=self.engine.Status.COMPLETE)
-        # update result
-        result = self.engine.Result(
-            stdout=stdout,
-            stderr=stderr,
-            judge_result=judge_result,
-        )
-        self.update(result=result)
-        self.reload()
-        for f in files:
-            f = self.new_file(f, filename=f.filename)
-            self.result.files.append(f)
+        with get_redis_client().lock(f'{self}'):
+            result = self.engine.Result(
+                stdout=stdout,
+                stderr=stderr,
+                judge_result=judge_result,
+            )
+            self.update(
+                result=result,
+                status=self.engine.Status.COMPLETE,
+            )
+            files = [self.new_file(
+                f,
+                filename=f.filename,
+            ) for f in files]
+            self.reload('result', 'status')
+            self.result.files = files
             self.save()
-        # Notify listeners
-        for listener in self.on_complete_listeners:
-            listener()
+            self.on_complete.send(self.reload())
         return True
-
-    def add_on_complete_listener(self, listener):
-        '''
-        Register a event listener for on_complete even.
-        `listener` must allow to be called without parameters.
-        '''
-        if not callable(listener):
-            raise TypeError(f'{listener} is not callable')
-        self.on_complete_listeners.append(listener)
 
     def get_file(self, filename):
         if self.result is None:
@@ -173,6 +159,7 @@ class Submission(MongoBase, engine=engine.Submission):
         Returns:
             The created submission
         '''
+        # TODO: Validate the relation of user, problem and comment
         submission = engine.Submission(
             problem=problem.obj,
             user=user.obj,

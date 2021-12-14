@@ -12,6 +12,8 @@ class MongoBase:
         cls.engine = engine
 
     def __new__(cls, pk, *args, **kwargs):
+        if isinstance(pk, cls):
+            return pk
         new = super().__new__(cls)
         # got a engine instance
         if isinstance(pk, new.engine):

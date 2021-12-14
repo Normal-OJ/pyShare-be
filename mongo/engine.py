@@ -1,5 +1,6 @@
+from __future__ import annotations
+from typing import List, Optional
 from mongoengine import *
-from bson import ObjectId
 import mongoengine
 import re
 import hashlib
@@ -368,17 +369,15 @@ class Notif(Document):
                     '_', self.__class__.__name__).upper()
 
             def to_dict(self) -> dict:
-                def resolve(attrs):
+                def resolve(attrs: List[str]):
                     ret = self
                     for attr in attrs:
                         ret = ret.__getattribute__(attr)
-                    if isinstance(ret, ObjectId):
-                        ret = str(ret)
                     return ret
 
                 return {
-                    k: resolve(self.DICT_FEILDS[k].split('.'))
-                    for k in self.DICT_FEILDS
+                    k: resolve(v.split('.'))
+                    for k, v in self.DICT_FEILDS.items()
                 }
 
         class Grade(__Base__):
@@ -482,6 +481,140 @@ class Sandbox(Document):
 
 class AppConfig(DynamicDocument):
     key = StringField(primary_key=True)
+
+
+# TODO: Move requirements to individual package
+
+
+class Requirement(Document):
+    meta = {'allow_inheritance': True}
+    task = ReferenceField('Task', required=True)
+
+    def completed_at(self, user) -> Optional[datetime]:
+        '''
+        To query when a user completed this requirement, return None
+        if s/he haven't
+        '''
+        raise NotImplementedError
+
+    def is_completed(self, user):
+        return self.completed_at(user) is not None
+
+
+class SolveOJProblem(Requirement):
+    class Record(EmbeddedDocument):
+        completes = ListField(ReferenceField('Problem'))
+        completed_at = DateTimeField()
+
+    problems = ListField(ReferenceField('Problem'))
+    records = MapField(EmbeddedDocumentField(Record))
+
+    def get_record(self, user) -> Optional[Record]:
+        return self.records.get(str(user.id), self.Record())
+
+    def set_record(self, user, record: Record):
+        self.update(**{f'records__{user.id}': record})
+
+    def completed_at(self, user) -> Optional[datetime]:
+        record = self.get_record(user)
+        if record is None:
+            return None
+        return record.completed_at
+
+
+class LeaveComment(Requirement):
+    class Record(EmbeddedDocument):
+        comments = ListField(ReferenceField('Comment'))
+        completed_at = DateTimeField()
+
+    problem = ReferenceField('Problem')
+    required_number = IntField(min_value=1, default=1)
+    # TODO: Use `EnumField`
+    acceptance = IntField(min_value=0, max_value=3)
+    records = MapField(EmbeddedDocumentField(Record))
+
+    def get_record(self, user) -> Optional[Record]:
+        return self.records.get(str(user.id), self.Record())
+
+    def set_record(self, user, record: Record):
+        self.update(**{f'records__{user.id}': record})
+
+    def completed_at(self, user) -> Optional[datetime]:
+        record = self.get_record(user)
+        if record is None:
+            return None
+        return record.completed_at
+
+
+class ReplyToComment(Requirement):
+    class Record(EmbeddedDocument):
+        replies = ListField(ReferenceField('Comment'))
+        completed_at = DateTimeField()
+
+    required_number = IntField(min_value=1, default=1)
+    records = MapField(EmbeddedDocumentField(Record))
+
+    def get_record(self, user) -> Optional[Record]:
+        return self.records.get(str(user.id), self.Record())
+
+    def set_record(self, user, record: Record):
+        self.update(**{f'records__{user.id}': record})
+
+    def completed_at(self, user) -> Optional[datetime]:
+        record = self.get_record(user)
+        if record is None:
+            return None
+        return record.completed_at
+
+
+class LikeOthersComment(Requirement):
+    class Record(EmbeddedDocument):
+        comments = ListField(ReferenceField('Comment'))
+        completed_at = DateTimeField()
+
+    required_number = IntField(min_value=1, required=True)
+    records = MapField(EmbeddedDocumentField(Record))
+
+    def get_record(self, user) -> Optional[Record]:
+        return self.records.get(str(user.id), self.Record())
+
+    def set_record(self, user, record: Record):
+        self.update(**{f'records__{user.id}': record})
+
+    def completed_at(self, user) -> Optional[datetime]:
+        record = self.get_record(user)
+        if record is None:
+            return None
+        return record.completed_at
+
+
+class Task(Document):
+    course = ReferenceField('Course', required=True)
+    starts_at = DateTimeField(default=datetime.now)
+    ends_at = DateTimeField(default=datetime.max)
+    requirements = ListField(
+        ReferenceField('Requirement', required=True),
+        default=list,
+    )
+
+    @queryset_manager
+    def active_objects(cls, queryset):
+        now = datetime.now()
+        return queryset.filter(starts_at__lte=now, ends_at__gte=now)
+
+    def completed_at(self, user) -> Optional[datetime]:
+        completed_dates = [
+            *filter(
+                lambda d: d is not None,
+                (req.completed_at(user) for req in self.requirements),
+            )
+        ]
+        if len(completed_dates) == 0:
+            return None
+        return max(completed_dates)
+
+    def is_completed(self, user) -> bool:
+        return self.completed_at(user) is not None
 
 
 # register delete rule. execute here to resolve `NotRegistered`

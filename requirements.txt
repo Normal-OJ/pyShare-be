@@ -13,3 +13,4 @@ python-socketio<5
 python-engineio<4
 eventlet==0.29.1
 dynaconf==3.1.5
+blinker==1.4
