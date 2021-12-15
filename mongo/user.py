@@ -253,8 +253,12 @@ class User(MongoBase, engine=engine.User):
             return problem.online and include(problem.course)
 
         def include_comment(comment):
-            return comment.is_comment and comment.show and include(
-                comment.problem.course)
+            return all((
+                comment.is_comment,
+                comment.show,
+                not comment.problem.is_OJ,
+                include(comment.problem.course),
+            ))
 
         def include_reply(reply):
             return not reply.is_comment and reply.show and include(
@@ -272,6 +276,7 @@ class User(MongoBase, engine=engine.User):
         } for p in filter(include_problem, self.problems)]
         # liked comments
         ret['likes'] = [{
+            'id': c.id,
             'course': {
                 'name': c.problem.course.name,
                 'id': c.problem.course.id
@@ -282,6 +287,7 @@ class User(MongoBase, engine=engine.User):
         } for c in filter(include_comment, self.likes)]
         # comments
         ret['comments'] = [{
+            'id': c.id,
             'course': {
                 'name': c.problem.course.name,
                 'id': c.problem.course.id
@@ -289,9 +295,9 @@ class User(MongoBase, engine=engine.User):
             'pid': c.problem.pid,
             'floor': c.floor,
             'acceptance': c.acceptance,
-        } for c in filter(include_comment, self.comments)
-                           if not c.problem.is_OJ]
+        } for c in filter(include_comment, self.comments)]
         ret['replies'] = [{
+            'id': c.id,
             'course': {
                 'name': c.problem.course.name,
                 'id': c.problem.course.id
@@ -301,6 +307,7 @@ class User(MongoBase, engine=engine.User):
         } for c in filter(include_reply, self.comments)]
         # comments be liked
         ret['liked'] = [{
+            'id': c.id,
             'course': {
                 'name': c.problem.course.name,
                 'id': c.problem.course.id
@@ -312,6 +319,7 @@ class User(MongoBase, engine=engine.User):
                         if full or len(c.liked)]
         # success & fail
         ret['execInfo'] = [{
+            'id': c.id,
             'course': {
                 'name': c.problem.course.name,
                 'id': c.problem.course.id
