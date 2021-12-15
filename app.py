@@ -54,6 +54,7 @@ def setup_app(
         (notif_api, '/notif'),
         (sandbox_api, '/sandbox'),
         (school_api, '/school'),
+        (task_api, '/task'),
     ]
     for api, name in api2name:
         app.register_blueprint(api, url_prefix=name)

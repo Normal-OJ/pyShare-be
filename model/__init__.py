@@ -11,6 +11,7 @@ from . import attachment
 from . import notif
 from . import school
 from . import sandbox
+from . import task
 
 from .auth import *
 from .problem import *
@@ -25,6 +26,7 @@ from .attachment import *
 from .notif import *
 from .school import *
 from .sandbox import *
+from .task import *
 
 __all__ = [
     *auth.__all__,
@@ -40,4 +42,5 @@ __all__ = [
     *notif.__all__,
     *school.__all__,
     *sandbox.__all__,
+    *task.__all__,
 ]
