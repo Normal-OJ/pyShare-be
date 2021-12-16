@@ -13,9 +13,7 @@ __all__ = ['task_api']
 task_api = Blueprint('task_api', __name__)
 
 
-@task_api.route('/', methods=['GET'])
-@Request.json(
-    'course: str', )
+@course_api.route('/<course>/tasks', methods=['GET'])
 @Request.doc('course', Course)
 @login_required
 def get_task_list(user, course):
