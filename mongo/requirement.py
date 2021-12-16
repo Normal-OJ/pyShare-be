@@ -7,6 +7,15 @@ from .task import Task
 from .problem import Problem
 from .utils import doc_required, get_redis_client
 
+__all__ = [
+    'Requirement', 'SolveOJProblem', 'LeaveComment', 'ReplyToComment',
+    'LikeOthersComment'
+]
+
+
+class Requirement(MongoBase, engine=engine.Requirement):
+    pass
+
 
 class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
     __initialized = False
@@ -76,6 +85,7 @@ class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
             task=task.id,
             problems=[p.id for p in problems],
         ).save()
+        task.update(push__requirements=req)
         return cls(req)
 
 
@@ -143,6 +153,7 @@ class LeaveComment(MongoBase, engine=engine.LeaveComment):
         }
         params = {k: v for k, v in params.items() if v is not None}
         req = cls.engine(**params).save()
+        task.update(push__requirements=req)
         return cls(req)
 
 
@@ -196,6 +207,7 @@ class ReplyToComment(MongoBase, engine=engine.ReplyToComment):
         }
         params = {k: v for k, v in params.items() if v is not None}
         req = cls.engine(**params).save()
+        task.update(push__requirements=req)
         return cls(req)
 
 
@@ -248,4 +260,5 @@ class LikeOthersComment(MongoBase, engine=engine.LikeOthersComment):
             task=task.id,
             required_number=required_number,
         ).save()
+        task.update(push__requirements=req)
         return cls(req)

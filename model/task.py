@@ -1,12 +1,10 @@
 from flask import Blueprint, request
-from urllib import parse
-import threading
 
 from mongo import *
 from mongo import engine
-from .auth import *
 from .course import *
 from .utils import *
+from .auth import *
 
 __all__ = ['task_api']
 
@@ -17,7 +15,7 @@ task_api = Blueprint('task_api', __name__)
 @Request.doc('course', Course)
 @login_required
 def get_task_list(user, course):
-    tasks = engine.Tag.object(course=course.obj)
+    tasks = list(task.id for task in engine.Task.objects(course=course.obj))
     return HTTPResponse(f'get {course}\'s tags', data=tasks)
 
 
@@ -46,7 +44,7 @@ def add_task(user, course, starts_at, ends_at):
 @Request.doc('_id', 'task', Task)
 @login_required
 def get_task(user, task):
-    return HTTPResponse(f'success', data=task)
+    return HTTPResponse(f'success', data=task.to_mongo().to_dict())
 
 
 @task_api.route('/<_id>/solveOJProblem', methods=['POST'])
@@ -57,7 +55,7 @@ def add_solve_OJ_problem_requirement(user, task, problems):
     try:
         problems = map(Problem, problems)
         requirement = SolveOJProblem.add(task=task, problems=problems)
-        return HTTPResponse(f'success', data=requirement)
+        return HTTPResponse(f'success', data=requirement.id)
     except engine.DoesNotExist as e:
         return HTTPError(e, 400)
     except ValueError as ve:
@@ -80,7 +78,7 @@ def add_solve_comment_requirement(user, task, problem, required_number,
             required_number=required_number,
             acceptance=acceptance,
         )
-        return HTTPResponse(f'success', data=requirement)
+        return HTTPResponse(f'success', data=requirement.id)
     except ValueError as ve:
         return HTTPError(ve, 400, data=ve)
     except ValidationError as ve:
@@ -95,7 +93,7 @@ def add_reply_to_comment_requirement(user, task, required_number):
     try:
         requirement = ReplyToComment.add(task=task,
                                          required_number=required_number)
-        return HTTPResponse(f'success', data=requirement)
+        return HTTPResponse(f'success', data=requirement.id)
     except ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())
 
@@ -108,6 +106,6 @@ def add_like_others_comment_requirement(user, task, required_number):
     try:
         requirement = LikeOthersComment.add(task=task,
                                             required_number=required_number)
-        return HTTPResponse(f'success', data=requirement)
+        return HTTPResponse(f'success', data=requirement.id)
     except ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())

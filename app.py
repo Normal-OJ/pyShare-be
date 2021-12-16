@@ -55,6 +55,7 @@ def setup_app(
         (sandbox_api, '/sandbox'),
         (school_api, '/school'),
         (task_api, '/task'),
+        (requirement_api, '/requirement'),
     ]
     for api, name in api2name:
         app.register_blueprint(api, url_prefix=name)
