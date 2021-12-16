@@ -49,3 +49,67 @@ def add_task(user, course, starts_at, ends_at):
 @login_required
 def get_task(user, task):
     return HTTPResponse(f'success', data=task)
+
+
+@task_api.route('/<_id>/solveOJProblem', methods=['POST'])
+@Request.json('problems: list')
+@Request.doc('_id', 'task', Task)
+@login_required
+def add_solve_OJ_problem_requirement(user, task, problems):
+    try:
+        problems = map(Problem, problems)
+        requirement = SolveOJProblem.add(task=task, problems=problems)
+        return HTTPResponse(f'success', data=requirement)
+    except engine.DoesNotExist as e:
+        return HTTPError(e, 400)
+    except ValueError as ve:
+        return HTTPError(ve, 400, data=ve)
+    except ValidationError as ve:
+        return HTTPError(ve, 400, data=ve.to_dict())
+
+
+@task_api.route('/<_id>/leaveComment', methods=['POST'])
+@Request.json('problem: int', 'required_number', 'acceptance')
+@Request.doc('_id', 'task', Task)
+@Request.doc('_id', 'problem', Problem)
+@login_required
+def add_solve_comment_requirement(user, task, problem, required_number,
+                                  acceptance):
+    try:
+        requirement = LeaveComment.add(
+            task=task,
+            problem=problem,
+            required_number=required_number,
+            acceptance=acceptance,
+        )
+        return HTTPResponse(f'success', data=requirement)
+    except ValueError as ve:
+        return HTTPError(ve, 400, data=ve)
+    except ValidationError as ve:
+        return HTTPError(ve, 400, data=ve.to_dict())
+
+
+@task_api.route('/<_id>/replyToComment', methods=['POST'])
+@Request.json('required_number')
+@Request.doc('_id', 'task', Task)
+@login_required
+def add_reply_to_comment_requirement(user, task, required_number):
+    try:
+        requirement = ReplyToComment.add(task=task,
+                                         required_number=required_number)
+        return HTTPResponse(f'success', data=requirement)
+    except ValidationError as ve:
+        return HTTPError(ve, 400, data=ve.to_dict())
+
+
+@task_api.route('/<_id>/likeOthersComment', methods=['POST'])
+@Request.json('required_number: int')
+@Request.doc('_id', 'task', Task)
+@login_required
+def add_like_others_comment_requirement(user, task, required_number):
+    try:
+        requirement = LikeOthersComment.add(task=task,
+                                            required_number=required_number)
+        return HTTPResponse(f'success', data=requirement)
+    except ValidationError as ve:
+        return HTTPError(ve, 400, data=ve.to_dict())
