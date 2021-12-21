@@ -1,6 +1,6 @@
 from dynaconf import Dynaconf, Validator, ValidationError
 
-__all__ = ('ConfigLoader', )
+__all__ = tuple()
 
 DEFAULT_SECRET = 'SuperSecretString'
 
@@ -42,9 +42,3 @@ config = Dynaconf(
 
 if config['ENV'] != 'development':
     non_dev_check(config)
-
-
-class ConfigLoader:
-    @classmethod
-    def get(cls, key, default=None):
-        return config.get(key, default)

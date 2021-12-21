@@ -57,7 +57,7 @@ def setup_app(
     ]
     for api, name in api2name:
         app.register_blueprint(api, url_prefix=name)
-    if config_lib.ConfigLoader.get('DEBUG') == True:
+    if config_lib.config.get('DEBUG') == True:
         logger().warning(
             'Load dummy resource API, don\'t'
             ' use this under production mode', )
