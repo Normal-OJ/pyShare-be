@@ -50,6 +50,24 @@ class TestProblem(ProblemTester):
         assert rv.status_code == 200, (rv, client.cookie_jar)
         assert len(json['data']) == 3, json
 
+    def test_filter_problem_with_type(
+        self,
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
+    ):
+        admin = utils.user.Factory.admin()
+        client = forge_client(admin.username)
+        oj_cnt = 7
+        oj_pids = [
+            utils.problem.lazy_add(is_oj=True).pid for _ in range(oj_cnt)
+        ]
+        non_oj_cnt = 13
+        for _ in range(non_oj_cnt):
+            utils.problem.lazy_add()
+        rv = client.get('/problem?type=OJProblem')
+        assert rv.status_code == 200, rv.data
+        result_pids = [p['pid'] for p in rv.get_json()['data']]
+        assert sorted(result_pids) == sorted(oj_pids)
+
     def test_get_input_ouput(self, forge_client, config_app):
         config_app(env='test')
         client = forge_client('teacher1')
@@ -173,6 +191,38 @@ class TestProblem(ProblemTester):
 
         comment.submission.reload()
         assert comment.submission.status == 0
+
+    def test_problem_acceptance(
+        self,
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
+    ):
+
+        teacher = utils.user.Factory.teacher()
+        user = utils.user.Factory.student()
+        course = utils.course.lazy_add(teacher=teacher)
+        problem = utils.problem.lazy_add(course=course)
+        teacher_client = forge_client(teacher.username)
+        user_client = forge_client(user.username)
+
+        assert user_client.get(f'problem/{problem.id}').get_json(
+        )['data']['acceptance'] == engine.Comment.Acceptance.NOT_TRY
+        submission = utils.submission.lazy_add_new(problem=problem, user=user)
+        submission.complete(
+            files=[],
+            stderr='err',
+            stdout='output',
+            judge_result=None,
+        )
+        assert user_client.get(f'problem/{problem.id}').get_json(
+        )['data']['acceptance'] == engine.Comment.Acceptance.PENDING
+        teacher_client.put(f'/submission/{submission.id}/state',
+                           json={'state': engine.Submission.State.ACCEPT})
+        assert user_client.get(f'problem/{problem.id}').get_json(
+        )['data']['acceptance'] == engine.Comment.Acceptance.ACCEPTED
+        teacher_client.put(f'/submission/{submission.id}/state',
+                           json={'state': engine.Submission.State.DENIED})
+        assert user_client.get(f'problem/{problem.id}').get_json(
+        )['data']['acceptance'] == engine.Comment.Acceptance.REJECTED
 
 
 class TestAttachment(BaseTester):
@@ -416,3 +466,29 @@ class TestComment(ProblemTester):
         rv_json = rv.get_json()
         assert rv.status_code == 200, rv_json
         assert {*rv_json['data']} == set()
+
+    def test_get_own_OJ_comments(self, forge_client, problem_ids, config_app):
+        # Get comments
+        config_app(env='test')
+        clients = [forge_client('teacher1'), forge_client('admin')]
+
+        for client in clients:
+            rv = client.post('/comment',
+                             json={
+                                 'target': 'problem',
+                                 'id': 1,
+                                 'title': 'comment',
+                                 'content': '',
+                                 'code': ''
+                             })
+            assert rv.status_code == 200
+
+        rv = clients[0].get(f'/problem/1')
+        json = rv.get_json()
+        assert len(json['data']['comments']) == 1, json['data']['comments']
+        assert rv.status_code == 200
+
+        rv = clients[0].get(f'/comment/{json["data"]["comments"][0]}')
+        json = rv.get_json()
+        assert rv.status_code == 200
+        assert json['data']['author']['username'] == 'teacher1'

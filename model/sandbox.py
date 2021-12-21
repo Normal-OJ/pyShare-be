@@ -60,19 +60,14 @@ def add_one(
 @sandbox_api.put('/')
 @Request.json(
     'url: str',
-    'token: str',
     'alias',
 )
 def update_one(
     url: str,
-    token: str,
     alias: Optional[str],
 ):
     sandbox = engine.Sandbox.objects(url=url).get()
-    sandbox.update(
-        token=token,
-        alias=alias,
-    )
+    sandbox.update(alias=alias)
     return HTTPResponse()
 
 

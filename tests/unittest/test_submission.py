@@ -82,25 +82,27 @@ def test_complete_multiple():
         assert submission.result.stderr == err
 
 
-def test_oj_problem_has_accepted_shoulde_update():
+def test_oj_problem_has_accepted_should_update():
     problem = utils.problem.lazy_add(
         allow_multiple_comments=True,
         is_oj=True,
     )
-    submission = utils.submission.lazy_add_new(problem=problem)
+    user = utils.user.Factory.student()
+    submission = utils.submission.lazy_add_new(problem=problem, user=user)
     submission.complete(
         files=[],
         stderr='err',
         stdout='output',
         judge_result=Submission.engine.JudgeResult.AC,
     )
-    Comment(submission.comment).finish_submission()
     submission.reload('comment')
     assert submission.result.judge_result == Submission.engine.JudgeResult.AC
-    assert submission.comment.has_accepted == True
+    assert submission.comment.acceptance == Comment.engine.Acceptance.ACCEPTED
+    problem.reload()
+    assert problem.acceptance(user) == Comment.engine.Acceptance.ACCEPTED
 
 
-def test_oj_problem_file_is_correct():
+def test_problem_file_is_correct():
     problem = utils.problem.lazy_add(
         allow_multiple_comments=True,
         is_oj=True,
@@ -108,7 +110,6 @@ def test_oj_problem_file_is_correct():
         output='out',
     )
 
-    with problem.OJ_file() as tmp_f:
-        with zipfile.ZipFile(tmp_f) as zip_ref:
-            assert zip_ref.read('input') == b'in'
-            assert zip_ref.read('output') == b'out'
+    with zipfile.ZipFile(problem.get_file()[0][1][1]) as zip_ref:
+        assert zip_ref.read('input') == b'in'
+        assert zip_ref.read('output') == b'out'

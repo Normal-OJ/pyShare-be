@@ -1,4 +1,3 @@
-import hashlib
 import pytest
 from mongo import *
 from tests import utils
@@ -104,3 +103,8 @@ def test_update_email_also_change_md5():
     u.update(email=email)
     u.reload('email', 'md5')
     assert u.md5 == u.email_hash(email), (u.md5, u.email)
+
+
+def test_cannot_signup_with_empty_password():
+    with pytest.raises(ValueError):
+        utils.user.lazy_signup(password='')

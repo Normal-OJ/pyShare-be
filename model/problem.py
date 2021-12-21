@@ -22,6 +22,7 @@ problem_api = Blueprint('problem_api', __name__)
     'course',
     'is_template',
     'allow_multiple_comments',
+    'type',
 )
 @login_required
 def get_problem_list(
@@ -61,7 +62,11 @@ def get_problem_list(
     )
     # check whether user has read permission
     ps = map(Problem, ps)
-    ps = [p.to_dict() for p in ps if p.permission(
+    ps = [{
+        **p.to_dict_without_others_OJ(user=user),
+        'acceptance':
+        p.acceptance(user=user),
+    } for p in ps if p.permission(
         user=user,
         req={'r'},
     )]
@@ -75,11 +80,12 @@ def get_single_problem(user, problem):
     if not problem.permission(user=user, req={'r'}):
         return HTTPError('Not enough permission', 403)
     # Filter comments (according to read permission)
-    p = problem.to_dict()
+    p = problem.to_dict_without_others_OJ(user=user)
     p['comments'] = [
-        str(c.id) for c in map(Comment, problem.comments)
+        str(c.id) for c in map(Comment, p['comments'])
         if c.permission(user=user, req='r')
     ]
+    p['acceptance'] = problem.acceptance(user=user)
     return HTTPResponse(
         'here you are, bro',
         data=p,
@@ -183,11 +189,6 @@ def modify_problem(
     # if allow_multiple_comments is False
     if user < 'teacher' and p_ks.get('allow_multiple_comments') == False:
         return HTTPError('Students have to allow multiple comments.', 403)
-    c = Course(problem.course)
-    for tag in tags:
-        if not c.check_tag(tag):
-            return HTTPError(
-                'Exist tag that is not allowed to use in this course', 400)
     if extra is not None:
         cls = get_document(extra['_cls'])
         extra = cls(**extra)
@@ -199,6 +200,11 @@ def modify_problem(
             'Invalid data',
             400,
             data=ve.to_dict(),
+        )
+    except ValueError as e:
+        return HTTPError(
+            e,
+            400,
         )
     return HTTPResponse('success')
 

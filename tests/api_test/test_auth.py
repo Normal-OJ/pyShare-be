@@ -175,6 +175,7 @@ class TestLogin:
         rv = client.post(
             '/auth/session',
             json={
+                'school': '',
                 'username': 'test',
                 'password': 'tset'
             },
@@ -238,6 +239,18 @@ class TestLogin:
         assert rv.status_code == 200, json
         assert json['status'] == 'ok', json
         assert json['message'] == 'Login Success', json
+
+    def test_login_should_return_missing_field(self, client):
+        rv = client.post(
+            '/auth/session',
+            json={
+                'username': 'test',
+                'password': 'test'
+            },
+        )
+        assert rv.status_code == 400
+        rv_data = rv.get_json()['data']
+        assert 'school' in rv_data.get('field', [])
 
 
 class TestLogout:

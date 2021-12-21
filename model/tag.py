@@ -26,23 +26,19 @@ def get_tag_list(user, course):
 
 
 @tag_api.route('/', methods=['POST', 'DELETE'])
-@Request.json('tags')
+@Request.json('tags', 'category')
 @identity_verify(0, 1)
-def manage_tag(user, tags):
+def manage_tag(user, tags, category):
     success = []
     fail = []
     for tag in tags:
         try:
             if request.method == 'POST':
-                Tag.add(value=tag)
+                Tag.add(value=tag, category=category)
             else:
-                Tag(tag).delete()
-        except (
-                engine.DoesNotExist,
-                engine.ValidationError,
-                engine.NotUniqueError,
-                PermissionError,
-        ) as e:
+                Tag(tag).delete(category)
+        except (engine.DoesNotExist, engine.ValidationError,
+                engine.NotUniqueError, PermissionError, ValueError) as e:
             fail.append({
                 'value': tag,
                 'msg': str(e),
@@ -62,8 +58,8 @@ def manage_tag(user, tags):
 
 
 @tag_api.route('/check', methods=['POST'])
-@Request.json('tags')
+@Request.json('tags', 'category')
 @identity_verify(0, 1)
-def check_tag_is_used(user, tags):
-    result = {t: Tag(t).is_used() > 0 for t in tags}
+def check_tag_is_used(user, tags, category):
+    result = {t: Tag(t).is_used(category) for t in tags}
     return HTTPResponse('Checked whether the tags are used', data=result)

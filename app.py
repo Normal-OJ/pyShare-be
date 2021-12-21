@@ -150,7 +150,8 @@ def setup_tag(tags):
             # the tag haven't add to DB
             if not Tag(tag):
                 tag_data = TAG_DATA[tag]
-                Tag.add(value=tag_data['value'])
+                for category in tag_data['categories']:
+                    Tag.add(value=tag_data['value'], category=category)
         else:
             logging.error(
                 f'Try to setup with tag that is not in tag.json: {tag}')

@@ -6,10 +6,12 @@ from .engine import GridFSProxy
 from .base import MongoBase
 from .course import Course
 from .user import User
+from .tag import Tag
 from .utils import doc_required, get_redis_client
 from zipfile import ZipFile
 import tempfile
 from contextlib import contextmanager
+import io
 
 __all__ = ['Problem', 'TagNotFoundError']
 
@@ -62,42 +64,66 @@ class Problem(MongoBase, engine=engine.Problem):
 
     @doc_required('target_course', 'target_course', Course)
     @doc_required('user', 'user', User)
-    def copy(self, target_course: Course, is_template: bool, user: User):
+    def copy(
+        self,
+        target_course: Course,
+        is_template: bool,
+        user: User,
+    ):
         '''
         copy the problem to another course, and drop all comments & replies
         '''
-        # serialize
         p = self.to_mongo()
         # delete non-shared datas
         for field in (
                 'comments',
                 'attachments',
                 'height',
+                '_id',
+                'isTemplate',
+                'author',
+                'course',
         ):
             del p[field]
-        # field conversion
-        p['default_code'] = p['defaultCode']
-        p['is_template'] = is_template
-        p['allow_multiple_comments'] = p['allowMultipleComments']
-        p['author'] = user
-        del p['defaultCode']
-        del p['isTemplate']
-        del p['allowMultipleComments']
-        del p['_id']
-        # add it to DB
-        p = Problem.add(**p)
-        # update info
-        p.update(course=target_course.obj)
-        target_course.update(push__problems=p.obj)
-        with get_redis_client().lock(f'{p}-att'):
+        # field name conversion
+        p['default_code'] = p.pop('defaultCode')
+        p['allow_multiple_comments'] = p.pop('allowMultipleComments')
+        category = self.tag_category
+        new_tags = [
+            *({*p['tags']} - {*target_course.get_tags_by_category(category)})
+        ]
+        target_course.push_tags(new_tags, category)
+        try:
+            p = Problem.add(
+                **p,
+                author=user,
+                course=target_course,
+                is_template=is_template,
+            )
             # update attachments
-            p.attachments = [*map(self.copy_attachment, self.attachments)]
-            p.save()
+            with get_redis_client().lock(f'{p}-att'):
+                p.attachments = [*map(self.copy_attachment, self.attachments)]
+                p.save()
+        # FIXME: Use transaction to restore DB, wait for mongoengine to
+        #   implement it
+        except:
+            target_course.pull_tags(new_tags, category)
+            raise
+        target_course.update(push__problems=p.obj)
+        self.update(inc__reference_count=1)
         return p.reload()
 
     @property
     def online(self):
         return self.status == 1
+
+    def update(self, **ks):
+        c = Course(self.course)
+        for tag in ks.get('tags', []):
+            if not c.check_tag(tag, self.tag_category):
+                raise ValueError(
+                    'Exist tag that is not allowed to use in this course')
+        self.obj.update(**ks)
 
     def to_dict(self):
         '''
@@ -120,6 +146,20 @@ class Problem(MongoBase, engine=engine.Problem):
             for k in ('input', 'output'):
                 del ret['extra'][k]
         return ret
+
+    @doc_required('user', 'user', User)
+    def to_dict_without_others_OJ(self, user: User):
+        ret = self.to_dict()
+        if self.is_OJ:
+            ret['comments'] = list(
+                str(c.id) for c in self.comments if user == c.author)
+        return ret
+
+    def acceptance(self, user: User):
+        acceptance = list(c.acceptance for c in self.comments
+                          if user.obj == c.author)
+        return engine.Comment.Acceptance.NOT_TRY if len(
+            acceptance) == 0 else min(acceptance)
 
     def delete(self):
         '''
@@ -184,26 +224,40 @@ class Problem(MongoBase, engine=engine.Problem):
         for comment in self.comments:
             Comment(comment).submit()
 
-    @contextmanager
-    def OJ_file(self):
-        with tempfile.NamedTemporaryFile('wb+') as tmp_f:
-            with ZipFile(tmp_f, 'w') as zf:
-                # Add multiple files to the zip
-                zf.writestr('input', self.extra.input)
-                zf.writestr('output', self.extra.output)
-            yield tmp_f
+    def get_file(self):
+        # Extract problem attachments
+        files = [(
+            'attachments',
+            (a.filename, a.file),
+        ) for a in self.attachments]
+
+        # Attatch standard input / output
+        if self.is_OJ:
+            with tempfile.NamedTemporaryFile('wb+') as tmp_f:
+                with ZipFile(tmp_f, 'w') as zf:
+                    # Add multiple files to the zip
+                    zf.writestr('input', self.extra.input)
+                    zf.writestr('output', self.extra.output)
+                tmp_f.seek(0)
+                files.append(('testcase', (
+                    tmp_f.name,
+                    io.BytesIO(tmp_f.read()),
+                )))
+
+        return files
 
     @classmethod
     def filter(
         cls,
-        offset=0,
-        count=-1,
+        offset: int = 0,
+        count: int = -1,
         name: Optional[str] = None,
         course: Optional[str] = None,
         tags: Optional[List[str]] = None,
         only: Optional[List[str]] = None,
         is_template: Optional[bool] = None,
         allow_multiple_comments: Optional[bool] = None,
+        type: Optional[str] = None,
     ) -> List[engine.Problem]:
         '''
         read a list of problem filtered by given paramter
@@ -223,6 +277,10 @@ class Problem(MongoBase, engine=engine.Problem):
                     lambda x, y: x & y,
                     (Q(tags=t) for t in tags),
                 ))
+        # Filter problem type
+        if type is not None:
+            ps = ps.filter(Q(__raw__={'extra._cls': type}))
+        # TODO: Support fuzzy search
         # search for title
         if name is not None:
             ps = ps.filter(title__icontains=name)
@@ -280,7 +338,9 @@ class Problem(MongoBase, engine=engine.Problem):
         # if allow_multiple_comments is None or False
         if author < 'teacher' and not ks.get('allow_multiple_comments'):
             raise PermissionError('Students have to allow multiple comments')
-        if not all(course.check_tag(tag) for tag in tags):
+        is_oj = ks.get('extra', {}).get('_cls', '') == 'OJ'
+        category = engine.Tag.Category.OJ_PROBLEM if is_oj else engine.Tag.Category.NORMAL_PROBLEM
+        if not all(course.check_tag(tag, category) for tag in tags):
             raise TagNotFoundError(
                 'Exist tag that is not allowed to use in this course')
         # insert a new problem into DB

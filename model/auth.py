@@ -114,11 +114,18 @@ def session():
             - 401 Login Failed
         '''
         try:
-            # login by email
             if email is not None:
                 user = User.login_by_email(email, u_ks['password'])
-            # login by username and school
             else:
+                missing_field = [
+                    f for f in ('username', 'school') if u_ks.get(f) is None
+                ]
+                if len(missing_field):
+                    return HTTPError(
+                        'Missing field',
+                        400,
+                        data={'field': missing_field},
+                    )
                 user = User.login(**u_ks)
         except DoesNotExist:
             return HTTPError('Login Failed', 401)
@@ -243,16 +250,16 @@ def batch_signup(user, csv_string, course):
                     role=role,
                 )
                 users[':'.join((_u['school'], _u['username']))] = new_user.pk
-            except ValidationError as ve:
+            except (ValidationError, ValueError) as e:
+                err = str(e)
                 fails.append({
                     'username': _u['username'],
                     'school': _u['school'],
-                    'err': ve.to_dict(),
+                    'err': err,
                 })
                 current_app.logger.error(
                     f'fail to sign up for {_u["username"]}\n'
-                    f'error: {ve}\n'
-                    f'data: {ve.to_dict()}', )
+                    f'error: {err}\n', )
     if exists or fails:
         exists = [{
             'username': e[1],
@@ -395,16 +402,12 @@ def active(token=None):
 @Request.json('email: str')
 def password_recovery(email):
     try:
-        User.get_by_email(email)
+        user = User.get_by_email(email)
     except DoesNotExist:
         return HTTPError('User Not Exists', 404)
     new_password = secrets.token_urlsafe()
     user_id2 = hash_id(user.username, new_password)
     user.update(user_id2=user_id2)
-    send_noreply(
-        [email],
-        '[pyShare] Password Recovery',
-        f'Your alternative password is {new_password}.\n'
-        'Please login and change your password.',
-    )
+    send_noreply([email], '[Python 創作分享平台] 密碼復原信',
+                 f'請使用這組替代密碼進行登入：{new_password}，並於登入後更換密碼。\n')
     return HTTPResponse('Recovery Email Has Been Sent')

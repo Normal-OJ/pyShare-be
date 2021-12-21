@@ -36,14 +36,16 @@ class User(MongoBase, engine=engine.User):
     @classmethod
     def signup(
         cls,
-        username,
-        password,
-        email=None,
-        course=None,
-        display_name=None,
-        school=None,
-        role=2,
+        username: str,
+        password: str,
+        email: Optional[str] = None,
+        course: Optional[str] = None,
+        display_name: Optional[str] = None,
+        school: Optional[str] = None,
+        role: int = engine.User.Role.STUDENT,
     ):
+        if len(password) == 0:
+            raise ValueError('password cannot be empty')
         user_id = hash_id(username, password)
         if email is not None:
             email = cls.formated_email(email)
@@ -239,6 +241,7 @@ class User(MongoBase, engine=engine.User):
     def statistic(
         self,
         courses: Optional[Container[engine.Course]] = None,
+        full: bool = False,
     ):
         '''
         return user's statistic data in courses
@@ -265,6 +268,7 @@ class User(MongoBase, engine=engine.User):
                 'id': p.course.id
             },
             'pid': p.pid,
+            'referenceCount': p.reference_count,
         } for p in filter(include_problem, self.problems)]
         # liked comments
         ret['likes'] = [{
@@ -284,8 +288,9 @@ class User(MongoBase, engine=engine.User):
             },
             'pid': c.problem.pid,
             'floor': c.floor,
-            'accepted': c.has_accepted,
-        } for c in filter(include_comment, self.comments)]
+            'acceptance': c.acceptance,
+        } for c in filter(include_comment, self.comments)
+                           if not c.problem.is_OJ]
         ret['replies'] = [{
             'course': {
                 'name': c.problem.course.name,
@@ -303,7 +308,8 @@ class User(MongoBase, engine=engine.User):
             'pid': c.problem.pid,
             'floor': c.floor,
             'starers': [u.info for u in c.liked],
-        } for c in filter(include_comment, self.comments)]
+        } for c in filter(include_comment, self.comments)
+                        if full or len(c.liked)]
         # success & fail
         ret['execInfo'] = [{
             'course': {

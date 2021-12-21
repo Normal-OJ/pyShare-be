@@ -6,6 +6,7 @@ import requests as rq
 from . import engine
 from .utils import doc_required, logger, drop_none
 from .submission import Submission
+from .problem import Problem
 from .token import Token
 from .config import config
 
@@ -44,18 +45,6 @@ class Sandbox(ISandbox):
 
     @doc_required('submission', Submission)
     def send(self, submission: Submission) -> bool:
-        # Extract problem attachments
-        files = [(
-            'attachments',
-            (a.filename, a.file),
-        ) for a in submission.problem.attachments]
-        # Attatch standard input / output
-        if submission.problem.is_OJ:
-            with submission.problem.OJ_file() as tmp_f:
-                files.append(('testcase', (
-                    tmp_f.name,
-                    io.BytesIO(tmp_f.read()),
-                )))
         try:
             target = min(engine.Sandbox.objects, key=self.get_loading)
         # engine.Sandbox.objects is empty
@@ -65,7 +54,7 @@ class Sandbox(ISandbox):
         try:
             resp = rq.post(
                 f'{target.url}/{submission.id}',
-                files=files,
+                files=Problem(submission.problem).get_file(),
                 data={
                     'src': submission.code,
                     'token': token,

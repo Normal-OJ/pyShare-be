@@ -1,4 +1,5 @@
 from enum import Enum
+from blinker import signal
 from . import engine
 from .base import MongoBase
 from .problem import Problem
@@ -29,6 +30,12 @@ class TooManyComments(Exception):
 
 
 class Comment(MongoBase, engine=engine.Comment):
+    on_created = signal('comment_created')
+    on_reply_created = signal('reply_created')
+    on_liked = signal('liked')
+    on_unliked = signal('unliked')
+    __initialized = False
+
     class Permission(Enum):
         READ = 'r'
         WRITE = 'w'
@@ -36,10 +43,24 @@ class Comment(MongoBase, engine=engine.Comment):
         REJUDGE = 'j'
         UPDATE_STATE = 's'
 
+    def __new__(cls, pk, *args, **kwargs):
+        if not cls.__initialized:
+            on_completed = signal('submission_completed')
+            on_completed.connect(cls.on_submission_completed)
+            cls.__initialized = True
+        return super().__new__(cls, pk, *args, **kwargs)
+
     def __init__(self, _id):
         if isinstance(_id, self.engine):
             _id = _id.id
         self.id = _id
+
+    @classmethod
+    def on_submission_completed(cls, submission):
+        if submission.comment is None:
+            return
+        comment = cls(submission.comment)
+        comment.on_submission_completed_ins()
 
     @doc_required('user', 'user', User)
     def own_permission(self, user: User):
@@ -114,11 +135,16 @@ class Comment(MongoBase, engine=engine.Comment):
 
     @doc_required('user', 'user', User)
     def like(self, user):
+        '''
+        Like/Unlike a comment
+        '''
         # unlike
         if user.obj in self.liked:
             action = 'pull'
+            event = self.on_unliked
         else:
             action = 'add_to_set'
+            event = self.on_liked
             # notify the author of the creation
             info = Notif.types.Like(
                 comment=self.pk,
@@ -127,10 +153,11 @@ class Comment(MongoBase, engine=engine.Comment):
             )
             notif = Notif.new(info)
             self.author.update(push__notifs=notif.pk)
-        self.update(**{f'{action}__liked': user.obj})
-        user.update(**{f'{action}__likes': self.obj})
-        # reload
+        self.update(**{f'{action}__liked': user.id})
+        user.update(**{f'{action}__likes': self.id})
         self.reload()
+        user.reload()
+        event.send(self, user=user)
 
     def submit(self, code=None):
         '''
@@ -148,16 +175,15 @@ class Comment(MongoBase, engine=engine.Comment):
             submission.update(code=code)
         submission.submit()
 
-    def finish_submission(self):
-        '''
-        called after a submission finish
-        '''
-        from .submission import Submission
+    def on_submission_completed_ins(self):
         if not self.is_comment:
             raise NotAComment
+        from .submission import Submission
         self.reload('submissions')
         if self.submission is None:
             raise SubmissionNotFound
+        if self.submission.result is None:
+            return
         if self.submission.result.stderr:
             self.update(inc__fail=1)
         else:
@@ -165,7 +191,10 @@ class Comment(MongoBase, engine=engine.Comment):
         # Process OJ problem
         if self.problem.is_OJ:
             is_ac = lambda s: s.result.judge_result == Submission.engine.JudgeResult.AC
-            self.update(has_accepted=any(map(is_ac, self.submissions)))
+            self.update(acceptance=self.Acceptance.ACCEPTED if any(
+                map(is_ac, self.submissions)) else self.Acceptance.REJECTED)
+        elif self.acceptance == self.Acceptance.NOT_TRY:
+            self.update(acceptance=self.Acceptance.PENDING)
 
     @classmethod
     @doc_required('author', User)
@@ -185,10 +214,7 @@ class Comment(MongoBase, engine=engine.Comment):
             if not target.allow_multiple_comments:
                 comments = map(
                     lambda c: author == c.author,
-                    filter(
-                        lambda c: c.status == engine.Comment.Status.SHOW,
-                        target.comments,
-                    ),
+                    filter(lambda c: c.show, target.comments),
                 )
                 if any(comments):
                     raise TooManyComments
@@ -216,11 +242,12 @@ class Comment(MongoBase, engine=engine.Comment):
         if target.author != comment.author:
             notif = Notif.new(info)
             target.author.update(push__notifs=notif.pk)
-        return comment.reload()
+        cls.on_created.send(comment.reload())
+        return comment
 
     def new_submission(self, code: str):
         '''
-        Create submission and register callback
+        Create submission attached to this comment
         '''
         # TODO: solve circular import between submission and comment
         from .submission import Submission
@@ -232,7 +259,6 @@ class Comment(MongoBase, engine=engine.Comment):
             comment=self,
             code=code,
         )
-        submission.add_on_complete_listener(self.finish_submission)
         return submission
 
     @classmethod
@@ -267,10 +293,12 @@ class Comment(MongoBase, engine=engine.Comment):
             notif = Notif.new(info)
         for author in authors:
             author.update(push__notifs=notif.pk)
-        return comment.reload()
+        cls.on_reply_created.send(comment.reload())
+        return comment
 
     @classmethod
     @doc_required('author', User)
+    @doc_required('problem', Problem)
     def add(
         cls,
         title: str,
@@ -278,14 +306,15 @@ class Comment(MongoBase, engine=engine.Comment):
         author: User,
         floor: int,
         depth: int,
-        problem: engine.Problem,
+        problem: Problem,
     ):
         # check permission
-        if not Problem(problem.pk).permission(user=author, req={
-                'r'
-        }) or not Course(problem.course.pk).permission(user=author, req={'p'}):
+        required_permission = (
+            problem.permission(user=author, req={'r'}),
+            Course(problem.course).permission(user=author, req={'p'}),
+        )
+        if not all(required_permission):
             raise PermissionError('Not enough permission')
-        # insert into DB
         comment = cls.engine(
             title=title,
             content=content,
