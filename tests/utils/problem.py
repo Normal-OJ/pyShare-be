@@ -13,6 +13,7 @@ def data(
     is_oj: Optional[bool] = None,
     input: Optional[str] = None,
     output: Optional[str] = None,
+    allow_multiple_comments: Optional[bool] = None,
     **ks,
 ):
     # Ensure course
@@ -24,13 +25,17 @@ def data(
             raise Course.engine.DoesNotExist
     # Randomly pick one from course
     if author is None:
-        author = random.choice((
-            course.teacher,
-            *course.students,
-        ))
+        if allow_multiple_comments or is_oj:
+            author = course.teacher
+        else:
+            author = random.choice((
+                course.teacher,
+                *course.students,
+            ))
     ret = {
         'author': author,
         'course': course,
+        'allow_multiple_comments': allow_multiple_comments,
     }
     if is_oj:
         ret.update({
@@ -47,7 +52,6 @@ def data(
         'tags': None,
         'status': None,
         'is_template': None,
-        'allow_multiple_comments': None,
     }
     for k, v in defaults.items():
         ret[k] = ks.get(k, v)

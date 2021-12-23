@@ -1,3 +1,4 @@
+from mongo.course import Course
 from tests import utils
 from mongo import User, ISandbox
 
@@ -27,20 +28,34 @@ def test_problem_has_reference_count_in_user_statistic():
     assert found_problem['referenceCount'] == 1
 
 
-def test_user_statistic_does_not_contain_oj_comments():
-    p = utils.problem.lazy_add(is_oj=True)
-    c = utils.comment.lazy_add_comment(problem=p)
-    author = c.author
-    cnt = 5
-    cs = [utils.comment.lazy_add_comment(author=author) for _ in range(cnt)]
-    stats = User(author).reload().statistic()
-    assert len(author.comments) == cnt + 1
-    assert len(stats['comments']) == cnt
-    excepted = sorted(cs, key=lambda c: (c.problem.pid, c.floor))
-    result = sorted(stats['comments'], key=lambda c: (c['pid'], c['floor']))
-    for a, b in zip(excepted, result):
-        assert a.problem.pid == b['pid']
-        assert a.floor == b['floor']
+def test_user_statistic_only_contains_normal_comments():
+    normal = utils.problem.lazy_add(
+        is_oj=False,
+        allow_multiple_comments=True,
+    )
+    author = utils.user.Factory.student()
+    Course(normal.course).add_student(author)
+    for _ in range(7):
+        utils.comment.lazy_add_comment(
+            problem=utils.problem.lazy_add(
+                is_oj=True,
+                course=normal.course,
+            ),
+            author=author,
+        )
+    normal_cnt = 5
+    normal_comments = [
+        utils.comment.lazy_add_comment(
+            author=author,
+            problem=normal,
+        ).id for _ in range(normal_cnt)
+    ]
+    stats = author.reload().statistic()
+    for key in ('comments', 'execInfo'):
+        value = stats[key]
+        assert len(value) == normal_cnt
+        for comment in value:
+            assert comment['id'] in normal_comments
 
 
 def test_user_statistic_liked_does_not_contain_comments_without_like_by_default(
