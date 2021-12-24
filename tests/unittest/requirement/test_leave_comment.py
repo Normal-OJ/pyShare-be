@@ -48,3 +48,20 @@ def test_can_count_comment():
         author=user,
     )
     assert req.reload().is_completed(user)
+
+
+def test_progress():
+    problem = utils.problem.lazy_add(is_oj=False)
+    task = Task.add(course=problem.course)
+    req = requirement.LeaveComment.add(
+        task=task,
+        problem=problem,
+    )
+    user = utils.user.Factory.student()
+    Course(problem.course).add_student(user)
+    assert req.progress(user) == (0, 1)
+    utils.comment.lazy_add_comment(
+        problem=problem,
+        author=user,
+    )
+    assert req.reload().progress(user) == (1, 1)
