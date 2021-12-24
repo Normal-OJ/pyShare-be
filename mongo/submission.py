@@ -92,10 +92,10 @@ class Submission(MongoBase, engine=engine.Submission):
 
     def complete(
         self,
-        files: List,
-        stderr: str,
-        stdout: str,
         judge_result,
+        files: List = [],
+        stderr: str = '',
+        stdout: str = '',
     ):
         '''
         judgement complete
