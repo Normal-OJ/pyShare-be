@@ -1,6 +1,7 @@
 from typing import Callable
 from flask.testing import FlaskClient
 from mongo import *
+from mongo import engine
 from tests import utils
 
 
@@ -16,7 +17,9 @@ def test_add_task(forge_client: Callable[[str], FlaskClient], config_app):
         '/task',
         json={'course': cid},
     )
+    tid = rv.get_json()['data']['id']
     assert rv.status_code == 200, rv.get_json()
+    assert len(engine.Task.objects(id=tid)) == 1
 
 
 def test_get_task_and_requirement(forge_client: Callable[[str], FlaskClient],
@@ -29,22 +32,22 @@ def test_get_task_and_requirement(forge_client: Callable[[str], FlaskClient],
         json={'course': cid},
     )
     assert rv.status_code == 200, rv.get_json()
-    id = rv.get_json()['data']['id']
+    tid = rv.get_json()['data']['id']
 
     rv = client.post(
-        f'/task/{id}/likeOthersComment',
+        f'/task/{tid}/like-others-comment',
         json={'requiredNumber': 3},
     )
     assert rv.status_code == 200, rv.get_json()
 
-    rv = client.get(f'/task/{id}')
+    rv = client.get(f'/task/{tid}')
     rid = rv.get_json()['data']['requirements'][0]
     assert rv.status_code == 200, rv.get_json()
     assert rv.get_json()['data']['course'] == str(cid)
 
     rv = client.get(f'/requirement/{rid}')
     assert rv.status_code == 200, rv.get_json()
-    assert rv.get_json()['data']['task'] == str(id)
+    assert rv.get_json()['data']['task'] == str(tid)
 
 
 def test_get_course_task(forge_client: Callable[[str], FlaskClient],

@@ -16,7 +16,7 @@ task_api = Blueprint('task_api', __name__)
 @login_required
 def get_task_list(user, course):
     tasks = list(task.id for task in engine.Task.objects(course=course.obj))
-    return HTTPResponse(f'get {course}\'s tags', data=tasks)
+    return HTTPResponse(f'get {course}\'s tasks', data=tasks)
 
 
 @task_api.route('/', methods=['POST'])
@@ -24,6 +24,8 @@ def get_task_list(user, course):
 @Request.doc('course', Course)
 @identity_verify(0, 1)
 def add_task(user, course, starts_at, ends_at):
+    if not course.permission(user=user, req={'r'}):
+        return HTTPError('Not enough permission', 403)
     try:
         task = Task.add(
             course=course,
@@ -47,11 +49,13 @@ def get_task(user, task):
     return HTTPResponse(f'success', data=task.to_mongo().to_dict())
 
 
-@task_api.route('/<_id>/solveOJProblem', methods=['POST'])
+@task_api.route('/<_id>/solve-oj-problem', methods=['POST'])
 @Request.json('problems: list')
 @Request.doc('_id', 'task', Task)
 @login_required
 def add_solve_OJ_problem_requirement(user, task, problems):
+    if not Course(task.course).permission(user=user, req={'r'}):
+        return HTTPError('Not enough permission', 403)
     try:
         problems = map(Problem, problems)
         requirement = SolveOJProblem.add(task=task, problems=problems)
@@ -64,13 +68,15 @@ def add_solve_OJ_problem_requirement(user, task, problems):
         return HTTPError(ve, 400, data=ve.to_dict())
 
 
-@task_api.route('/<_id>/leaveComment', methods=['POST'])
+@task_api.route('/<_id>/leave-comment', methods=['POST'])
 @Request.json('problem: int', 'required_number', 'acceptance')
 @Request.doc('_id', 'task', Task)
-@Request.doc('_id', 'problem', Problem)
+@Request.doc('problem', Problem)
 @login_required
 def add_solve_comment_requirement(user, task, problem, required_number,
                                   acceptance):
+    if not Course(task.course).permission(user=user, req={'r'}):
+        return HTTPError('Not enough permission', 403)
     try:
         requirement = LeaveComment.add(
             task=task,
@@ -85,11 +91,13 @@ def add_solve_comment_requirement(user, task, problem, required_number,
         return HTTPError(ve, 400, data=ve.to_dict())
 
 
-@task_api.route('/<_id>/replyToComment', methods=['POST'])
+@task_api.route('/<_id>/reply-to-comment', methods=['POST'])
 @Request.json('required_number')
 @Request.doc('_id', 'task', Task)
 @login_required
 def add_reply_to_comment_requirement(user, task, required_number):
+    if not Course(task.course).permission(user=user, req={'r'}):
+        return HTTPError('Not enough permission', 403)
     try:
         requirement = ReplyToComment.add(task=task,
                                          required_number=required_number)
@@ -98,11 +106,13 @@ def add_reply_to_comment_requirement(user, task, required_number):
         return HTTPError(ve, 400, data=ve.to_dict())
 
 
-@task_api.route('/<_id>/likeOthersComment', methods=['POST'])
+@task_api.route('/<_id>/like-others-comment', methods=['POST'])
 @Request.json('required_number: int')
 @Request.doc('_id', 'task', Task)
 @login_required
 def add_like_others_comment_requirement(user, task, required_number):
+    if not Course(task.course).permission(user=user, req={'r'}):
+        return HTTPError('Not enough permission', 403)
     try:
         requirement = LikeOthersComment.add(task=task,
                                             required_number=required_number)
