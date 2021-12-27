@@ -22,9 +22,9 @@ def get_task_list(user, course):
 @task_api.route('/', methods=['POST'])
 @Request.json('course: str', 'starts_at', 'ends_at')
 @Request.doc('course', Course)
-@identity_verify(0, 1)
+@login_required
 def add_task(user, course, starts_at, ends_at):
-    if not course.permission(user=user, req={'r'}):
+    if not course.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
     try:
         task = Task.add(
@@ -54,7 +54,7 @@ def get_task(user, task):
 @Request.doc('_id', 'task', Task)
 @login_required
 def add_solve_OJ_problem_requirement(user, task, problems):
-    if not Course(task.course).permission(user=user, req={'r'}):
+    if not Course(task.course).permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
     try:
         problems = map(Problem, problems)
@@ -75,7 +75,7 @@ def add_solve_OJ_problem_requirement(user, task, problems):
 @login_required
 def add_solve_comment_requirement(user, task, problem, required_number,
                                   acceptance):
-    if not Course(task.course).permission(user=user, req={'r'}):
+    if not Course(task.course).permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
     try:
         requirement = LeaveComment.add(
@@ -96,7 +96,7 @@ def add_solve_comment_requirement(user, task, problem, required_number,
 @Request.doc('_id', 'task', Task)
 @login_required
 def add_reply_to_comment_requirement(user, task, required_number):
-    if not Course(task.course).permission(user=user, req={'r'}):
+    if not Course(task.course).permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
     try:
         requirement = ReplyToComment.add(task=task,
@@ -111,7 +111,7 @@ def add_reply_to_comment_requirement(user, task, required_number):
 @Request.doc('_id', 'task', Task)
 @login_required
 def add_like_others_comment_requirement(user, task, required_number):
-    if not Course(task.course).permission(user=user, req={'r'}):
+    if not Course(task.course).permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
     try:
         requirement = LikeOthersComment.add(task=task,

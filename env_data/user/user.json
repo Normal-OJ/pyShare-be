@@ -42,7 +42,7 @@
         "email": "admin@test.test",
         "username": "admin",
         "password": "admin",
-        "role": 1
+        "role": 0
     },
     "tcc": {
         "email": "tcchiang@ntnu.edu.tw",

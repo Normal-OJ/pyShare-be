@@ -17,9 +17,9 @@ def test_add_task(forge_client: Callable[[str], FlaskClient], config_app):
         '/task',
         json={'course': cid},
     )
-    tid = rv.get_json()['data']['id']
     assert rv.status_code == 200, rv.get_json()
-    assert len(engine.Task.objects(id=tid)) == 1
+    tid = rv.get_json()['data']['id']
+    assert engine.Task.objects(id=tid)[0].course.id == cid
 
 
 def test_get_task_and_requirement(forge_client: Callable[[str], FlaskClient],
@@ -60,8 +60,8 @@ def test_get_course_task(forge_client: Callable[[str], FlaskClient],
         json={'course': cid},
     )
     assert rv.status_code == 200, rv.get_json()
-    id = rv.get_json()['data']['id']
+    tid = rv.get_json()['data']['id']
 
     rv = client.get(f'/course/{cid}/tasks')
     assert rv.status_code == 200, rv.get_json()
-    assert id in rv.get_json()['data']
+    assert tid in rv.get_json()['data']
