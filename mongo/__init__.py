@@ -13,6 +13,7 @@ from . import notif
 from . import sandbox
 from . import token
 from . import task
+from . import requirement
 
 from .engine import *
 from .user import *
@@ -29,6 +30,7 @@ from .config import *
 from .sandbox import *
 from .token import *
 from .task import *
+from .requirement import *
 
 __all__ = (
     *engine.__all__,
@@ -46,4 +48,5 @@ __all__ = (
     *sandbox.__all__,
     *token.__all__,
     *task.__all__,
+    *requirement.__all__,
 )
