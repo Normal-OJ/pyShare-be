@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint
 
 from mongo import *
 from mongo import engine
@@ -50,7 +50,9 @@ def add_task(user, course, starts_at, ends_at):
 def get_task(user, task):
     if not Course(task.course).permission(user=user, req='r'):
         return HTTPError('Permission denied', 403)
-    return HTTPResponse(f'success', data=task.to_mongo().to_dict())
+    data = task.to_dict()
+    data['progress'] = [*task.progress(user)]
+    return HTTPResponse(f'success', data=data)
 
 
 @task_api.post('/<_id>/solve-oj-problem')

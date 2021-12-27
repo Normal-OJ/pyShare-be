@@ -55,3 +55,7 @@ class Task(MongoBase, engine=engine.Task):
         params = {k: v for k, v in params.items() if v is not None}
         task = cls.engine(**params).save()
         return cls(task)
+
+    def to_dict(self) -> dict:
+        ret = self.to_mongo().to_dict()
+        return ret
