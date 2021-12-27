@@ -27,7 +27,6 @@ def test_progress():
         task=task,
         problems=[problem],
     )
-    task.update(push__requirements=req.id)
     assert task.reload().progress(user) == (0, 1)
     submission = utils.submission.lazy_add_new(user=user, problem=problem)
     submission.complete(judge_result=submission.engine.JudgeResult.AC)
