@@ -50,7 +50,7 @@ class Sandbox(ISandbox):
         # engine.Sandbox.objects is empty
         except ValueError:
             raise SandboxNotFound
-        token = Token(target.token).assign(submission.id)
+        token = Token(target.token).assign(str(submission.id))
         try:
             resp = rq.post(
                 f'{target.url}/{submission.id}',

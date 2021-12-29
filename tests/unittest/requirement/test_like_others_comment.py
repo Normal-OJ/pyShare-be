@@ -4,7 +4,6 @@ from mongo import (
     requirement,
     Course,
     ISandbox,
-    Task,
 )
 
 
@@ -20,7 +19,7 @@ def teardown_function(_):
 def test_can_count_like_others():
     comment = utils.comment.lazy_add_comment()
     course = Course(comment.problem.course)
-    task = Task.add(course=course)
+    task = utils.task.lazy_add(course=course)
     req = requirement.LikeOthersComment.add(
         task=task,
         required_number=1,
@@ -34,10 +33,25 @@ def test_can_count_like_others():
 def test_wont_count_like_self():
     comment = utils.comment.lazy_add_comment()
     course = Course(comment.problem.course)
-    task = Task.add(course=course)
+    task = utils.task.lazy_add(course=course)
     req = requirement.LikeOthersComment.add(
         task=task,
         required_number=1,
     )
     comment.like(user=comment.author)
     assert not req.reload().is_completed(comment.author)
+
+
+def test_progress():
+    comment = utils.comment.lazy_add_comment()
+    course = Course(comment.problem.course)
+    task = utils.task.lazy_add(course=course)
+    req = requirement.LikeOthersComment.add(
+        task=task,
+        required_number=1,
+    )
+    liker = utils.user.Factory.student()
+    course.add_student(liker)
+    assert req.progress(liker) == (0, 1)
+    comment.like(user=liker)
+    assert req.reload().progress(liker) == (1, 1)

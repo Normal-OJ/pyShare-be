@@ -8,8 +8,11 @@ from .problem import Problem
 from .utils import doc_required, get_redis_client
 
 __all__ = [
-    'Requirement', 'SolveOJProblem', 'LeaveComment', 'ReplyToComment',
-    'LikeOthersComment'
+    'Requirement',
+    'SolveOJProblem',
+    'LeaveComment',
+    'ReplyToComment',
+    'LikeOthersComment',
 ]
 
 on_requirement_added = signal('requirement_added')

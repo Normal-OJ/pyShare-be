@@ -44,14 +44,22 @@ class Task(MongoBase, engine=engine.Task):
     def add(
         cls,
         course: Course,
+        title: str,
+        content: Optional[str] = None,
         starts_at: Optional[datetime] = None,
         ends_at: Optional[datetime] = None,
     ):
         params = {
             'course': course.id,
+            'title': title,
+            'content': content,
             'starts_at': starts_at,
             'ends_at': ends_at,
         }
         params = {k: v for k, v in params.items() if v is not None}
         task = cls.engine(**params).save()
         return cls(task)
+
+    def to_dict(self) -> dict:
+        ret = self.to_mongo().to_dict()
+        return ret

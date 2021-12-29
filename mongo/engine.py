@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from mongoengine import *
 import mongoengine
 import re
@@ -500,6 +500,13 @@ class Requirement(Document):
     def is_completed(self, user):
         return self.completed_at(user) is not None
 
+    def progress(self, user) -> Tuple[int, int]:
+        '''
+        To query the user progress for this requirement.
+        Return a tuple (p, q) which means his/her progress is p/q.
+        '''
+        raise NotImplementedError
+
 
 class SolveOJProblem(Requirement):
     class Record(EmbeddedDocument):
@@ -520,6 +527,9 @@ class SolveOJProblem(Requirement):
         if record is None:
             return None
         return record.completed_at
+
+    def progress(self, user) -> Tuple[int, int]:
+        return len(self.get_record(user).completes), len(self.problems)
 
 
 class LeaveComment(Requirement):
@@ -545,6 +555,9 @@ class LeaveComment(Requirement):
             return None
         return record.completed_at
 
+    def progress(self, user) -> Tuple[int, int]:
+        return len(self.get_record(user).comments), self.required_number
+
 
 class ReplyToComment(Requirement):
     class Record(EmbeddedDocument):
@@ -565,6 +578,9 @@ class ReplyToComment(Requirement):
         if record is None:
             return None
         return record.completed_at
+
+    def progress(self, user) -> Tuple[int, int]:
+        return len(self.get_record(user).replies), self.required_number
 
 
 class LikeOthersComment(Requirement):
@@ -587,8 +603,13 @@ class LikeOthersComment(Requirement):
             return None
         return record.completed_at
 
+    def progress(self, user) -> Tuple[int, int]:
+        return len(self.get_record(user).comments), self.required_number
+
 
 class Task(Document):
+    title = StringField(max_length=64, required=True)
+    content = StringField(max_length=10000)
     course = ReferenceField('Course', required=True)
     starts_at = DateTimeField(default=datetime.now)
     ends_at = DateTimeField(default=datetime.max)
@@ -615,6 +636,11 @@ class Task(Document):
 
     def is_completed(self, user) -> bool:
         return self.completed_at(user) is not None
+
+    def progress(self, user) -> Tuple[int, int]:
+        p = sum((req.is_completed(user) for req in self.requirements))
+        q = len(self.requirements)
+        return p, q
 
 
 # register delete rule. execute here to resolve `NotRegistered`

@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint
 
 from mongo import *
 from mongo import engine
@@ -11,24 +11,28 @@ __all__ = ['task_api']
 task_api = Blueprint('task_api', __name__)
 
 
-@course_api.route('/<course>/tasks', methods=['GET'])
+@course_api.get('/<course>/tasks')
 @Request.doc('course', Course)
 @login_required
 def get_task_list(user, course):
+    if not course.permission(user=user, req='r'):
+        return HTTPError('Permission denied', 403)
     tasks = list(task.id for task in engine.Task.objects(course=course.obj))
     return HTTPResponse(f'get {course}\'s tasks', data=tasks)
 
 
-@task_api.route('/', methods=['POST'])
-@Request.json('course: str', 'starts_at', 'ends_at')
+@task_api.post('/')
+@Request.json('course: str', 'title', 'content', 'starts_at', 'ends_at')
 @Request.doc('course', Course)
 @login_required
-def add_task(user, course, starts_at, ends_at):
+def add_task(user, course, title, content, starts_at, ends_at):
     if not course.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
     try:
         task = Task.add(
             course=course,
+            title=title,
+            content=content,
             starts_at=starts_at,
             ends_at=ends_at,
         )
@@ -42,14 +46,18 @@ def add_task(user, course, starts_at, ends_at):
     )
 
 
-@task_api.route('/<_id>', methods=['GET'])
+@task_api.get('/<_id>')
 @Request.doc('_id', 'task', Task)
 @login_required
 def get_task(user, task):
-    return HTTPResponse(f'success', data=task.to_mongo().to_dict())
+    if not Course(task.course).permission(user=user, req='r'):
+        return HTTPError('Permission denied', 403)
+    data = task.to_dict()
+    data['progress'] = task.progress(user)
+    return HTTPResponse(f'success', data=data)
 
 
-@task_api.route('/<_id>/solve-oj-problem', methods=['POST'])
+@task_api.post('/<_id>/solve-oj-problem')
 @Request.json('problems: list')
 @Request.doc('_id', 'task', Task)
 @login_required
@@ -68,7 +76,7 @@ def add_solve_OJ_problem_requirement(user, task, problems):
         return HTTPError(ve, 400, data=ve.to_dict())
 
 
-@task_api.route('/<_id>/leave-comment', methods=['POST'])
+@task_api.post('/<_id>/leave-comment')
 @Request.json('problem: int', 'required_number', 'acceptance')
 @Request.doc('_id', 'task', Task)
 @Request.doc('problem', Problem)
@@ -91,7 +99,7 @@ def add_solve_comment_requirement(user, task, problem, required_number,
         return HTTPError(ve, 400, data=ve.to_dict())
 
 
-@task_api.route('/<_id>/reply-to-comment', methods=['POST'])
+@task_api.post('/<_id>/reply-to-comment')
 @Request.json('required_number')
 @Request.doc('_id', 'task', Task)
 @login_required
@@ -106,7 +114,7 @@ def add_reply_to_comment_requirement(user, task, required_number):
         return HTTPError(ve, 400, data=ve.to_dict())
 
 
-@task_api.route('/<_id>/like-others-comment', methods=['POST'])
+@task_api.post('/<_id>/like-others-comment')
 @Request.json('required_number: int')
 @Request.doc('_id', 'task', Task)
 @login_required

@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint
 
 from mongo import *
 from mongo import engine
@@ -11,12 +11,11 @@ requirement_api = Blueprint('requirement_api', __name__)
 
 
 @requirement_api.route('/<_id>', methods=['GET'])
+@Request.doc('_id', 'req', Requirement)
 @login_required
-def get_requirement(user, _id):
-    try:
-        return HTTPResponse(f'success',
-                            data=Requirement(_id).to_mongo().to_dict())
-    except engine.DoesNotExist as e:
-        return HTTPError(e, 400)
-    except engine.ValidationError as ve:
-        return HTTPError(ve, 400, data=ve.to_dict())
+def get_requirement(user, req):
+    if not Course(req.task.course).permission(user=user, req='r'):
+        return HTTPError('Permission denied', 403)
+    data = req.to_mongo().to_dict()
+    data['progress'] = req.progress(user)
+    return HTTPResponse(data=data)
