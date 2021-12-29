@@ -22,15 +22,17 @@ def get_task_list(user, course):
 
 
 @task_api.post('/')
-@Request.json('course: str', 'starts_at', 'ends_at')
+@Request.json('course: str', 'title', 'content', 'starts_at', 'ends_at')
 @Request.doc('course', Course)
 @login_required
-def add_task(user, course, starts_at, ends_at):
+def add_task(user, course, title, content, starts_at, ends_at):
     if not course.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
     try:
         task = Task.add(
             course=course,
+            title=title,
+            content=content,
             starts_at=starts_at,
             ends_at=ends_at,
         )

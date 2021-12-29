@@ -608,6 +608,8 @@ class LikeOthersComment(Requirement):
 
 
 class Task(Document):
+    title = StringField(max_length=64, required=True)
+    content = StringField(max_length=10000)
     course = ReferenceField('Course', required=True)
     starts_at = DateTimeField(default=datetime.now)
     ends_at = DateTimeField(default=datetime.max)

@@ -44,11 +44,15 @@ class Task(MongoBase, engine=engine.Task):
     def add(
         cls,
         course: Course,
+        title,
+        content,
         starts_at: Optional[datetime] = None,
         ends_at: Optional[datetime] = None,
     ):
         params = {
             'course': course.id,
+            'title': title,
+            'content': content,
             'starts_at': starts_at,
             'ends_at': ends_at,
         }
