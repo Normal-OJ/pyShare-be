@@ -53,7 +53,7 @@ def get_task(user, task):
     if not Course(task.course).permission(user=user, req='r'):
         return HTTPError('Permission denied', 403)
     data = task.to_dict()
-    data['progress'] = [*task.progress(user)]
+    data['progress'] = task.progress(user)
     return HTTPResponse(f'success', data=data)
 
 
