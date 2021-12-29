@@ -44,8 +44,8 @@ class Task(MongoBase, engine=engine.Task):
     def add(
         cls,
         course: Course,
-        title,
-        content,
+        title: str,
+        content: Optional[str] = None,
         starts_at: Optional[datetime] = None,
         ends_at: Optional[datetime] = None,
     ):
