@@ -20,7 +20,7 @@ def teardown_function(_):
 
 def test_can_count_AC_submission():
     problem = utils.problem.lazy_add(is_oj=True)
-    task = Task.add(course=problem.course)
+    task = utils.task.lazy_add(course=problem.course)
     req = requirement.SolveOJProblem.add(
         task=task,
         problems=[problem],
@@ -32,16 +32,12 @@ def test_can_count_AC_submission():
         stderr='',
         judge_result=submission.JudgeResult.AC,
     )
-    print(
-        submission.user.id,
-        req.reload().get_record(submission.user).completes,
-    )
     assert req.reload().is_completed(submission.user)
 
 
 def test_wont_be_triggerd_by_WA_submission():
     problem = utils.problem.lazy_add(is_oj=True)
-    task = Task.add(
+    task = utils.task.lazy_add(
         course=problem.course,
         ends_at=datetime.now() + timedelta(minutes=5),
     )
@@ -61,7 +57,7 @@ def test_wont_be_triggerd_by_WA_submission():
 
 def test_wont_accept_normal_problem():
     problem = utils.problem.lazy_add()
-    task = Task.add(course=problem.course)
+    task = utils.task.lazy_add(course=problem.course)
     with pytest.raises(ValueError, match=r'.*accept.*OJ problem.*'):
         requirement.SolveOJProblem.add(
             task=task,
@@ -70,7 +66,7 @@ def test_wont_accept_normal_problem():
 
 
 def test_cannot_initialize_with_empty_problem_list():
-    task = Task.add(course=utils.course.lazy_add())
+    task = utils.task.lazy_add(course=utils.course.lazy_add())
     with pytest.raises(ValueError, match=r'.*empty.*'):
         requirement.SolveOJProblem.add(
             task=task,
@@ -80,7 +76,7 @@ def test_cannot_initialize_with_empty_problem_list():
 
 def test_progress():
     problem = utils.problem.lazy_add(is_oj=True)
-    task = Task.add(
+    task = utils.task.lazy_add(
         course=problem.course,
         ends_at=datetime.now() + timedelta(minutes=5),
     )

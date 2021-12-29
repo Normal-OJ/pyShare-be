@@ -1,4 +1,4 @@
-from mongo import Task
+from mongo import Course
 from mongo import requirement
 from mongo.sandbox import ISandbox
 from tests import utils
@@ -14,16 +14,18 @@ def teardown_function(_):
 
 
 def test_progress():
-    course = utils.course.lazy_add()
-    task = Task.add(course=course)
+    task = utils.task.lazy_add()
     user = utils.user.Factory.student()
+    course = Course(task.course)
     course.add_student(user)
     assert task.progress(user) == (0, 0)
     problem = utils.problem.lazy_add(
         course=course,
         is_oj=True,
     )
-    req = requirement.SolveOJProblem.add(
+    # Reload to ensure that course data is up to date
+    task.reload('course')
+    requirement.SolveOJProblem.add(
         task=task,
         problems=[problem],
     )

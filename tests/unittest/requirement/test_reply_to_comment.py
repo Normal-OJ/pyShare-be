@@ -4,7 +4,6 @@ from mongo import (
     requirement,
     Course,
     ISandbox,
-    Task,
 )
 
 
@@ -20,7 +19,7 @@ def teardown_function(_):
 @pytest.mark.parametrize('required_number', (1, 3))
 def test_can_count_reply(required_number: int):
     problem = utils.problem.lazy_add()
-    task = Task.add(course=problem.course)
+    task = utils.task.lazy_add(course=problem.course)
     req = requirement.ReplyToComment.add(
         task=task,
         required_number=required_number,
@@ -42,7 +41,7 @@ def test_can_count_reply(required_number: int):
 
 def test_progress():
     problem = utils.problem.lazy_add()
-    task = Task.add(course=problem.course)
+    task = utils.task.lazy_add(course=problem.course)
     req = requirement.ReplyToComment.add(
         task=task,
         required_number=1,

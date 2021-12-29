@@ -18,8 +18,9 @@ def teardown_function(_):
 
 
 def test_cannot_initialize_with_oj_problem():
-    problem = utils.problem.lazy_add(is_oj=True)
-    task = Task.add(course=problem.course)
+    task = utils.task.lazy_add()
+    problem = utils.problem.lazy_add(is_oj=True, course=task.course)
+    task.reload('course')
     with pytest.raises(ValueError, match=r'.*problem.*'):
         requirement.LeaveComment.add(
             task=task,
@@ -28,8 +29,9 @@ def test_cannot_initialize_with_oj_problem():
 
 
 def test_can_count_comment():
-    problem = utils.problem.lazy_add(is_oj=False)
-    task = Task.add(course=problem.course)
+    task = utils.task.lazy_add()
+    problem = utils.problem.lazy_add(is_oj=False, course=task.course)
+    task.reload('course')
     req = requirement.LeaveComment.add(
         task=task,
         problem=problem,
@@ -51,8 +53,9 @@ def test_can_count_comment():
 
 
 def test_progress():
-    problem = utils.problem.lazy_add(is_oj=False)
-    task = Task.add(course=problem.course)
+    task = utils.task.lazy_add()
+    problem = utils.problem.lazy_add(is_oj=False, course=task.course)
+    task.reload('course')
     req = requirement.LeaveComment.add(
         task=task,
         problem=problem,
