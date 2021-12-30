@@ -1,10 +1,11 @@
-from typing import List, Optional
+from typing import Iterable, List, Optional, Union
 from blinker import signal
 from datetime import datetime
 from . import engine
 from .base import MongoBase
 from .task import Task
 from .problem import Problem
+from .user import User
 from .utils import doc_required, get_redis_client
 
 __all__ = [
@@ -93,6 +94,15 @@ class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
         on_requirement_added.send(req)
         return cls(req)
 
+    def sync(self, users: Iterable[Union[User, str]]):
+        users = [getattr(u, 'id', u) for u in users]
+        submissions = engine.Submission.objects(
+            problem__in=self.problems,
+            user__in=users,
+        )
+        for submission in submissions:
+            self.add_submission(submission)
+
 
 class LeaveComment(MongoBase, engine=engine.LeaveComment):
     __initialized = False
@@ -161,6 +171,15 @@ class LeaveComment(MongoBase, engine=engine.LeaveComment):
         on_requirement_added.send(req)
         return cls(req)
 
+    def sync(self, users: Iterable[Union[User, str]]):
+        users = [getattr(u, 'id', u) for u in users]
+        comments = engine.Comment.objects(
+            problem=self.problem,
+            author__in=users,
+        )
+        for comment in comments:
+            self.add_comment(comment)
+
 
 class ReplyToComment(MongoBase, engine=engine.ReplyToComment):
     __initialized = False
@@ -215,6 +234,15 @@ class ReplyToComment(MongoBase, engine=engine.ReplyToComment):
         on_requirement_added.send(req)
         return cls(req)
 
+    def sync(self, users: Iterable[Union[User, str]]):
+        users = [getattr(u, 'id', u) for u in users]
+        replies = engine.Comment.objects(
+            author__in=users,
+            depth__ne=0,
+        )
+        for reply in replies:
+            self.add_reply(reply)
+
 
 class LikeOthersComment(MongoBase, engine=engine.LikeOthersComment):
     __initialized = False
@@ -267,3 +295,8 @@ class LikeOthersComment(MongoBase, engine=engine.LikeOthersComment):
         ).save()
         on_requirement_added.send(req)
         return cls(req)
+
+    def sync(self, users: Iterable[Union[User, str]]):
+        for user in map(User, users):
+            for comment in user.likes:
+                self.add_like(comment, user)

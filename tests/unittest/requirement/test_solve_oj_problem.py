@@ -92,3 +92,18 @@ def test_progress():
     )
     submission.complete(judge_result=submission.JudgeResult.AC)
     assert req.reload().progress(user) == (1, 1)
+
+
+def test_sync():
+    problem = utils.problem.lazy_add(is_oj=True)
+    submission = utils.submission.lazy_add_new(problem=problem)
+    submission.complete(judge_result=submission.JudgeResult.AC)
+    task = utils.task.lazy_add(course=problem.course)
+    req = requirement.SolveOJProblem.add(
+        task=task,
+        problems=[problem],
+    )
+    user = submission.user
+    assert req.progress(user) == (0, 1)
+    req.sync([user])
+    assert req.reload().progress(user) == (1, 1)

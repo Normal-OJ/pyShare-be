@@ -58,15 +58,17 @@ def get_task(user, task):
 
 
 @task_api.post('/<_id>/solve-oj-problem')
-@Request.json('problems: list')
+@Request.json('problems: list', 'sync')
 @Request.doc('_id', 'task', Task)
 @login_required
-def add_solve_OJ_problem_requirement(user, task, problems):
+def add_solve_OJ_problem_requirement(user, task, problems, sync):
     if not Course(task.course).permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
     try:
-        problems = map(Problem, problems)
+        problems = [*map(Problem, problems)]
         requirement = SolveOJProblem.add(task=task, problems=problems)
+        if sync == True:
+            requirement.sync(task.course.students)
         return HTTPResponse(f'success', data=requirement.id)
     except engine.DoesNotExist as e:
         return HTTPError(e, 400)
@@ -77,12 +79,18 @@ def add_solve_OJ_problem_requirement(user, task, problems):
 
 
 @task_api.post('/<_id>/leave-comment')
-@Request.json('problem: int', 'required_number', 'acceptance')
+@Request.json('problem: int', 'required_number', 'acceptance', 'sync')
 @Request.doc('_id', 'task', Task)
 @Request.doc('problem', Problem)
 @login_required
-def add_solve_comment_requirement(user, task, problem, required_number,
-                                  acceptance):
+def add_solve_comment_requirement(
+    user,
+    task,
+    problem,
+    required_number,
+    acceptance,
+    sync,
+):
     if not Course(task.course).permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
     try:
@@ -92,6 +100,8 @@ def add_solve_comment_requirement(user, task, problem, required_number,
             required_number=required_number,
             acceptance=acceptance,
         )
+        if sync == True:
+            requirement.sync(task.course.students)
         return HTTPResponse(f'success', data=requirement.id)
     except ValueError as ve:
         return HTTPError(ve, 400, data=ve)
@@ -100,30 +110,48 @@ def add_solve_comment_requirement(user, task, problem, required_number,
 
 
 @task_api.post('/<_id>/reply-to-comment')
-@Request.json('required_number')
+@Request.json('required_number', 'sync')
 @Request.doc('_id', 'task', Task)
 @login_required
-def add_reply_to_comment_requirement(user, task, required_number):
+def add_reply_to_comment_requirement(
+    user,
+    task,
+    required_number,
+    sync,
+):
     if not Course(task.course).permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
     try:
-        requirement = ReplyToComment.add(task=task,
-                                         required_number=required_number)
+        requirement = ReplyToComment.add(
+            task=task,
+            required_number=required_number,
+        )
+        if sync == True:
+            requirement.sync(task.course.students)
         return HTTPResponse(f'success', data=requirement.id)
     except ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())
 
 
 @task_api.post('/<_id>/like-others-comment')
-@Request.json('required_number: int')
+@Request.json('required_number: int', 'sync')
 @Request.doc('_id', 'task', Task)
 @login_required
-def add_like_others_comment_requirement(user, task, required_number):
+def add_like_others_comment_requirement(
+    user,
+    task,
+    required_number,
+    sync,
+):
     if not Course(task.course).permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
     try:
-        requirement = LikeOthersComment.add(task=task,
-                                            required_number=required_number)
+        requirement = LikeOthersComment.add(
+            task=task,
+            required_number=required_number,
+        )
+        if sync == True:
+            requirement.sync(task.course.students)
         return HTTPResponse(f'success', data=requirement.id)
     except ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())

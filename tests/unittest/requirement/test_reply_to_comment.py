@@ -58,3 +58,17 @@ def test_progress():
         comment=comment,
     )
     assert req.reload().progress(user) == (1, 1)
+
+
+def test_sync():
+    reply = utils.comment.lazy_add_reply()
+    course = Course(reply.problem.course)
+    task = utils.task.lazy_add(course=course)
+    req = requirement.ReplyToComment.add(
+        task=task,
+        required_number=1,
+    )
+    user = reply.author
+    assert req.progress(user) == (0, 1)
+    req.sync([user])
+    assert req.reload().progress(user) == (1, 1)
