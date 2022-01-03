@@ -64,7 +64,12 @@ def test_solve_oj_problem_requirement(
     course = Course.get_by_name('course_108-1')
     cid = course.pk
     tid = str(utils.task.lazy_add(course=cid).id)
-    pid = int(utils.problem.lazy_add(course=course, allow_multiple_comments=True, is_oj=True).id)
+    pid = int(
+        utils.problem.lazy_add(
+            course=course,
+            allow_multiple_comments=True,
+            is_oj=True,
+        ).id)
     rv = client.post(
         f'/task/{tid}/solve-oj-problem',
         json={'problems': [pid]},
@@ -80,6 +85,7 @@ def test_solve_oj_problem_requirement(
     assert rv.status_code == 200, rv.get_json()
     assert rv.get_json()['data']['task'] == str(tid)
 
+
 def test_leave_comment_requirement(
     forge_client: Callable[[str], FlaskClient],
     config_app,
@@ -89,7 +95,11 @@ def test_leave_comment_requirement(
     course = Course.get_by_name('course_108-1')
     cid = course.pk
     tid = str(utils.task.lazy_add(course=cid).id)
-    pid = int(utils.problem.lazy_add(course=course, allow_multiple_comments=True).id)
+    pid = int(
+        utils.problem.lazy_add(
+            course=course,
+            allow_multiple_comments=True,
+        ).id)
     rv = client.post(
         f'/task/{tid}/leave-comment',
         json={'problem': pid},
@@ -104,6 +114,7 @@ def test_leave_comment_requirement(
     rv = client.get(f'/requirement/{rid}')
     assert rv.status_code == 200, rv.get_json()
     assert rv.get_json()['data']['task'] == str(tid)
+
 
 def test_reply_to_comment_requirement(
     forge_client: Callable[[str], FlaskClient],
