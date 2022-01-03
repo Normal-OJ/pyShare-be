@@ -612,7 +612,7 @@ class Task(Document):
     content = StringField(max_length=10000)
     course = ReferenceField('Course', required=True)
     starts_at = DateTimeField(default=datetime.now)
-    ends_at = DateTimeField(default=datetime.max)
+    ends_at = DateTimeField(default=datetime(2111, 10, 10))
     requirements = ListField(
         ReferenceField('Requirement', required=True),
         default=list,
