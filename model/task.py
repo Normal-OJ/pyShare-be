@@ -73,7 +73,7 @@ def add_solve_OJ_problem_requirement(user, task, problems, sync):
     except engine.DoesNotExist as e:
         return HTTPError(e, 400)
     except ValueError as ve:
-        return HTTPError(ve, 400, data=ve)
+        return HTTPError(ve, 400, data=str(ve))
     except ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())
 
@@ -104,7 +104,7 @@ def add_solve_comment_requirement(
             requirement.sync(task.course.students)
         return HTTPResponse(f'success', data=requirement.id)
     except ValueError as ve:
-        return HTTPError(ve, 400, data=ve)
+        return HTTPError(ve, 400, data=str(ve))
     except ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())
 
