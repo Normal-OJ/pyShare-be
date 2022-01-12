@@ -301,3 +301,16 @@ class TestRecord:
             'completes': None,
         }
         assert record_data[0]['completes'][0] == excepted_req
+
+    def test_student_cannot_get_record(
+        self,
+        forge_client: Callable[[str], FlaskClient],
+    ):
+        course = utils.course.Factory.readonly()
+        task = utils.task.lazy_add(course=course)
+        student = utils.course.student(course=course)
+        client = forge_client(student.username)
+        rv = client.get(f'/course/{course.id}/task/{task.id}/record')
+        assert rv.status_code == 403
+        rv = client.get(f'/course/{course.id}/task/record')
+        assert rv.status_code == 403
