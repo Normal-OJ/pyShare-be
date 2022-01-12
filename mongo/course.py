@@ -1,7 +1,7 @@
 from __future__ import annotations
 import csv
 import tempfile
-from typing import List, TYPE_CHECKING
+from typing import List, TYPE_CHECKING, Set, Union
 from . import engine
 from .base import MongoBase
 from .user import User
@@ -49,7 +49,7 @@ class Course(MongoBase, engine=engine.Course):
         return _permission
 
     @doc_required('user', 'user', User)
-    def permission(self, user: User, req):
+    def permission(self, user: User, req: Union[str, Set[str]]):
         '''
         check user's permission, `req` is a set of required
         permissions
