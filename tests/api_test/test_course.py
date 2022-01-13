@@ -4,6 +4,8 @@ from tests import utils
 import pytest
 from flask.testing import FlaskClient
 from mongo import *
+from mongo import requirement
+from mongo import engine
 import mongomock.gridfs
 
 mongomock.gridfs.enable_gridfs_integration()
@@ -129,7 +131,7 @@ class TestCourse(BaseTester):
 
     def test_get_course(
         self,
-        forge_client: Callable[[], FlaskClient],
+        forge_client: Callable[[str], FlaskClient],
         config_app,
     ):
         config_app(env='test')
@@ -231,3 +233,84 @@ class TestCourseStatistic:
         rv_json = rv.get_json()
         assert rv.status_code == 200, rv_json
         # TODO: validate response data
+
+
+class TestRecord:
+    def test_get_task_record(
+        self,
+        forge_client: Callable[[str], FlaskClient],
+    ):
+        course = utils.course.Factory.readonly()
+        problem = utils.problem.lazy_add(course=course)
+        task = utils.task.lazy_add(course=course)
+        reqs = [
+            requirement.LeaveComment.add(
+                task=task,
+                problem=problem,
+                required_number=1,
+            )
+        ]
+        student = utils.course.student(course=course)
+        client = forge_client(course.teacher.username)
+        rv = client.get(f'/course/{course.id}/task/{task.id}/record')
+        assert rv.status_code == 200, rv.get_json()
+        record_data = rv.get_json()['data']
+        excepted_req = {
+            'id':
+            str(reqs[0].id),
+            'cls':
+            'LeaveComment',
+            'completes': [
+                {
+                    'userInfo': {
+                        **student.info,
+                        'id': str(student.id),
+                    },
+                    'progress': [0, 1],
+                    'completes': None,
+                },
+            ]
+        }
+        assert record_data['requirements'][0] == excepted_req
+
+    def test_get_all_task_record(
+        self,
+        forge_client: Callable[[str], FlaskClient],
+    ):
+        course = utils.course.Factory.readonly()
+        problem = utils.problem.lazy_add(course=course)
+        task = utils.task.lazy_add(course=course)
+        requirement.LeaveComment.add(
+            task=task,
+            problem=problem,
+            required_number=1,
+        )
+        student = utils.course.student(course=course)
+        client = forge_client(course.teacher.username)
+        rv = client.get(f'/course/{course.id}/task/record')
+        assert rv.status_code == 200, rv.get_json()
+        record_data = rv.get_json()['data']
+        assert len(record_data) == 1
+        assert record_data[0]['id'] == str(task.id)
+        excepted_req = {
+            'userInfo': {
+                **student.info,
+                'id': str(student.id),
+            },
+            'progress': [0, 1],
+            'completes': None,
+        }
+        assert record_data[0]['completes'][0] == excepted_req
+
+    def test_student_cannot_get_record(
+        self,
+        forge_client: Callable[[str], FlaskClient],
+    ):
+        course = utils.course.Factory.readonly()
+        task = utils.task.lazy_add(course=course)
+        student = utils.course.student(course=course)
+        client = forge_client(student.username)
+        rv = client.get(f'/course/{course.id}/task/{task.id}/record')
+        assert rv.status_code == 403
+        rv = client.get(f'/course/{course.id}/task/record')
+        assert rv.status_code == 403

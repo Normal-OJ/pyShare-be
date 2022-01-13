@@ -1,3 +1,5 @@
+from functools import partial
+from typing import Union
 from flask import Blueprint, send_file, request
 from .utils import *
 from .auth import *
@@ -251,3 +253,56 @@ def get_statistic_file(user, course: Course):
         max_age=30,
         download_name=f'{course.name}-statistic.csv',
     )
+
+
+def complete_data(req: Union[Requirement, Task], user: User):
+    return {
+        'userInfo': user.info,
+        'progress': req.progress(user),
+        'completes': req.completed_at(user),
+    }
+
+
+@course_api.get('/<cid>/task/<tid>/record')
+@login_required
+@Request.doc('cid', 'course', Course)
+@Request.doc('tid', 'task', Task)
+def get_task_record(
+    user: User,
+    course: Course,
+    task: Task,
+):
+    if not course.permission(user=user, req='w'):
+        return HTTPError('Permission denied', 403)
+    if course != task.course:
+        return HTTPError(f'Cannot find {task} in {course}', 404)
+    ret = task.to_dict()
+    ret['requirements'] = [{
+        'id':
+        req.id,
+        'cls':
+        req._cls.split('.')[-1],
+        'completes': [*map(
+            partial(complete_data, req),
+            course.students,
+        )],
+    } for req in task.requirements]
+    return HTTPResponse(data=ret)
+
+
+@course_api.get('/<cid>/task/record')
+@login_required
+@Request.doc('cid', 'course', Course)
+def get_all_task_record(user: User, course: Course):
+    if not course.permission(user=user, req='w'):
+        return HTTPError('Permission denied', 403)
+    ret = [{
+        **t.to_dict(),
+        'completes': [
+            *map(
+                partial(complete_data, t),
+                course.students,
+            ),
+        ],
+    } for t in Task.filter(course=course)]
+    return HTTPResponse(data=ret)
