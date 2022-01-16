@@ -90,10 +90,10 @@ def complete(_id):
         return HTTPError(f'{submission} not exists!', 404)
     files = request.files.getlist('files')
     submission.complete(
+        request.values.get('result', None),
         files,
         request.values['stderr'],
         request.values['stdout'],
-        request.values.get('result', None),
     )
     return HTTPResponse('ok')
 
