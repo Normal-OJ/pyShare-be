@@ -1,3 +1,4 @@
+import logging
 from typing import List, Optional
 import base64
 from blinker import signal
@@ -6,7 +7,11 @@ from .base import MongoBase
 from .user import User
 from .problem import Problem
 from .comment import Comment
-from .utils import doc_required, get_redis_client
+from .utils import (
+    doc_required,
+    get_redis_client,
+    logger,
+)
 from .token import TokenExistError
 
 __all__ = ('Submission', )
@@ -117,6 +122,7 @@ class Submission(MongoBase, engine=engine.Submission):
             self.reload('result', 'status')
             self.result.files = files
             self.save()
+            logger().info(f'Submission completed [id=f{self.id}]')
             self.on_complete.send(self.reload())
         return True
 

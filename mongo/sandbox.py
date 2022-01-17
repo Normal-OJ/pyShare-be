@@ -1,7 +1,4 @@
-import io
-import tempfile
 from abc import ABC, abstractmethod
-from zipfile import ZipFile
 import requests as rq
 from . import engine
 from .utils import doc_required, logger, drop_none
@@ -61,11 +58,14 @@ class Sandbox(ISandbox):
                 },
             )
         except rq.exceptions.RequestException as e:
-            logger().error(f'Submit {self}: {e}')
+            logger().error(
+                f'Submit error. [target={target.id},'
+                f' submission={submission.id}, err={e}]', )
             return False
         else:
+            logger().info(f'Submission sent. [id={submission.id}]')
             if not resp.ok:
-                logger().warning(f'Got sandbox resp: {resp.text}')
+                logger().warning(f'Got sandbox resp. [resp={resp.text}]')
             return True
 
 
@@ -73,6 +73,7 @@ def init():
     if 'sandbox' not in config:
         logger().info('No init sandbox set')
         return
+    logger().info('Initalize sandbox instance')
     url = config.get('SANDBOX.URL')
     token = config.get('SANDBOX.TOKEN')
     alias = config.get('SANDBOX.ALIAS')
@@ -84,4 +85,5 @@ def init():
         token=token,
         alias=alias,
     )
-    engine.Sandbox(**drop_none(args)).save()
+    sandbox = engine.Sandbox(**drop_none(args)).save()
+    logger().info(f'Initial sandbox created. [id={sandbox.id}]')

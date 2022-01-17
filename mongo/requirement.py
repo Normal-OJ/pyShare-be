@@ -6,7 +6,11 @@ from .base import MongoBase
 from .task import Task
 from .problem import Problem
 from .user import User
-from .utils import doc_required, get_redis_client
+from .utils import (
+    doc_required,
+    get_redis_client,
+    logger,
+)
 
 __all__ = [
     'Requirement',
@@ -44,7 +48,11 @@ class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
 
     @classmethod
     def on_submission_completed(cls, submission):
+        logger().info(
+            f'On submission completed. [submission=f{submission.id}]')
         if not cls.is_valid_submission(submission):
+            logger().info(
+                f'Submission invalid, skip. [submission=f{submission.id}]')
             return
         tasks = Task.filter(course=submission.problem.course)
         reqs = cls.engine.objects(
@@ -56,8 +64,15 @@ class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
 
     def add_submission(self, submission):
         if not self.is_valid_submission(submission):
+            logger().info(
+                'Submission invalid, skip. '
+                f'[submission=f{submission.id}, id={self.id}]', )
             return
         if submission.problem not in self.problems:
+            logger().warning(
+                'Submission shuold not be passed to this requirement.'
+                f' [cls=SolveOJProblem, '
+                f'submission=f{submission.id}, id={self.id}]', )
             return
         with get_redis_client().lock(f'{self}'):
             self.reload('records')
@@ -68,10 +83,19 @@ class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
             completes = record.completes
             problem = submission.problem
             if problem in completes:
+                logger().info(
+                    'Problem has been solved. '
+                    f'[cls=SolveOJProblem, id={self.id}, '
+                    f'problem={problem.id}]', )
                 return
             completes.append(problem.id)
             if len(completes) >= len(self.problems):
-                record.completed_at = datetime.now()
+                now = datetime.now()
+                logger().info(
+                    'Requirement completed. '
+                    f'[cls=SolveOJProblem, '
+                    f'id={self.id}, time={now}]', )
+                record.completed_at = now
             self.set_record(user, record)
 
     @classmethod
