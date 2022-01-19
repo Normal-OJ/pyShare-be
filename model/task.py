@@ -1,4 +1,5 @@
 from flask import Blueprint
+from dateutil import parser
 
 from mongo import *
 from mongo import engine
@@ -22,7 +23,7 @@ def get_task_list(user, course):
 
 
 @task_api.post('/')
-@Request.json('course: str', 'title', 'content', 'starts_at', 'ends_at')
+@Request.json('course: str', 'title: str', 'content: str', 'starts_at: str', 'ends_at: str')
 @Request.doc('course', Course)
 @login_required
 def add_task(user, course, title, content, starts_at, ends_at):
@@ -33,8 +34,8 @@ def add_task(user, course, title, content, starts_at, ends_at):
             course=course,
             title=title,
             content=content,
-            starts_at=starts_at,
-            ends_at=ends_at,
+            starts_at=parser.parse(starts_at),
+            ends_at=parser.parse(ends_at),
         )
     except engine.ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())

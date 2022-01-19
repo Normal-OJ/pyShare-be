@@ -63,8 +63,8 @@ class Task(MongoBase, engine=engine.Task):
     def to_dict(self) -> dict:
         ret = self.to_mongo().to_dict()
         ret['id'] = ret['_id']
-        ret['startsAt'] = ret['starts_at'].timestamp()
-        ret['endsAt'] = ret['ends_at'].timestamp()
+        ret['startsAt'] = ret['starts_at'].strftime('%Y-%m-%dT%H:%M:%SZ')
+        ret['endsAt'] = ret['ends_at'].strftime('%Y-%m-%dT%H:%M:%SZ')
         for k in ('_id', 'starts_at', 'ends_at'):
             del ret[k]
         return ret

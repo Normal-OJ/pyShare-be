@@ -1,3 +1,5 @@
+from dateutil import parser
+from tracemalloc import start
 from mongo import Course
 from mongo import requirement
 from mongo.sandbox import ISandbox
@@ -11,6 +13,21 @@ def setup_function(_):
 def teardown_function(_):
     ISandbox.use(None)
     utils.mongo.drop_db()
+
+
+def test_iso_format_datetime():
+    startTime = '2022-01-19T12:34:00'
+    endTime = '2022-01-20T12:34:00'
+    task = utils.task.lazy_add(
+        starts_at=parser.parse(startTime),
+        ends_at=parser.parse(endTime),
+    )
+    ret = task.to_dict()
+    assert parser.parse(ret['startsAt']) == parser.parse(startTime)
+    assert parser.parse(ret['endsAt']) == parser.parse(endTime)
+    # with Z to use UTC, not +00:00
+    assert 'Z' in ret['startsAt']
+    assert 'Z' in ret['endsAt']
 
 
 def test_progress():
