@@ -23,7 +23,8 @@ def get_task_list(user, course):
 
 
 @task_api.post('/')
-@Request.json('course: str', 'title: str', 'content: str', 'starts_at: str', 'ends_at: str')
+@Request.json('course: str', 'title: str', 'content: str', 'starts_at: str',
+              'ends_at: str')
 @Request.doc('course', Course)
 @login_required
 def add_task(user, course, title, content, starts_at, ends_at):
