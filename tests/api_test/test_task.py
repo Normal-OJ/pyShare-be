@@ -27,8 +27,9 @@ def test_add_task(forge_client: Callable[[str], FlaskClient], config_app):
     assert rv.status_code == 200, rv.get_json()
     for key in ('id', 'endsAt', 'startsAt'):
         assert key in rv.get_json()['data']
+    # The timestamps should be ISO string
     for key in ('endsAt', 'startsAt'):
-        assert isinstance(rv.get_json()['data'][key], float)
+        assert isinstance(rv.get_json()['data'][key], str)
 
 
 def test_like_others_comment_requirement(

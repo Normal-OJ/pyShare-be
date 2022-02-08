@@ -23,20 +23,32 @@ def get_task_list(user, course):
 
 
 @task_api.post('/')
-@Request.json('course: str', 'title: str', 'content: str', 'starts_at: str',
-              'ends_at: str')
+@Request.json(
+    'course: str',
+    'title: str',
+    'content',
+    'starts_at',
+    'ends_at',
+)
 @Request.doc('course', Course)
 @login_required
 def add_task(user, course, title, content, starts_at, ends_at):
     if not course.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
     try:
+        if starts_at is not None:
+            starts_at = parser.parse(starts_at)
+        if ends_at is not None:
+            ends_at = parser.parse(ends_at)
+    except parser.ParserError:
+        return HTTPError('Invalid or unknown string format', 400)
+    try:
         task = Task.add(
             course=course,
             title=title,
             content=content,
-            starts_at=parser.parse(starts_at),
-            ends_at=parser.parse(ends_at),
+            starts_at=starts_at,
+            ends_at=ends_at,
         )
     except engine.ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())
