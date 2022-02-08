@@ -16,15 +16,15 @@ def teardown_function(_):
 
 
 def test_iso_format_datetime():
-    startTime = '2022-01-19T12:34:00'
-    endTime = '2022-01-20T12:34:00'
+    start_time = '2022-01-19T12:34:00Z'
+    end_time = '2022-01-20T12:34:00Z'
     task = utils.task.lazy_add(
-        starts_at=parser.parse(startTime),
-        ends_at=parser.parse(endTime),
+        starts_at=parser.parse(start_time),
+        ends_at=parser.parse(end_time),
     )
     ret = task.to_dict()
-    assert parser.parse(ret['startsAt']) == parser.parse(startTime)
-    assert parser.parse(ret['endsAt']) == parser.parse(endTime)
+    assert parser.parse(ret['startsAt']) == parser.parse(start_time)
+    assert parser.parse(ret['endsAt']) == parser.parse(end_time)
     # with Z to use UTC, not +00:00
     assert 'Z' in ret['startsAt']
     assert 'Z' in ret['endsAt']
