@@ -110,7 +110,7 @@ def add_solve_comment_requirement(
 
 
 @task_api.post('/<_id>/reply-to-comment')
-@Request.json('required_number', 'sync')
+@Request.json('required_number: int', 'sync')
 @Request.doc('_id', 'task', Task)
 @login_required
 def add_reply_to_comment_requirement(
