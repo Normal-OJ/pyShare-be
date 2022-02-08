@@ -1,4 +1,5 @@
 from flask import Blueprint
+from dateutil import parser
 
 from mongo import *
 from mongo import engine
@@ -22,12 +23,25 @@ def get_task_list(user, course):
 
 
 @task_api.post('/')
-@Request.json('course: str', 'title', 'content', 'starts_at', 'ends_at')
+@Request.json(
+    'course: str',
+    'title: str',
+    'content',
+    'starts_at',
+    'ends_at',
+)
 @Request.doc('course', Course)
 @login_required
 def add_task(user, course, title, content, starts_at, ends_at):
     if not course.permission(user=user, req={'w'}):
         return HTTPError('Not enough permission', 403)
+    try:
+        if starts_at is not None:
+            starts_at = parser.parse(starts_at)
+        if ends_at is not None:
+            ends_at = parser.parse(ends_at)
+    except parser.ParserError:
+        return HTTPError('Invalid or unknown string format', 400)
     try:
         task = Task.add(
             course=course,
