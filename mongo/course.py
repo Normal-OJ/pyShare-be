@@ -6,7 +6,6 @@ from . import engine
 from .base import MongoBase
 from .user import User
 from .utils import *
-from .tag import Tag
 
 __all__ = ['Course']
 
@@ -15,7 +14,7 @@ if TYPE_CHECKING:
 
 
 class Course(MongoBase, engine=engine.Course):
-    def get_tags_by_category(self, category):
+    def get_tags_by_category(self, category) -> List[str]:
         tags = {
             engine.Tag.Category.COURSE: self.tags,
             engine.Tag.Category.NORMAL_PROBLEM: self.normal_problem_tags,
@@ -26,6 +25,7 @@ class Course(MongoBase, engine=engine.Course):
         return tags
 
     def check_tag(self, tag, category):
+        from .tag import Tag
         if not Tag.is_tag(tag, category):
             return False
         tags = self.get_tags_by_category(category)
@@ -76,6 +76,7 @@ class Course(MongoBase, engine=engine.Course):
         name: str,
         **ks,
     ):
+        from .tag import Tag
         if teacher < 'teacher':
             raise PermissionError(
                 'only those who has more permission'
@@ -177,6 +178,7 @@ class Course(MongoBase, engine=engine.Course):
         pop: List[str] = [],
         category: int = engine.Tag.Category.NORMAL_PROBLEM,
     ):
+        from .tag import Tag
         tags = self.get_tags_by_category(category)
         if not all(Tag.is_tag(tag, category) for tag in push + pop):
             raise Tag.engine.DoesNotExist(

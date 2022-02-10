@@ -1,5 +1,10 @@
+import itertools
+from typing import List
+
 from . import engine
+from .course import Course
 from .base import MongoBase
+from .utils import doc_required
 
 __all__ = ['Tag']
 
@@ -93,3 +98,14 @@ class Tag(MongoBase, engine=engine.Tag):
     @classmethod
     def is_course_tag(cls, value):
         return cls.is_tag(value, engine.Tag.Category.COURSE)
+
+    @classmethod
+    @doc_required('course', Course, null=True)
+    def filter(
+        cls,
+        course: Course,
+        category: int,
+    ) -> List[str]:
+        if course is not None:
+            return course.get_tags_by_category(category)
+        return [t.value for t in cls.engine.objects(categories=category)]
