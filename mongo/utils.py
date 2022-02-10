@@ -65,6 +65,7 @@ def doc_required(
     src,
     des,
     cls=None,
+    *,
     null=False,
 ):
     '''
