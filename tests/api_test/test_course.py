@@ -41,25 +41,19 @@ class TestCourse(BaseTester):
     ):
         config_app(env='test')
         client = forge_client('admin')
+        admin = User.get_by_username('admin')
 
-        rv = client.post(
-            '/comment',
-            json={
-                'target': 'problem',
-                'id': 1,
-                'title': 'comment',
-                'content': '',
-                'code': ''
-            },
-        )
-        assert rv.status_code == 200
-        id = rv.get_json()["data"]["id"]
+        id = utils.comment.lazy_add_comment(
+            author=admin,
+            problem=Problem(1),
+        ).id
+
         rv = client.get(f'/comment/{id}')
         assert rv.status_code == 200
 
         client = forge_client('teacher1')
         cid = Course.get_by_name('course_108-1').pk
-        users = [str(User.get_by_username('admin').pk)]
+        users = [str(admin.pk)]
         rv = client.patch(
             f'/course/{cid}/student/remove',
             json={
@@ -77,25 +71,19 @@ class TestCourse(BaseTester):
     ):
         config_app(env='test')
         client = forge_client('student1')
+        student = User.get_by_username('student1')
 
-        rv = client.post(
-            '/comment',
-            json={
-                'target': 'problem',
-                'id': 1,
-                'title': 'comment',
-                'content': '',
-                'code': ''
-            },
-        )
-        assert rv.status_code == 200
-        id = rv.get_json()["data"]["id"]
+        id = utils.comment.lazy_add_comment(
+            author=student,
+            problem=Problem(1),
+        ).id
+
         rv = client.get(f'/comment/{id}')
         assert rv.status_code == 200
 
         client = forge_client('teacher1')
         cid = Course.get_by_name('course_108-1').pk
-        users = [str(User.get_by_username('student1').pk)]
+        users = [str(student.pk)]
         rv = client.patch(
             f'/course/{cid}/student/remove',
             json={
