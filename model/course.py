@@ -210,6 +210,7 @@ def update_students(user, course, users):
                 user.update(pull__likes=comment)
     # some users fail
     if len(warning):
+        warning = list(user.info for user in warning)
         return HTTPError(
             'fail to update students',
             400,
