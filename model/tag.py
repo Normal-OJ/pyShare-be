@@ -1,6 +1,5 @@
+from sre_constants import CATEGORY_SPACE
 from flask import Blueprint, request
-from urllib import parse
-import threading
 
 from mongo import *
 from mongo import engine
@@ -14,15 +13,24 @@ tag_api = Blueprint('tag_api', __name__)
 
 
 @tag_api.route('/', methods=['GET'])
-@Request.args('course')
+@Request.args('course', 'category')
 @login_required
-def get_tag_list(user, course):
-    c = Course(course) if course else None
-    if c is None:
-        return HTTPResponse('get all tags',
-                            data=[t.value for t in engine.Tag.objects])
+def get_tag_list(user, course, category):
+    if category is None:
+        category = Tag.engine.Category.NORMAL_PROBLEM
     else:
-        return HTTPResponse(f'get {c}\'s tags', data=c.tags)
+        try:
+            category = int(category)
+        except ValueError:
+            return HTTPError(
+                'Invalid category. It should be an integer',
+                400,
+            )
+    tags = Tag.filter(
+        course=course,
+        category=category,
+    )
+    return HTTPResponse(data=tags)
 
 
 @tag_api.route('/', methods=['POST', 'DELETE'])
