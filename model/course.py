@@ -198,16 +198,22 @@ def update_students(user, course, users):
         warning = [*({*[u.obj for u in u_users]} - {*course.students})]
         course.update(pull_all__students=users)
         for user in u_users:
+            if user.obj in warning:
+                continue
             for problem in course.problems:
                 if user == problem.author:
                     problem.delete()
-            for comment in engine.Comment.objects(author=user.pk):
+            course.reload()
+            for comment in engine.Comment.objects(author=user.pk,
+                                                  problem__in=course.problems):
                 Comment(comment).delete()
-            for comment in engine.Comment.objects(liked=user.pk):
+            for comment in engine.Comment.objects(liked=user.pk,
+                                                  problem__in=course.problems):
                 comment.update(pull__liked=user.obj)
                 user.update(pull__likes=comment)
     # some users fail
     if len(warning):
+        warning = list(user.info for user in warning)
         return HTTPError(
             'fail to update students',
             400,
