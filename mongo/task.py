@@ -5,7 +5,7 @@ from . import engine
 from .course import Course
 from .base import MongoBase
 from .utils import doc_required
-from blinker import signal
+from .event import requirement_added
 
 __all__ = ['Task']
 
@@ -14,10 +14,8 @@ class Task(MongoBase, engine=engine.Task):
     __initialized = False
 
     def __new__(cls, pk, *args, **kwargs):
-        # TODO: handle rejudge, which might convert a AC submission into WA
         if not cls.__initialized:
-            on_completed = signal('requirement_added')
-            on_completed.connect(cls.on_requirement_added)
+            requirement_added.connect(cls.on_requirement_added)
             cls.__initialized = True
         return super().__new__(cls, pk, *args, **kwargs)
 

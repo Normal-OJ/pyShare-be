@@ -8,6 +8,13 @@ from .user import User
 from .notif import Notif
 from .utils import doc_required, get_redis_client
 from .submission import *
+from .event import (
+    submission_completed,
+    comment_created,
+    reply_created,
+    comment_liked,
+    comment_unliked,
+)
 
 __all__ = [
     'Comment',
@@ -30,10 +37,6 @@ class TooManyComments(Exception):
 
 
 class Comment(MongoBase, engine=engine.Comment):
-    on_created = signal('comment_created')
-    on_reply_created = signal('reply_created')
-    on_liked = signal('liked')
-    on_unliked = signal('unliked')
     __initialized = False
 
     class Permission(Enum):
@@ -45,8 +48,7 @@ class Comment(MongoBase, engine=engine.Comment):
 
     def __new__(cls, pk, *args, **kwargs):
         if not cls.__initialized:
-            on_completed = signal('submission_completed')
-            on_completed.connect(cls.on_submission_completed)
+            submission_completed.connect(cls.on_submission_completed)
             cls.__initialized = True
         return super().__new__(cls, pk, *args, **kwargs)
 
@@ -141,10 +143,10 @@ class Comment(MongoBase, engine=engine.Comment):
         # unlike
         if user.obj in self.liked:
             action = 'pull'
-            event = self.on_unliked
+            event = comment_unliked
         else:
             action = 'add_to_set'
-            event = self.on_liked
+            event = comment_liked
             # notify the author of the creation
             info = Notif.types.Like(
                 comment=self.pk,
@@ -242,7 +244,7 @@ class Comment(MongoBase, engine=engine.Comment):
         if target.author != comment.author:
             notif = Notif.new(info)
             target.author.update(push__notifs=notif.pk)
-        cls.on_created.send(comment.reload())
+        comment_created.send(comment.reload())
         return comment
 
     def new_submission(self, code: str):
@@ -293,7 +295,7 @@ class Comment(MongoBase, engine=engine.Comment):
             notif = Notif.new(info)
         for author in authors:
             author.update(push__notifs=notif.pk)
-        cls.on_reply_created.send(comment.reload())
+        reply_created.send(comment.reload())
         return comment
 
     @classmethod

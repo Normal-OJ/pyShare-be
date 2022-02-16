@@ -1,7 +1,13 @@
 from typing import Iterable, List, Optional, Union
-from blinker import signal
 from datetime import datetime
 from . import engine
+from .event import (
+    requirement_added,
+    submission_completed,
+    comment_liked,
+    comment_created,
+    reply_created,
+)
 from .base import MongoBase
 from .task import Task
 from .problem import Problem
@@ -16,8 +22,6 @@ __all__ = [
     'LikeOthersComment',
 ]
 
-on_requirement_added = signal('requirement_added')
-
 
 class Requirement(MongoBase, engine=engine.Requirement):
     pass
@@ -29,8 +33,7 @@ class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
     def __new__(cls, pk, *args, **kwargs):
         # TODO: handle rejudge, which might convert a AC submission into WA
         if not cls.__initialized:
-            on_completed = signal('submission_completed')
-            on_completed.connect(cls.on_submission_completed)
+            submission_completed.connect(cls.on_submission_completed)
             cls.__initialized = True
         return super().__new__(cls, pk, *args, **kwargs)
 
@@ -91,7 +94,7 @@ class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
             task=task.id,
             problems=[p.id for p in problems],
         ).save()
-        on_requirement_added.send(req)
+        requirement_added.send(req)
         return cls(req)
 
     def sync(self, users: Iterable[Union[User, str]]):
@@ -109,8 +112,7 @@ class LeaveComment(MongoBase, engine=engine.LeaveComment):
 
     def __new__(cls, pk, *args, **kwargs):
         if not cls.__initialized:
-            on_created = signal('comment_created')
-            on_created.connect(cls.on_comment_created)
+            comment_created.connect(cls.on_comment_created)
             cls.__initialized = True
         return super().__new__(cls, pk, *args, **kwargs)
 
@@ -168,7 +170,7 @@ class LeaveComment(MongoBase, engine=engine.LeaveComment):
         }
         params = {k: v for k, v in params.items() if v is not None}
         req = cls.engine(**params).save()
-        on_requirement_added.send(req)
+        requirement_added.send(req)
         return cls(req)
 
     def sync(self, users: Iterable[Union[User, str]]):
@@ -186,8 +188,7 @@ class ReplyToComment(MongoBase, engine=engine.ReplyToComment):
 
     def __new__(cls, pk, *args, **kwargs):
         if not cls.__initialized:
-            on_created = signal('reply_created')
-            on_created.connect(cls.on_reply_created)
+            reply_created.connect(cls.on_reply_created)
             cls.__initialized = True
         return super().__new__(cls, pk, *args, **kwargs)
 
@@ -231,7 +232,7 @@ class ReplyToComment(MongoBase, engine=engine.ReplyToComment):
         }
         params = {k: v for k, v in params.items() if v is not None}
         req = cls.engine(**params).save()
-        on_requirement_added.send(req)
+        requirement_added.send(req)
         return cls(req)
 
     def sync(self, users: Iterable[Union[User, str]]):
@@ -249,8 +250,7 @@ class LikeOthersComment(MongoBase, engine=engine.LikeOthersComment):
 
     def __new__(cls, pk, *args, **kwargs):
         if not cls.__initialized:
-            liked = signal('liked')
-            liked.connect(cls.on_liked)
+            comment_liked.connect(cls.on_liked)
             cls.__initialized = True
         return super().__new__(cls, pk, *args, **kwargs)
 
@@ -293,7 +293,7 @@ class LikeOthersComment(MongoBase, engine=engine.LikeOthersComment):
             task=task.id,
             required_number=required_number,
         ).save()
-        on_requirement_added.send(req)
+        requirement_added.send(req)
         return cls(req)
 
     def sync(self, users: Iterable[Union[User, str]]):
