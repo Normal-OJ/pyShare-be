@@ -1,5 +1,7 @@
+from __future__ import annotations
 from typing import Optional
 from datetime import datetime
+import enum
 from . import engine
 from .base import MongoBase
 from .engine import GridFSProxy
@@ -11,22 +13,20 @@ from .notif import Notif
 __all__ = ['Attachment']
 
 
-# FIXME: Add unittest
 class Attachment(MongoBase, engine=engine.Attachment):
-    @doc_required('user', 'user', User)
-    def own_permission(self, user: User):
-        '''
-        {'w'}
-        represent modify
-        '''
-        _permission = set()
+    class Permission(enum.Flag):
+        WRITE = enum.auto()
+
+    @doc_required('user', User)
+    def own_permission(self, user: User) -> 'Attachment.Permission':
+        _permission = self.Permission(0)
         # problem author and admin can edit, delete attachment
         if user == self.author or user >= 'admin':
-            _permission |= {'w'}
+            _permission |= self.Permission.WRITE
         return _permission
 
     @doc_required('user', 'user', User)
-    def permission(self, user: User, req):
+    def permission(self, user: User, req) -> bool:
         '''
         check user's permission, `req` is a set of required
         permissions
@@ -36,9 +36,7 @@ class Attachment(MongoBase, engine=engine.Attachment):
             permissions 
         '''
         _permission = self.own_permission(user=user)
-        if isinstance(req, set):
-            return not bool(req - _permission)
-        return req in _permission
+        return bool(req & _permission)
 
     def delete(self):
         '''

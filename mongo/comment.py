@@ -66,13 +66,6 @@ class Comment(MongoBase, engine=engine.Comment):
 
     @doc_required('user', User)
     def own_permission(self, user: User) -> 'Comment.Permission':
-        '''
-        require 'j' for rejudge
-        require 's' for changing state
-        require 'd' for deletion
-        require 'w' for writing
-        require 'r' for reading
-        '''
         c = Course(self.problem.course)
         _permission = self.Permission(0)
         # Author can edit, rejudge and delete comment
@@ -108,7 +101,7 @@ class Comment(MongoBase, engine=engine.Comment):
     @doc_required('user', User)
     def permission(self, user: User, req: Comment.Permission) -> bool:
         _permission = self.own_permission(user=user)
-        return req & _permission
+        return bool(req & _permission)
 
     def to_dict(self):
         from .submission import Submission

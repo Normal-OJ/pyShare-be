@@ -65,7 +65,7 @@ class Course(MongoBase, engine=engine.Course):
             permissions 
         '''
         _permission = self.own_permission(user=user)
-        return req & _permission
+        return bool(req & _permission)
 
     def add_student(self, user: User):
         user.update(add_to_set__courses=self.obj)
