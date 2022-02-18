@@ -1,4 +1,4 @@
-import pytest
+from datetime import datetime, timedelta
 from tests import utils
 from mongo import (
     requirement,
@@ -69,5 +69,24 @@ def test_sync():
         required_number=1,
     )
     assert req.progress(user) == (0, 1)
-    req.sync([user])
+    req.sync(users=[user])
+    assert req.reload().progress(user) == (1, 1)
+
+
+def test_extend_task_due_can_update_requirement():
+    # Create a comment and like it
+    now = datetime.now()
+    comment = utils.comment.lazy_add_comment()
+    course = Course(comment.problem.course)
+    user = utils.course.student(course=course)
+    comment.like(user=user)
+    user.reload()
+    # Create a task ends immediately
+    task = utils.task.lazy_add(course=course, ends_at=now)
+    req = requirement.LikeOthersComment.add(
+        task=task,
+        required_number=1,
+    )
+    assert req.progress(user) == (0, 1)
+    task.extend_due(now + timedelta(days=1))
     assert req.reload().progress(user) == (1, 1)

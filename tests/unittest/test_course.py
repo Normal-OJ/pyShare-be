@@ -99,7 +99,7 @@ def test_course_oj_statistic():
 def test_course_permission():
     nobody = utils.user.lazy_signup(username='nobody')
     c = utils.course.lazy_add(status=engine.Course.Status.READONLY)
-    student = utils.course.student(c)
+    student = utils.course.student(course=c)
     assert c.own_permission(user=c.teacher) == {*'rpw'}
     assert c.own_permission(user=student) == {*'rp'}
     assert c.own_permission(user=nobody) == {*'r'}

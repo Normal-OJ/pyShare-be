@@ -2,7 +2,6 @@ import pytest
 from datetime import datetime, timedelta
 from tests import utils
 from mongo.sandbox import ISandbox
-from mongo.task import Task
 from mongo import requirement
 
 
@@ -105,5 +104,23 @@ def test_sync():
     )
     user = submission.user
     assert req.progress(user) == (0, 1)
-    req.sync([user])
+    req.sync(users=[user])
+    assert req.reload().progress(user) == (1, 1)
+
+
+def test_extend_task_due_can_update_requirement():
+    # Create a task ends now
+    now = datetime.now()
+    problem = utils.problem.lazy_add(is_oj=True)
+    task = utils.task.lazy_add(course=problem.course, ends_at=now)
+    user = utils.course.student(course=task.course)
+    req = requirement.SolveOJProblem.add(
+        task=task,
+        problems=[problem],
+    )
+    # Create a AC submission
+    submission = utils.submission.lazy_add_new(user=user, problem=problem)
+    submission.complete(judge_result=submission.JudgeResult.AC)
+    assert req.progress(user) == (0, 1)
+    task.extend_due(now + timedelta(days=1))
     assert req.reload().progress(user) == (1, 1)

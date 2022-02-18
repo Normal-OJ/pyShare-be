@@ -82,7 +82,7 @@ def add_solve_OJ_problem_requirement(user, task, problems, sync):
         problems = [*map(Problem, problems)]
         requirement = SolveOJProblem.add(task=task, problems=problems)
         if sync == True:
-            requirement.sync(task.course.students)
+            requirement.sync()
         return HTTPResponse(f'success', data=requirement.id)
     except engine.DoesNotExist as e:
         return HTTPError(e, 400)
@@ -115,7 +115,7 @@ def add_solve_comment_requirement(
             acceptance=acceptance,
         )
         if sync == True:
-            requirement.sync(task.course.students)
+            requirement.sync()
         return HTTPResponse(f'success', data=requirement.id)
     except ValueError as ve:
         return HTTPError(ve, 400, data=str(ve))
@@ -141,7 +141,7 @@ def add_reply_to_comment_requirement(
             required_number=required_number,
         )
         if sync == True:
-            requirement.sync(task.course.students)
+            requirement.sync()
         return HTTPResponse(f'success', data=requirement.id)
     except ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())
@@ -165,7 +165,7 @@ def add_like_others_comment_requirement(
             required_number=required_number,
         )
         if sync == True:
-            requirement.sync(task.course.students)
+            requirement.sync()
         return HTTPResponse(f'success', data=requirement.id)
     except ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())

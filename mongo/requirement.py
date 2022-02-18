@@ -1,5 +1,6 @@
 from typing import Iterable, List, Optional, Union
 from datetime import datetime
+from functools import partial
 from . import engine
 from .event import (
     requirement_added,
@@ -7,12 +8,17 @@ from .event import (
     comment_liked,
     comment_created,
     reply_created,
+    task_due_extended,
 )
 from .base import MongoBase
 from .task import Task
 from .problem import Problem
 from .user import User
-from .utils import doc_required, get_redis_client
+from .utils import (
+    doc_required,
+    get_redis_client,
+    drop_none,
+)
 
 __all__ = [
     'Requirement',
@@ -21,6 +27,25 @@ __all__ = [
     'ReplyToComment',
     'LikeOthersComment',
 ]
+
+
+def default_on_task_due_extended(
+    cls,
+    task,
+    starts_at: datetime,
+):
+    '''
+    Default implementation of on_task_due_extended.
+    '''
+    reqs = filter(
+        lambda r: isinstance(r, cls.engine),
+        task.requirements,
+    )
+    for req in reqs:
+        cls(req).sync(
+            starts_at=starts_at,
+            ends_at=task.ends_at,
+        )
 
 
 class Requirement(MongoBase, engine=engine.Requirement):
@@ -34,8 +59,14 @@ class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
         # TODO: handle rejudge, which might convert a AC submission into WA
         if not cls.__initialized:
             submission_completed.connect(cls.on_submission_completed)
+            task_due_extended.connect(cls.on_task_due_extended)
             cls.__initialized = True
         return super().__new__(cls, pk, *args, **kwargs)
+
+    # Declare again because blinker cannot accept `partial` as a reciever
+    @classmethod
+    def on_task_due_extended(cls, *args, **ks):
+        default_on_task_due_extended(cls, *args, **ks)
 
     @classmethod
     def is_valid_submission(cls, submission):
@@ -97,12 +128,23 @@ class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
         requirement_added.send(req)
         return cls(req)
 
-    def sync(self, users: Iterable[Union[User, str]]):
+    def sync(
+        self,
+        *,
+        users: Optional[Iterable[Union[User, str]]] = None,
+        starts_at: Optional[datetime] = None,
+        ends_at: Optional[datetime] = None,
+    ):
+        if users is None:
+            users = self.task.course.students
         users = [getattr(u, 'id', u) for u in users]
         submissions = engine.Submission.objects(
-            problem__in=self.problems,
-            user__in=users,
-        )
+            **drop_none({
+                'problem__in': self.problems,
+                'timestamp__gte': starts_at,
+                'timestamp__lte': ends_at,
+                'user__in': users,
+            }))
         for submission in submissions:
             self.add_submission(submission)
 
@@ -113,8 +155,14 @@ class LeaveComment(MongoBase, engine=engine.LeaveComment):
     def __new__(cls, pk, *args, **kwargs):
         if not cls.__initialized:
             comment_created.connect(cls.on_comment_created)
+            task_due_extended.connect(cls.on_task_due_extended)
             cls.__initialized = True
         return super().__new__(cls, pk, *args, **kwargs)
+
+    # Declare again because blinker cannot accept `partial` as a reciever
+    @classmethod
+    def on_task_due_extended(cls, *args, **ks):
+        default_on_task_due_extended(cls, *args, **ks)
 
     @classmethod
     def is_valid_comment(cls, comment):
@@ -173,12 +221,22 @@ class LeaveComment(MongoBase, engine=engine.LeaveComment):
         requirement_added.send(req)
         return cls(req)
 
-    def sync(self, users: Iterable[Union[User, str]]):
+    def sync(
+        self,
+        *,
+        users: Optional[Iterable[Union[User, str]]] = None,
+        starts_at: Optional[datetime] = None,
+        ends_at: Optional[datetime] = None,
+    ):
+        if users is None:
+            users = self.task.course.students
         users = [getattr(u, 'id', u) for u in users]
-        comments = engine.Comment.objects(
-            problem=self.problem,
-            author__in=users,
-        )
+        comments = engine.Comment.objects(**drop_none({
+            'problem': self.problem,
+            'author__in': users,
+            'created__gte': starts_at,
+            'created__lte': ends_at,
+        }))
         for comment in comments:
             self.add_comment(comment)
 
@@ -189,8 +247,14 @@ class ReplyToComment(MongoBase, engine=engine.ReplyToComment):
     def __new__(cls, pk, *args, **kwargs):
         if not cls.__initialized:
             reply_created.connect(cls.on_reply_created)
+            task_due_extended.connect(cls.on_task_due_extended)
             cls.__initialized = True
         return super().__new__(cls, pk, *args, **kwargs)
+
+    # Declare again because blinker cannot accept `partial` as a reciever
+    @classmethod
+    def on_task_due_extended(cls, *args, **ks):
+        default_on_task_due_extended(cls, *args, **ks)
 
     @classmethod
     def is_valid_reply(cls, reply):
@@ -235,12 +299,22 @@ class ReplyToComment(MongoBase, engine=engine.ReplyToComment):
         requirement_added.send(req)
         return cls(req)
 
-    def sync(self, users: Iterable[Union[User, str]]):
+    def sync(
+        self,
+        *,
+        users: Optional[Iterable[Union[User, str]]] = None,
+        starts_at: Optional[datetime] = None,
+        ends_at: Optional[datetime] = None,
+    ):
+        if users is None:
+            users = self.task.course.students
         users = [getattr(u, 'id', u) for u in users]
-        replies = engine.Comment.objects(
-            author__in=users,
-            depth__ne=0,
-        )
+        replies = engine.Comment.objects(**drop_none({
+            'author__in': users,
+            'depth__ne': 0,
+            'created__gte': starts_at,
+            'created__lte': ends_at,
+        }))
         for reply in replies:
             self.add_reply(reply)
 
@@ -251,8 +325,14 @@ class LikeOthersComment(MongoBase, engine=engine.LikeOthersComment):
     def __new__(cls, pk, *args, **kwargs):
         if not cls.__initialized:
             comment_liked.connect(cls.on_liked)
+            task_due_extended.connect(cls.on_task_due_extended)
             cls.__initialized = True
         return super().__new__(cls, pk, *args, **kwargs)
+
+    # Declare again because blinker cannot accept `partial` as a reciever
+    @classmethod
+    def on_task_due_extended(cls, *args, **ks):
+        default_on_task_due_extended(cls, *args, **ks)
 
     @classmethod
     def is_valid_liker(cls, comment, user):
@@ -296,7 +376,19 @@ class LikeOthersComment(MongoBase, engine=engine.LikeOthersComment):
         requirement_added.send(req)
         return cls(req)
 
-    def sync(self, users: Iterable[Union[User, str]]):
+    def sync(
+        self,
+        *,
+        users: Optional[Iterable[Union[User, str]]] = None,
+        starts_at: Optional[datetime] = datetime.min,
+        ends_at: Optional[datetime] = datetime.max,
+    ):
+        if users is None:
+            users = self.task.course.students
+        users = [getattr(u, 'id', u) for u in users]
         for user in map(User, users):
             for comment in user.likes:
-                self.add_like(comment, user)
+                # FIXME: Should check when the user like this comment
+                #   instead of when the comment was created
+                if starts_at < comment.created < ends_at:
+                    self.add_like(comment, user)

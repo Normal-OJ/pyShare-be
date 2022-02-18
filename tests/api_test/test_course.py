@@ -1,12 +1,13 @@
+from datetime import timedelta, datetime
 from typing import Callable, Optional
-from tests.base_tester import BaseTester
-from tests import utils
 import pytest
+import mongomock.gridfs
 from flask.testing import FlaskClient
 from mongo import *
 from mongo import requirement
 from mongo import engine
-import mongomock.gridfs
+from tests.base_tester import BaseTester
+from tests import utils
 
 mongomock.gridfs.enable_gridfs_integration()
 
@@ -260,6 +261,13 @@ class TestCourseStatistic:
 
 
 class TestRecord:
+    def setup_method(self):
+        ISandbox.use(utils.submission.MockSandbox)
+
+    def teardown_method(self):
+        utils.mongo.drop_db()
+        ISandbox.use(None)
+
     def test_get_task_record(
         self,
         forge_client: Callable[[str], FlaskClient],
@@ -338,3 +346,44 @@ class TestRecord:
         assert rv.status_code == 403
         rv = client.get(f'/course/{course.id}/task/record')
         assert rv.status_code == 403
+
+    def test_get_task_record_with_extended_due_date(
+        self,
+        forge_client: Callable[[str], FlaskClient],
+    ):
+        # Setup task
+        now = datetime.now()
+        course = utils.course.lazy_add()
+        task = utils.task.lazy_add(
+            course=course,
+            ends_at=now,
+        )
+        problem = utils.problem.lazy_add(course=course, is_oj=True)
+        req = requirement.SolveOJProblem.add(
+            task=task,
+            problems=[problem],
+        )
+        # Create a AC submission
+        student = utils.course.student(course=course)
+        submission = utils.submission.lazy_add_new(
+            user=student,
+            problem=problem,
+        )
+        submission.complete(judge_result=submission.engine.JudgeResult.AC)
+        assert task.reload().progress(student) == (0, 1)
+        # Try get result with extended due
+        client = forge_client(course.teacher.username)
+        rv = client.get(
+            f'/course/{course.id}/task/{task.id}/record',
+            query_string={'endsAt': (now + timedelta(days=1)).isoformat()},
+        )
+        assert rv.status_code == 200, rv.get_json()
+        record_data = rv.get_json()['data']
+        req_records = record_data['requirements']
+        assert req_records[0]['id'] == str(req.id)
+        student_completes = req_records[0]['completes'][0]
+        assert student_completes['userInfo'] == {
+            **student.info,
+            'id': str(student.id),
+        }
+        assert student_completes['progress'] == [1, 1]

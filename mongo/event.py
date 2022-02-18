@@ -1,5 +1,6 @@
 from blinker import signal
 
+task_due_extended = signal('task_due_extended')
 requirement_added = signal('requirement_added')
 submission_completed = signal('submission_completed')
 comment_created = signal('comment_created')

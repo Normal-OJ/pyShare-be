@@ -1,6 +1,7 @@
 from functools import partial
-from typing import Union
+from typing import Iterable, Union, Optional
 from flask import Blueprint, send_file, request
+import dateutil.parser
 from .utils import *
 from .auth import *
 from mongo import *
@@ -204,11 +205,15 @@ def update_students(user, course, users):
                 if user == problem.author:
                     problem.delete()
             course.reload()
-            for comment in engine.Comment.objects(author=user.pk,
-                                                  problem__in=course.problems):
+            for comment in engine.Comment.objects(
+                    author=user.pk,
+                    problem__in=course.problems,
+            ):
                 Comment(comment).delete()
-            for comment in engine.Comment.objects(liked=user.pk,
-                                                  problem__in=course.problems):
+            for comment in engine.Comment.objects(
+                    liked=user.pk,
+                    problem__in=course.problems,
+            ):
                 comment.update(pull__liked=user.obj)
                 user.update(pull__likes=comment)
     # some users fail
@@ -269,30 +274,61 @@ def complete_data(req: Union[Requirement, Task], user: User):
     }
 
 
-@course_api.get('/<cid>/task/<tid>/record')
-@login_required
-@Request.doc('cid', 'course', Course)
-@Request.doc('tid', 'task', Task)
-def get_task_record(
-    user: User,
-    course: Course,
-    task: Task,
-):
-    if not course.permission(user=user, req='w'):
-        return HTTPError('Permission denied', 403)
-    if course != task.course:
-        return HTTPError(f'Cannot find {task} in {course}', 404)
+def gen_task_record(task: Task):
+    '''
+    Generate API response data from task for users
+    '''
     ret = task.to_dict()
     ret['requirements'] = [{
         'id':
         req.id,
         'cls':
         req._cls.split('.')[-1],
-        'completes': [*map(
+        'completes':
+        [*map(
             partial(complete_data, req),
-            course.students,
+            task.course.students,
         )],
     } for req in task.requirements]
+    return ret
+
+
+@course_api.get('/<cid>/task/<tid>/record')
+@login_required
+@Request.doc('cid', 'course', Course)
+@Request.doc('tid', 'task', Task)
+@Request.args('ends_at')
+def get_task_record(
+    user: User,
+    course: Course,
+    task: Task,
+    ends_at: Optional[str],
+):
+    if not course.permission(user=user, req='w'):
+        return HTTPError('Permission denied', 403)
+    if course != task.course:
+        return HTTPError(f'Cannot find {task} in {course}', 404)
+    # No need to modify original task
+    if ends_at is None:
+        ret = gen_task_record(task)
+    else:
+        # Try parse ends_at and clone a task with extended due date
+        try:
+            ends_at = dateutil.parser.parse(ends_at)
+        except dateutil.parser.ParserError:
+            return HTTPError('endsAt is not a valid ISO string', 400)
+        if ends_at < task.ends_at:
+            return HTTPError(
+                'endsAt should be grater then due date of this task',
+                400,
+            )
+        with task.tmp_copy() as tmp_task:
+            tmp_task.extend_due(ends_at)
+            ret = gen_task_record(tmp_task)
+        # Use requirement id under the original task
+        # so that frontend can get the correct resource
+        for i, req in enumerate(ret['requirements']):
+            req['id'] = task.requirements[i].id
     return HTTPResponse(data=ret)
 
 
