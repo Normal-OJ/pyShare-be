@@ -75,13 +75,14 @@ class Task(MongoBase, engine=engine.Task):
         new_task.id = None
         requirements = new_task.requirements
         new_task.requirements = None
+        # Call save first to generate id for task
         new_task.save()
         for req in requirements:
             req.id = None
             req.task = new_task
             req.save()
-        new_task.requirements = requirements
-        new_task.save()
+        # Save requirements
+        new_task.update(requirements=requirements)
         return Task(new_task.reload())
 
     @contextmanager

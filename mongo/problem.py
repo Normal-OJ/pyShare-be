@@ -1,16 +1,15 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 from functools import reduce
+import enum
 from mongoengine.queryset.visitor import Q
 from . import engine
 from .engine import GridFSProxy
 from .base import MongoBase
 from .course import Course
 from .user import User
-from .tag import Tag
 from .utils import doc_required, get_redis_client
 from zipfile import ZipFile
 import tempfile
-from contextlib import contextmanager
 import io
 
 __all__ = ['Problem', 'TagNotFoundError']
@@ -21,46 +20,52 @@ class TagNotFoundError(Exception):
 
 
 class Problem(MongoBase, engine=engine.Problem):
-    @doc_required('user', 'user', User)
-    def own_permission(self, user: User):
-        '''
-        {'r', 'w', 'd', 'c', 'j'}
-        represent read, write, delete, clone, rejudge respectively
-        '''
-        _permission = set()
+    class Permission(enum.Flag):
+        READ = enum.auto()
+        WRITE = enum.auto()
+        DELETE = enum.auto()
+        MANAGE = READ | WRITE | DELETE
+        CLONE = enum.auto()
+        SUBMIT = enum.auto()
+        REJUDGE = enum.auto()
+
+    @doc_required('user', User)
+    def own_permission(self, user: User) -> 'Problem.Permission':
+        _permission = self.Permission(0)
         if self.online:
             if Course(self.course).permission(user=user, req={'r'}):
-                _permission.add('r')
+                _permission |= self.Permission.READ
         elif user == self.course.teacher:
-            _permission.add('r')
+            _permission |= self.Permission.READ
         # all templates can be used
         if self.is_template:
-            _permission.add('r')
+            _permission |= self.Permission.READ
         # problem author and admin can edit, delete problem
         if user == self.author or user >= 'admin':
-            _permission |= {*'rwd'}
+            # TODO: admin should not has permission to edit others' problem
+            _permission |= self.Permission.MANAGE
         # teachers and above can clone
         if user >= 'teacher':
-            _permission.add('c')
+            _permission |= self.Permission.CLONE
         # people who can write the course can rejudge problem
         if Course(self.course).permission(user=user, req={'w'}):
-            _permission.add('j')
+            _permission |= self.Permission.REJUDGE
+        if _permission & self.Permission.READ and Course(
+                self.course).permission(user=user, req='p'):
+            _permission |= self.Permission.SUBMIT
         return _permission
 
-    @doc_required('user', 'user', User)
-    def permission(self, user: User, req):
+    @doc_required('user', User)
+    def permission(self, user: User, req: Permission) -> bool:
         '''
-        check user's permission, `req` is a set of required
-        permissions
+        check user's permission, `req` is the required permission
 
         Returns:
             a `bool` value denotes whether user has these
-            permissions 
+            permissions
         '''
         _permission = self.own_permission(user=user)
-        if isinstance(req, set):
-            return not bool(req - _permission)
-        return req in _permission
+        return bool(req & _permission)
 
     @doc_required('target_course', 'target_course', Course)
     @doc_required('user', 'user', User)
@@ -156,10 +161,12 @@ class Problem(MongoBase, engine=engine.Problem):
         return ret
 
     def acceptance(self, user: User):
-        acceptance = list(c.acceptance for c in self.comments
-                          if user.obj == c.author)
-        return engine.Comment.Acceptance.NOT_TRY if len(
-            acceptance) == 0 else min(acceptance)
+        user_comments = (c for c in self.comments if user.obj == c.author)
+        acceptance = [c.acceptance for c in user_comments]
+        if len(acceptance) == 0:
+            return engine.Comment.Acceptance.NOT_TRY
+        else:
+            return min(acceptance)
 
     def delete(self):
         '''

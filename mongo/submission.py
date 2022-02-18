@@ -8,13 +8,12 @@ from .problem import Problem
 from .comment import Comment
 from .utils import doc_required, get_redis_client
 from .token import TokenExistError
+from .event import submission_completed
 
 __all__ = ('Submission', )
 
 
 class Submission(MongoBase, engine=engine.Submission):
-    on_complete = signal('submission_completed')
-
     class Pending(Exception):
         def __init__(self, _id):
             super().__init__(f'{_id} still pending.')
@@ -117,7 +116,7 @@ class Submission(MongoBase, engine=engine.Submission):
             self.reload('result', 'status')
             self.result.files = files
             self.save()
-            self.on_complete.send(self.reload())
+            submission_completed.send(self.reload())
         return True
 
     def get_file(self, filename):
@@ -160,11 +159,12 @@ class Submission(MongoBase, engine=engine.Submission):
             The created submission
         '''
         # TODO: Validate the relation of user, problem and comment
-        submission = engine.Submission(
-            problem=problem.obj,
-            user=user.obj,
-            comment=getattr(comment, 'obj', None),
+        if not problem.permission(user=user, req=Problem.Permission.SUBMIT):
+            raise PermissionError(f'{user} cannot submit to {problem}')
+        submission = cls.engine(
+            problem=problem.id,
+            user=user.id,
+            comment=getattr(comment, 'id', None),
             code=code,
-        )
-        submission.save()
-        return cls(submission.id)
+        ).save()
+        return cls(submission)

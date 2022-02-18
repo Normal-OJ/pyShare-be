@@ -88,7 +88,7 @@ class Comment(MongoBase, engine=engine.Comment):
         # and user can read problem
         if not self.hidden and Problem(self.problem).permission(
                 user=user,
-                req={'r'},
+                req=Problem.Permission.READ,
         ):
             # Course teacher and admin can read
             if user == c.teacher or user >= 'admin':
@@ -312,7 +312,7 @@ class Comment(MongoBase, engine=engine.Comment):
     ):
         # check permission
         required_permission = (
-            problem.permission(user=author, req={'r'}),
+            problem.permission(user=author, req=Problem.Permission.READ),
             Course(problem.course).permission(user=author, req={'p'}),
         )
         if not all(required_permission):

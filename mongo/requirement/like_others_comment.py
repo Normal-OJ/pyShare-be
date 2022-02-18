@@ -6,7 +6,6 @@ from typing import (
 from datetime import datetime
 from mongo import engine
 from mongo.task import Task
-from mongo.problem import Problem
 from mongo.user import User
 from mongo.base import MongoBase
 from mongo.event import (
