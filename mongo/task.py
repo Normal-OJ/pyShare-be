@@ -6,7 +6,11 @@ from contextlib import contextmanager
 from . import engine
 from .course import Course
 from .base import MongoBase
-from .utils import (doc_required, get_redis_client)
+from .utils import (
+    doc_required,
+    get_redis_client,
+    drop_none,
+)
 from .event import (task_due_extended, requirement_added)
 
 __all__ = ['Task']
@@ -32,10 +36,7 @@ class Task(MongoBase, engine=engine.Task):
     ):
         if isinstance(course, Course):
             course = course.id
-        params = {
-            'course': course,
-        }
-        params = {k: v for k, v in params.items() if v is not None}
+        params = drop_none({'course': course})
         tasks = [cls(t) for t in cls.engine.active_objects(**params)]
         return tasks
 
@@ -49,14 +50,13 @@ class Task(MongoBase, engine=engine.Task):
         starts_at: Optional[datetime] = None,
         ends_at: Optional[datetime] = None,
     ):
-        params = {
+        params = drop_none({
             'course': course.id,
             'title': title,
             'content': content,
             'starts_at': starts_at,
             'ends_at': ends_at,
-        }
-        params = {k: v for k, v in params.items() if v is not None}
+        })
         task = cls.engine(**params).save()
         return cls(task)
 

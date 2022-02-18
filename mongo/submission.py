@@ -158,7 +158,6 @@ class Submission(MongoBase, engine=engine.Submission):
         Returns:
             The created submission
         '''
-        # TODO: Validate the relation of user, problem and comment
         if not problem.permission(user=user, req=Problem.Permission.SUBMIT):
             raise PermissionError(f'{user} cannot submit to {problem}')
         submission = cls.engine(

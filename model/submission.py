@@ -41,7 +41,7 @@ def get_submission_file(
         )
     except FileNotFoundError:
         return HTTPError('File not found', 404)
-    except SubmissionPending:
+    except Submission.Pending:
         return HTTPError('Submission is still in pending', 400)
 
 
