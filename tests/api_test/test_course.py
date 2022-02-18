@@ -148,11 +148,15 @@ class TestCourse(BaseTester):
         client = forge_client('teacher1')
 
         cid = Course.get_by_name('course_108-1').pk
-        users = [str(User.get_by_username('student1').pk)]
         rv = client.get(f'/course/{cid}/permission')
         json = rv.get_json()
         assert rv.status_code == 200
-        assert set(json['data']) == {*'rwp'}
+        excepted_permission = ( \
+            Course.Permission.READ |
+            Course.Permission.WRITE |
+            Course.Permission.PARTICIPATE
+        )
+        assert json['data'] == excepted_permission.value
 
     def test_get_course(
         self,

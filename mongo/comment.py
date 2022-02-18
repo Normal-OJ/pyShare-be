@@ -83,7 +83,7 @@ class Comment(MongoBase, engine=engine.Comment):
                 self.Permission.DELETE
             )
         # Course teacher can rejudge and delete comment
-        elif c.permission(user=user, req='w'):
+        elif c.permission(user=user, req=Course.Permission.WRITE):
             _permission |= (self.Permission.REJUDGE | self.Permission.DELETE)
         # Course teacher and admin can update state
         if user == c.teacher or user >= 'admin':
@@ -312,20 +312,15 @@ class Comment(MongoBase, engine=engine.Comment):
         depth: int,
         problem: Problem,
     ):
-        # check permission
-        required_permission = (
-            problem.permission(user=author, req=Problem.Permission.READ),
-            Course(problem.course).permission(user=author, req={'p'}),
-        )
-        if not all(required_permission):
-            raise PermissionError('Not enough permission')
+        if not problem.permission(user=author, req=Problem.Permission.SUBMIT):
+            raise PermissionError(f'{author} cannot submit to {problem}')
         comment = cls.engine(
             title=title,
             content=content,
-            author=author.pk,
+            author=author.id,
             floor=floor,
             depth=depth,
-            problem=problem.pk,
+            problem=problem.id,
         ).save()
         # append to author's
         author.update(push__comments=comment)

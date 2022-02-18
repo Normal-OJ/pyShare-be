@@ -33,7 +33,10 @@ class Problem(MongoBase, engine=engine.Problem):
     def own_permission(self, user: User) -> 'Problem.Permission':
         _permission = self.Permission(0)
         if self.online:
-            if Course(self.course).permission(user=user, req={'r'}):
+            if Course(self.course).permission(
+                    user=user,
+                    req=Course.Permission.READ,
+            ):
                 _permission |= self.Permission.READ
         elif user == self.course.teacher:
             _permission |= self.Permission.READ
@@ -48,10 +51,16 @@ class Problem(MongoBase, engine=engine.Problem):
         if user >= 'teacher':
             _permission |= self.Permission.CLONE
         # people who can write the course can rejudge problem
-        if Course(self.course).permission(user=user, req={'w'}):
+        if Course(self.course).permission(
+                user=user,
+                req=Course.Permission.WRITE,
+        ):
             _permission |= self.Permission.REJUDGE
         if _permission & self.Permission.READ and Course(
-                self.course).permission(user=user, req='p'):
+                self.course).permission(
+                    user=user,
+                    req=Course.Permission.PARTICIPATE,
+                ):
             _permission |= self.Permission.SUBMIT
         return _permission
 
@@ -324,7 +333,8 @@ class Problem(MongoBase, engine=engine.Problem):
         return engine.Problem.ProblemAttachment(
             file=att,
             source=source.source,
-            version_number=source.version_number)
+            version_number=source.version_number,
+        )
 
     @classmethod
     @doc_required('author', 'author', User)
@@ -340,7 +350,10 @@ class Problem(MongoBase, engine=engine.Problem):
         add a problem to db
         '''
         # user needs to be able to modify the course
-        if not course.permission(user=author, req={'p'}):
+        if not course.permission(
+                user=author,
+                req=Course.Permission.PARTICIPATE,
+        ):
             raise PermissionError('Not enough permission')
         # if allow_multiple_comments is None or False
         if author < 'teacher' and not ks.get('allow_multiple_comments'):

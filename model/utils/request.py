@@ -97,7 +97,7 @@ class Request(metaclass=_Request):
                 # TODO: this line may catch a unexpected exception
                 #   which is hard to debug. Define a special exception
                 #   may be a solution.
-                except TypeError as e:
+                except ValueError as e:
                     return HTTPError(e, 500)
                 except ValidationError as ve:
                     logger().info(

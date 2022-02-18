@@ -1,6 +1,7 @@
 from __future__ import annotations
 import csv
 import tempfile
+import enum
 from typing import List, TYPE_CHECKING, Set, Union
 from . import engine
 from .base import MongoBase
@@ -14,6 +15,11 @@ if TYPE_CHECKING:
 
 
 class Course(MongoBase, engine=engine.Course):
+    class Permission(enum.Flag):
+        READ = enum.auto()
+        WRITE = enum.auto()
+        PARTICIPATE = enum.auto()
+
     def get_tags_by_category(self, category) -> List[str]:
         tags = {
             engine.Tag.Category.COURSE: self.tags,
@@ -31,25 +37,25 @@ class Course(MongoBase, engine=engine.Course):
         tags = self.get_tags_by_category(category)
         return (tag in tags)
 
-    @doc_required('user', 'user', User)
-    def own_permission(self, user: User):
-        '''
-        {'r', 'p', 'w'}
-        stand for read, participate, modify
-        '''
-        _permission = set()
+    @doc_required('user', User)
+    def own_permission(self, user: User) -> 'Course.Permission':
+        _permission = self.Permission(0)
         # course's teacher and admins can do anything
         if user == self.teacher or user >= 'admin':
-            _permission |= {'r', 'p', 'w'}
+            _permission |= ( \
+                self.Permission.READ |
+                self.Permission.WRITE |
+                self.Permission.PARTICIPATE
+            )
         # course's students can participate, or everyone can participate if the course is public
         elif user in self.students or self.status == self.engine.Status.PUBLIC:
-            _permission |= {'r', 'p'}
+            _permission |= (self.Permission.READ | self.Permission.PARTICIPATE)
         elif self.status == self.engine.Status.READONLY:
-            _permission |= {'r'}
+            _permission |= self.Permission.READ
         return _permission
 
     @doc_required('user', 'user', User)
-    def permission(self, user: User, req: Union[str, Set[str]]):
+    def permission(self, user: User, req: 'Course.Permission') -> bool:
         '''
         check user's permission, `req` is a set of required
         permissions
@@ -59,9 +65,7 @@ class Course(MongoBase, engine=engine.Course):
             permissions 
         '''
         _permission = self.own_permission(user=user)
-        if isinstance(req, set):
-            return not bool(req - _permission)
-        return req in _permission
+        return req & _permission
 
     def add_student(self, user: User):
         user.update(add_to_set__courses=self.obj)

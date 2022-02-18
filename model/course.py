@@ -12,7 +12,7 @@ __all__ = ['course_api']
 course_api = Blueprint('course_api', __name__)
 
 
-@course_api.route('/', methods=['GET'])
+@course_api.get('/')
 @login_required
 def course_list(user):
     '''
@@ -29,16 +29,16 @@ def course_list(user):
         'status': c.status,
     } for c in cs if c.permission(
         user=user,
-        req={'r'},
+        req=Course.Permission.READ,
     )]
     return HTTPResponse('here you are', data=cs)
 
 
-@course_api.route('/<course>', methods=['GET'])
+@course_api.get('/<course>')
 @login_required
 @Request.doc('course', Course)
 def get_single_course(user, course):
-    if not course.permission(user=user, req={'r'}):
+    if not course.permission(user=user, req=Course.Permission.READ):
         return HTTPError('Not enough permission', 403)
     comments_of_problems = [
         p.comments for p in course.problems if not p.is_template
@@ -58,12 +58,12 @@ def get_single_course(user, course):
     return HTTPResponse('here you are', data=ret)
 
 
-@course_api.route('/<course>/statistic', methods=['GET'])
-@course_api.route('/<course>/statistic/problem', methods=['GET'])
+@course_api.get('/<course>/statistic')
+@course_api.get('/<course>/statistic/problem')
 @login_required
 @Request.doc('course', Course)
 def statistic(user, course):
-    if not course.permission(user=user, req={'p'}):
+    if not course.permission(user=user, req=Course.Permission.PARTICIPATE):
         return HTTPError('Not enough permission', 403)
     users = map(User, course.students)
     ret = []
@@ -74,12 +74,12 @@ def statistic(user, course):
     return HTTPResponse('ok', data=ret)
 
 
-@course_api.route('/<course>/statistic/oj-problem', methods=['GET'])
+@course_api.get('/<course>/statistic/oj-problem')
 @login_required
 @Request.args('pids')
 @Request.doc('course', Course)
 def oj_statistic(user, course, pids: str):
-    if not course.permission(user=user, req={'p'}):
+    if not course.permission(user=user, req=Course.Permission.PARTICIPATE):
         return HTTPError('Not enough permission', 403)
     if pids == '' or pids is None:
         return HTTPError('pids are required', 400)
@@ -95,24 +95,24 @@ def oj_statistic(user, course, pids: str):
     return HTTPResponse(data=course.oj_statistic(problems))
 
 
-@course_api.route('/<name>/permission', methods=['GET'])
+@course_api.get('/<name>/permission')
 @login_required
 @Request.doc('name', 'course', Course)
 def permission(user, course):
-    return HTTPResponse('ok', data=list(course.own_permission(user=user)))
+    return HTTPResponse(data=course.own_permission(user=user).value)
 
 
-@course_api.route('/<name>', methods=['DELETE'])
+@course_api.delete('/<name>')
 @login_required
 @Request.doc('name', 'course', Course)
 def delete_course(user, course):
-    if not course.permission(user=user, req={'w'}):
+    if not course.permission(user=user, req=Course.Permission.WRITE):
         return HTTPError('Not enough permission', 403)
     course.delete()
     return HTTPResponse('success')
 
 
-@course_api.route('/', methods=['POST'])
+@course_api.post('/')
 @Request.json(
     'name: str',
     'teacher: str',
@@ -144,7 +144,7 @@ def create_course(
     return HTTPResponse('success', data={'id': c.id})
 
 
-@course_api.route('/<course>', methods=['PUT'])
+@course_api.put('/<course>')
 @login_required
 @Request.json(
     'name: str',
@@ -159,7 +159,7 @@ def update_course(
     course,
     **c_ks,
 ):
-    if not course.permission(user=user, req={'w'}):
+    if not course.permission(user=user, req=Course.Permission.WRITE):
         return HTTPError('Not enough permission', 403)
     try:
         course.update(**c_ks)
@@ -174,8 +174,8 @@ def update_course(
     return HTTPResponse('success')
 
 
-@course_api.route('/<course>/student/insert', methods=['PATCH'])
-@course_api.route('/<course>/student/remove', methods=['PATCH'])
+@course_api.patch('/<course>/student/insert')
+@course_api.patch('/<course>/student/remove')
 @login_required
 @Request.json('users: list')
 @Request.doc('course', Course)
@@ -183,7 +183,7 @@ def update_students(user, course, users):
     '''
     update course students, action should be `insert` or `remove`
     '''
-    if not course.permission(user=user, req={'w'}):
+    if not course.permission(user=user, req=Course.Permission.WRITE):
         return HTTPError('Not enough permission', 403)
     # ignore duplicated user ids
     users = [*{*users}]
@@ -230,7 +230,7 @@ def update_students(user, course, users):
     return HTTPResponse('success')
 
 
-@course_api.route('/<course>/tag', methods=['PATCH'])
+@course_api.patch('/<course>/tag')
 @login_required
 @Request.json('push: list', 'pop: list', 'category: int')
 @Request.doc('course', Course)
@@ -238,7 +238,7 @@ def update_tags(user, course, push, pop, category):
     '''
     push/pop tags to/from course
     '''
-    if not course.permission(user=user, req={'w'}):
+    if not course.permission(user=user, req=Course.Permission.WRITE):
         return HTTPError('Not enough permission', 403)
     try:
         course.patch_tag(push, pop, category)
@@ -251,11 +251,11 @@ def update_tags(user, course, push, pop, category):
     return HTTPResponse('success')
 
 
-@course_api.route('/<course>/statistic-file', methods=['GET'])
+@course_api.get('/<course>/statistic-file')
 @login_required
 @Request.doc('course', Course)
 def get_statistic_file(user, course: Course):
-    if not course.permission(user=user, req={'w'}):
+    if not course.permission(user=user, req=Course.Permission.WRITE):
         return HTTPError('Not enough permission', 403)
     f = course.statistic_file()
     return send_file(
@@ -304,7 +304,7 @@ def get_task_record(
     task: Task,
     ends_at: Optional[str],
 ):
-    if not course.permission(user=user, req='w'):
+    if not course.permission(user=user, req=Course.Permission.WRITE):
         return HTTPError('Permission denied', 403)
     if course != task.course:
         return HTTPError(f'Cannot find {task} in {course}', 404)
@@ -336,7 +336,7 @@ def get_task_record(
 @login_required
 @Request.doc('cid', 'course', Course)
 def get_all_task_record(user: User, course: Course):
-    if not course.permission(user=user, req='w'):
+    if not course.permission(user=user, req=Course.Permission.WRITE):
         return HTTPError('Permission denied', 403)
     ret = [{
         **t.to_dict(),
