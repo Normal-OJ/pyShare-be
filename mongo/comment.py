@@ -1,5 +1,5 @@
-from enum import Enum
-from blinker import signal
+from __future__ import annotations
+import enum
 from . import engine
 from .base import MongoBase
 from .problem import Problem
@@ -39,12 +39,12 @@ class TooManyComments(Exception):
 class Comment(MongoBase, engine=engine.Comment):
     __initialized = False
 
-    class Permission(Enum):
-        READ = 'r'
-        WRITE = 'w'
-        DELETE = 'd'
-        REJUDGE = 'j'
-        UPDATE_STATE = 's'
+    class Permission(enum.Flag):
+        READ = enum.auto()
+        WRITE = enum.auto()
+        DELETE = enum.auto()
+        REJUDGE = enum.auto()
+        UPDATE_STATE = enum.auto()
 
     def __new__(cls, pk, *args, **kwargs):
         if not cls.__initialized:
@@ -64,8 +64,8 @@ class Comment(MongoBase, engine=engine.Comment):
         comment = cls(submission.comment)
         comment.on_submission_completed_ins()
 
-    @doc_required('user', 'user', User)
-    def own_permission(self, user: User):
+    @doc_required('user', User)
+    def own_permission(self, user: User) -> 'Comment.Permission':
         '''
         require 'j' for rejudge
         require 's' for changing state
@@ -74,16 +74,20 @@ class Comment(MongoBase, engine=engine.Comment):
         require 'r' for reading
         '''
         c = Course(self.problem.course)
-        _permission = set()
+        _permission = self.Permission(0)
         # Author can edit, rejudge and delete comment
         if user == self.author:
-            _permission |= {*'wjd'}
+            _permission |= ( \
+                self.Permission.WRITE |
+                self.Permission.REJUDGE |
+                self.Permission.DELETE
+            )
         # Course teacher can rejudge and delete comment
         elif c.permission(user=user, req='w'):
-            _permission |= {*'jd'}
+            _permission |= (self.Permission.REJUDGE | self.Permission.DELETE)
         # Course teacher and admin can update state
         if user == c.teacher or user >= 'admin':
-            _permission.add('s')
+            _permission |= self.Permission.UPDATE_STATE
         # The comment is not deleted
         # and user can read problem
         if not self.hidden and Problem(self.problem).permission(
@@ -92,21 +96,19 @@ class Comment(MongoBase, engine=engine.Comment):
         ):
             # Course teacher and admin can read
             if user == c.teacher or user >= 'admin':
-                _permission.add('r')
+                _permission |= self.Permission.READ
             # Otherwise, only author can see OJ comment
             elif self.problem.is_OJ:
                 if user == self.author:
-                    _permission.add('r')
+                    _permission |= self.Permission.READ
             else:
-                _permission.add('r')
+                _permission |= self.Permission.READ
         return _permission
 
-    @doc_required('user', 'user', User)
-    def permission(self, user: User, req):
+    @doc_required('user', User)
+    def permission(self, user: User, req: Comment.Permission) -> bool:
         _permission = self.own_permission(user=user)
-        if isinstance(req, set):
-            return not bool(req - _permission)
-        return req in _permission
+        return req & _permission
 
     def to_dict(self):
         from .submission import Submission

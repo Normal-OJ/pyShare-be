@@ -218,17 +218,19 @@ class TestProblem(ProblemTester):
         problem.reload()
         assert problem.acceptance(user) == engine.Comment.Acceptance.PENDING
         # Accept a submission
-        teacher_client.put(
+        rv = teacher_client.put(
             f'/submission/{submission.id}/state',
             json={'state': engine.Submission.State.ACCEPT},
         )
+        assert rv.status_code == 200, rv.get_json()
         problem.reload()
         assert problem.acceptance(user) == engine.Comment.Acceptance.ACCEPTED
         # Reject a submission
-        teacher_client.put(
+        rv = teacher_client.put(
             f'/submission/{submission.id}/state',
             json={'state': engine.Submission.State.DENIED},
         )
+        assert rv.status_code == 200, rv.get_json()
         problem.reload()
         assert problem.acceptance(user) == engine.Comment.Acceptance.REJECTED
 
@@ -452,7 +454,14 @@ class TestComment(ProblemTester):
         rv = client.get(f'/comment/{_id}/permission')
         json = rv.get_json()
         assert rv.status_code == 200, json
-        assert set(json['data']) == {*'wjdsr'}
+        excepted_permission = ( \
+            Comment.Permission.READ |
+            Comment.Permission.WRITE |
+            Comment.Permission.DELETE |
+            Comment.Permission.REJUDGE |
+            Comment.Permission.UPDATE_STATE
+        )
+        assert json['data'] == excepted_permission.value
 
     def test_oj_comment_permission(
         self,
@@ -473,7 +482,7 @@ class TestComment(ProblemTester):
         rv = client.get(f'/comment/{_id}/permission')
         rv_json = rv.get_json()
         assert rv.status_code == 200, rv_json
-        assert {*rv_json['data']} == set()
+        assert rv_json['data'] == Comment.Permission(0).value
 
     def test_get_own_OJ_comments(self, forge_client, problem_ids, config_app):
         # Get comments
@@ -481,14 +490,16 @@ class TestComment(ProblemTester):
         clients = [forge_client('teacher1'), forge_client('admin')]
 
         for client in clients:
-            rv = client.post('/comment',
-                             json={
-                                 'target': 'problem',
-                                 'id': 1,
-                                 'title': 'comment',
-                                 'content': '',
-                                 'code': ''
-                             })
+            rv = client.post(
+                '/comment',
+                json={
+                    'target': 'problem',
+                    'id': 1,
+                    'title': 'comment',
+                    'content': '',
+                    'code': ''
+                },
+            )
             assert rv.status_code == 200
 
         rv = clients[0].get(f'/problem/1')

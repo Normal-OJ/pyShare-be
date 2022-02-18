@@ -83,7 +83,7 @@ def get_single_problem(user, problem):
     p = problem.to_dict_without_others_OJ(user=user)
     p['comments'] = [
         str(c.id) for c in map(Comment, p['comments'])
-        if c.permission(user=user, req='r')
+        if c.permission(user=user, req=Comment.Permission.READ)
     ]
     p['acceptance'] = problem.acceptance(user=user)
     return HTTPResponse(
