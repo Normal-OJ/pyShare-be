@@ -27,7 +27,7 @@ def comment_data(
         if not problem:
             raise Problem.engine.DoesNotExist
     if author is None:
-        author = course_lib.student(problem.course)
+        author = course_lib.student(course=problem.course)
     ret.update(
         target=problem,
         author=author,
@@ -50,7 +50,7 @@ def reply_data(
     if content is None:
         content = secrets.token_urlsafe()
     if author is None:
-        author = course_lib.student(comment.problem.course)
+        author = course_lib.student(course=comment.problem.course)
     return {
         'target': getattr(comment, 'pk', comment),
         'author': author,

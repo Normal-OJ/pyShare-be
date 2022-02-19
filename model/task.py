@@ -16,7 +16,7 @@ task_api = Blueprint('task_api', __name__)
 @Request.doc('course', Course)
 @login_required
 def get_task_list(user, course):
-    if not course.permission(user=user, req='r'):
+    if not course.permission(user=user, req=Course.Permission.READ):
         return HTTPError('Permission denied', 403)
     tasks = list(task.id for task in engine.Task.objects(course=course.obj))
     return HTTPResponse(f'get {course}\'s tasks', data=tasks)
@@ -33,7 +33,7 @@ def get_task_list(user, course):
 @Request.doc('course', Course)
 @login_required
 def add_task(user, course, title, content, starts_at, ends_at):
-    if not course.permission(user=user, req={'w'}):
+    if not course.permission(user=user, req=Course.Permission.WRITE):
         return HTTPError('Not enough permission', 403)
     try:
         if starts_at is not None:
@@ -64,7 +64,10 @@ def add_task(user, course, title, content, starts_at, ends_at):
 @Request.doc('_id', 'task', Task)
 @login_required
 def get_task(user, task):
-    if not Course(task.course).permission(user=user, req='r'):
+    if not Course(task.course).permission(
+            user=user,
+            req=Course.Permission.READ,
+    ):
         return HTTPError('Permission denied', 403)
     data = task.to_dict()
     data['progress'] = task.progress(user)
@@ -76,13 +79,16 @@ def get_task(user, task):
 @Request.doc('_id', 'task', Task)
 @login_required
 def add_solve_OJ_problem_requirement(user, task, problems, sync):
-    if not Course(task.course).permission(user=user, req={'w'}):
+    if not Course(task.course).permission(
+            user=user,
+            req=Course.Permission.WRITE,
+    ):
         return HTTPError('Not enough permission', 403)
     try:
         problems = [*map(Problem, problems)]
         requirement = SolveOJProblem.add(task=task, problems=problems)
         if sync == True:
-            requirement.sync(task.course.students)
+            requirement.sync()
         return HTTPResponse(f'success', data=requirement.id)
     except engine.DoesNotExist as e:
         return HTTPError(e, 400)
@@ -105,7 +111,10 @@ def add_solve_comment_requirement(
     acceptance,
     sync,
 ):
-    if not Course(task.course).permission(user=user, req={'w'}):
+    if not Course(task.course).permission(
+            user=user,
+            req=Course.Permission.WRITE,
+    ):
         return HTTPError('Not enough permission', 403)
     try:
         requirement = LeaveComment.add(
@@ -115,7 +124,7 @@ def add_solve_comment_requirement(
             acceptance=acceptance,
         )
         if sync == True:
-            requirement.sync(task.course.students)
+            requirement.sync()
         return HTTPResponse(f'success', data=requirement.id)
     except ValueError as ve:
         return HTTPError(ve, 400, data=str(ve))
@@ -133,7 +142,10 @@ def add_reply_to_comment_requirement(
     required_number,
     sync,
 ):
-    if not Course(task.course).permission(user=user, req={'w'}):
+    if not Course(task.course).permission(
+            user=user,
+            req=Course.Permission.WRITE,
+    ):
         return HTTPError('Not enough permission', 403)
     try:
         requirement = ReplyToComment.add(
@@ -141,7 +153,7 @@ def add_reply_to_comment_requirement(
             required_number=required_number,
         )
         if sync == True:
-            requirement.sync(task.course.students)
+            requirement.sync()
         return HTTPResponse(f'success', data=requirement.id)
     except ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())
@@ -157,7 +169,10 @@ def add_like_others_comment_requirement(
     required_number,
     sync,
 ):
-    if not Course(task.course).permission(user=user, req={'w'}):
+    if not Course(task.course).permission(
+            user=user,
+            req=Course.Permission.WRITE,
+    ):
         return HTTPError('Not enough permission', 403)
     try:
         requirement = LikeOthersComment.add(
@@ -165,7 +180,7 @@ def add_like_others_comment_requirement(
             required_number=required_number,
         )
         if sync == True:
-            requirement.sync(task.course.students)
+            requirement.sync()
         return HTTPResponse(f'success', data=requirement.id)
     except ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())

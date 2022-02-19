@@ -1,11 +1,17 @@
 from __future__ import annotations
 from datetime import datetime
 from typing import Optional, Union
+import copy
+from contextlib import contextmanager
 from . import engine
 from .course import Course
 from .base import MongoBase
-from .utils import doc_required
-from blinker import signal
+from .utils import (
+    doc_required,
+    get_redis_client,
+    drop_none,
+)
+from .event import (task_due_extended, requirement_added)
 
 __all__ = ['Task']
 
@@ -14,10 +20,8 @@ class Task(MongoBase, engine=engine.Task):
     __initialized = False
 
     def __new__(cls, pk, *args, **kwargs):
-        # TODO: handle rejudge, which might convert a AC submission into WA
         if not cls.__initialized:
-            on_completed = signal('requirement_added')
-            on_completed.connect(cls.on_requirement_added)
+            requirement_added.connect(cls.on_requirement_added)
             cls.__initialized = True
         return super().__new__(cls, pk, *args, **kwargs)
 
@@ -32,10 +36,7 @@ class Task(MongoBase, engine=engine.Task):
     ):
         if isinstance(course, Course):
             course = course.id
-        params = {
-            'course': course,
-        }
-        params = {k: v for k, v in params.items() if v is not None}
+        params = drop_none({'course': course})
         tasks = [cls(t) for t in cls.engine.active_objects(**params)]
         return tasks
 
@@ -49,22 +50,60 @@ class Task(MongoBase, engine=engine.Task):
         starts_at: Optional[datetime] = None,
         ends_at: Optional[datetime] = None,
     ):
-        params = {
+        params = drop_none({
             'course': course.id,
             'title': title,
             'content': content,
             'starts_at': starts_at,
             'ends_at': ends_at,
-        }
-        params = {k: v for k, v in params.items() if v is not None}
+        })
         task = cls.engine(**params).save()
         return cls(task)
 
     def to_dict(self) -> dict:
         ret = self.to_mongo().to_dict()
-        ret['id'] = ret['_id']
-        ret['startsAt'] = ret['starts_at'].strftime('%Y-%m-%dT%H:%M:%SZ')
-        ret['endsAt'] = ret['ends_at'].strftime('%Y-%m-%dT%H:%M:%SZ')
-        for k in ('_id', 'starts_at', 'ends_at'):
-            del ret[k]
+        ret['id'] = ret.pop('_id')
+        ret['startsAt'] = ret.pop('starts_at').strftime('%Y-%m-%dT%H:%M:%SZ')
+        ret['endsAt'] = ret.pop('ends_at').strftime('%Y-%m-%dT%H:%M:%SZ')
         return ret
+
+    def __deepcopy__(self, _):
+        '''
+        Copy a new task and save it into DB.
+        '''
+        new_task = copy.copy(self.obj)
+        new_task.id = None
+        requirements = new_task.requirements
+        new_task.requirements = None
+        # Call save first to generate id for task
+        new_task.save()
+        for req in requirements:
+            req.id = None
+            req.task = new_task
+            req.save()
+        # Save requirements
+        new_task.update(requirements=requirements)
+        return Task(new_task.reload())
+
+    @contextmanager
+    def tmp_copy(self):
+        '''
+        Return a context of temprory copy of original task.
+        Which will be deleted after exiting context.
+        '''
+        tmp = copy.deepcopy(self)
+        yield tmp
+        tmp.delete()
+
+    def extend_due(self, ends_at: datetime):
+        with get_redis_client().lock(f'{self}'):
+            if ends_at < self.ends_at:
+                return
+            # Update field
+            starts_at = self.ends_at
+            self.ends_at = ends_at
+            self.save()
+            # Add reload to ensure the requirements field is up-to-date
+            self.reload('requirements')
+            task_due_extended.send(self, starts_at=starts_at)
+            self.reload('requirements')

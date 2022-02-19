@@ -1,5 +1,5 @@
-from enum import Enum
-from blinker import signal
+from __future__ import annotations
+import enum
 from . import engine
 from .base import MongoBase
 from .problem import Problem
@@ -8,6 +8,13 @@ from .user import User
 from .notif import Notif
 from .utils import doc_required, get_redis_client
 from .submission import *
+from .event import (
+    submission_completed,
+    comment_created,
+    reply_created,
+    comment_liked,
+    comment_unliked,
+)
 
 __all__ = [
     'Comment',
@@ -30,23 +37,18 @@ class TooManyComments(Exception):
 
 
 class Comment(MongoBase, engine=engine.Comment):
-    on_created = signal('comment_created')
-    on_reply_created = signal('reply_created')
-    on_liked = signal('liked')
-    on_unliked = signal('unliked')
     __initialized = False
 
-    class Permission(Enum):
-        READ = 'r'
-        WRITE = 'w'
-        DELETE = 'd'
-        REJUDGE = 'j'
-        UPDATE_STATE = 's'
+    class Permission(enum.Flag):
+        READ = enum.auto()
+        WRITE = enum.auto()
+        DELETE = enum.auto()
+        REJUDGE = enum.auto()
+        UPDATE_STATE = enum.auto()
 
     def __new__(cls, pk, *args, **kwargs):
         if not cls.__initialized:
-            on_completed = signal('submission_completed')
-            on_completed.connect(cls.on_submission_completed)
+            submission_completed.connect(cls.on_submission_completed)
             cls.__initialized = True
         return super().__new__(cls, pk, *args, **kwargs)
 
@@ -62,49 +64,44 @@ class Comment(MongoBase, engine=engine.Comment):
         comment = cls(submission.comment)
         comment.on_submission_completed_ins()
 
-    @doc_required('user', 'user', User)
-    def own_permission(self, user: User):
-        '''
-        require 'j' for rejudge
-        require 's' for changing state
-        require 'd' for deletion
-        require 'w' for writing
-        require 'r' for reading
-        '''
+    @doc_required('user', User)
+    def own_permission(self, user: User) -> 'Comment.Permission':
         c = Course(self.problem.course)
-        _permission = set()
+        _permission = self.Permission(0)
         # Author can edit, rejudge and delete comment
         if user == self.author:
-            _permission |= {*'wjd'}
+            _permission |= ( \
+                self.Permission.WRITE |
+                self.Permission.REJUDGE |
+                self.Permission.DELETE
+            )
         # Course teacher can rejudge and delete comment
-        elif c.permission(user=user, req='w'):
-            _permission |= {*'jd'}
+        elif c.permission(user=user, req=Course.Permission.WRITE):
+            _permission |= (self.Permission.REJUDGE | self.Permission.DELETE)
         # Course teacher and admin can update state
         if user == c.teacher or user >= 'admin':
-            _permission.add('s')
+            _permission |= self.Permission.UPDATE_STATE
         # The comment is not deleted
         # and user can read problem
         if not self.hidden and Problem(self.problem).permission(
                 user=user,
-                req={'r'},
+                req=Problem.Permission.READ,
         ):
             # Course teacher and admin can read
             if user == c.teacher or user >= 'admin':
-                _permission.add('r')
+                _permission |= self.Permission.READ
             # Otherwise, only author can see OJ comment
             elif self.problem.is_OJ:
                 if user == self.author:
-                    _permission.add('r')
+                    _permission |= self.Permission.READ
             else:
-                _permission.add('r')
+                _permission |= self.Permission.READ
         return _permission
 
-    @doc_required('user', 'user', User)
-    def permission(self, user: User, req):
+    @doc_required('user', User)
+    def permission(self, user: User, req: Comment.Permission) -> bool:
         _permission = self.own_permission(user=user)
-        if isinstance(req, set):
-            return not bool(req - _permission)
-        return req in _permission
+        return bool(req & _permission)
 
     def to_dict(self):
         from .submission import Submission
@@ -141,10 +138,10 @@ class Comment(MongoBase, engine=engine.Comment):
         # unlike
         if user.obj in self.liked:
             action = 'pull'
-            event = self.on_unliked
+            event = comment_unliked
         else:
             action = 'add_to_set'
-            event = self.on_liked
+            event = comment_liked
             # notify the author of the creation
             info = Notif.types.Like(
                 comment=self.pk,
@@ -242,7 +239,7 @@ class Comment(MongoBase, engine=engine.Comment):
         if target.author != comment.author:
             notif = Notif.new(info)
             target.author.update(push__notifs=notif.pk)
-        cls.on_created.send(comment.reload())
+        comment_created.send(comment.reload())
         return comment
 
     def new_submission(self, code: str):
@@ -293,7 +290,7 @@ class Comment(MongoBase, engine=engine.Comment):
             notif = Notif.new(info)
         for author in authors:
             author.update(push__notifs=notif.pk)
-        cls.on_reply_created.send(comment.reload())
+        reply_created.send(comment.reload())
         return comment
 
     @classmethod
@@ -308,20 +305,15 @@ class Comment(MongoBase, engine=engine.Comment):
         depth: int,
         problem: Problem,
     ):
-        # check permission
-        required_permission = (
-            problem.permission(user=author, req={'r'}),
-            Course(problem.course).permission(user=author, req={'p'}),
-        )
-        if not all(required_permission):
-            raise PermissionError('Not enough permission')
+        if not problem.permission(user=author, req=Problem.Permission.SUBMIT):
+            raise PermissionError(f'{author} cannot submit to {problem}')
         comment = cls.engine(
             title=title,
             content=content,
-            author=author.pk,
+            author=author.id,
             floor=floor,
             depth=depth,
-            problem=problem.pk,
+            problem=problem.id,
         ).save()
         # append to author's
         author.update(push__comments=comment)

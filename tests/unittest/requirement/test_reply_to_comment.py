@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import pytest
 from tests import utils
 from mongo import (
@@ -70,5 +71,20 @@ def test_sync():
     )
     user = reply.author
     assert req.progress(user) == (0, 1)
-    req.sync([user])
+    req.sync(users=[user])
+    assert req.reload().progress(user) == (1, 1)
+
+
+def test_extend_task_due_can_update_requirement():
+    now = datetime.now()
+    reply = utils.comment.lazy_add_reply()
+    course = Course(reply.problem.course)
+    task = utils.task.lazy_add(course=course, ends_at=now)
+    req = requirement.ReplyToComment.add(
+        task=task,
+        required_number=1,
+    )
+    user = reply.author
+    assert req.progress(user) == (0, 1)
+    task.extend_due(now + timedelta(days=1))
     assert req.reload().progress(user) == (1, 1)

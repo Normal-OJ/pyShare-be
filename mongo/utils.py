@@ -92,7 +92,7 @@ def doc_required(
             # convert it to document
             # TODO: add type checking, whether the cls is a subclass of `MongoBase`
             #       or maybe it is not need
-            if type(cls) != type(int):
+            if type(cls) != type:
                 raise TypeError('cls must be a type')
             # process `None`
             if src_param is None:

@@ -11,10 +11,8 @@ from .utils import Enum, logger
 __all__ = mongoengine.__all__
 
 
+# The under score is to prevent conflicting mongoengine.connect
 def _connect():
-    '''
-    The under score is to prevent conflicting mongoengine.connect
-    '''
     MOCK_URL = 'mongomock://localhost'
     MONGO_HOST = MOCK_URL if config.TESTING else config['MONGO']['HOST']
     conn = connect(config['MONGO']['DB'], host=MONGO_HOST)
@@ -162,7 +160,7 @@ class Comment(Document):
     content = StringField(required=True, max_length=5000000)
     author = ReferenceField('User', required=True)
     problem = ReferenceField('Problem', required=True)
-    submissions = ListField(ReferenceField('Submission', default=[]))
+    submissions = ListField(ReferenceField('Submission'), default=[])
     # 0 is direct comment, 1 is reply of comments
     depth = IntField(default=0, choice=[0, 1])
     # those who like this comment
@@ -662,3 +660,4 @@ Comment.register_delete_rule(Submission, 'comment', CASCADE)
 Comment.register_delete_rule(User, 'comments', PULL)
 Comment.register_delete_rule(User, 'likes', PULL)
 Comment.register_delete_rule(Problem, 'comments', PULL)
+Requirement.register_delete_rule(Task, 'requirements', PULL)

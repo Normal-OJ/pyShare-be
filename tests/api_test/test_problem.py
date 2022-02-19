@@ -81,11 +81,19 @@ class TestProblem(ProblemTester):
     def test_get_permission(self, forge_client, config_app):
         config_app(env='test')
         client = forge_client('teacher1')
-
         rv = client.get(f'/problem/1/permission')
         json = rv.get_json()
         assert rv.status_code == 200
-        assert set(json['data']) == {*'rwjdc'}
+        excepted_permission = ( \
+            Problem.Permission.READ
+            | Problem.Permission.WRITE
+            | Problem.Permission.DELETE
+            | Problem.Permission.SUBMIT
+            | Problem.Permission.REJUDGE
+            | Problem.Permission.CLONE
+        )
+        # The response contains flag value
+        assert json['data'] == excepted_permission.value
 
     def test_create_problem(
         self,
@@ -167,9 +175,11 @@ class TestProblem(ProblemTester):
         # TODO: see if comments are rejudged or not
         teacher = utils.user.Factory.teacher()
         course = utils.course.lazy_add(teacher=teacher)
-        problem = utils.problem.lazy_add(course=course,
-                                         is_oj=True,
-                                         output='hi')
+        problem = utils.problem.lazy_add(
+            course=course,
+            is_oj=True,
+            output='hi',
+        )
         comment = utils.comment.lazy_add_comment(
             author=teacher.pk,
             problem=problem,
@@ -182,47 +192,47 @@ class TestProblem(ProblemTester):
             stdout='output',
             judge_result=0,
         )
-
         assert comment.submission.status == 1
 
-        rv = client.get(f'/problem/{problem.id}/rejudge')
+        rv = client.post(f'/problem/{problem.id}/rejudge')
         json = rv.get_json()
         assert rv.status_code == 200, json
 
         comment.submission.reload()
         assert comment.submission.status == 0
 
-    def test_problem_acceptance(
+    def test_teacher_can_update_acceptance(
         self,
         forge_client: Callable[[str, Optional[str]], FlaskClient],
     ):
-
         teacher = utils.user.Factory.teacher()
         user = utils.user.Factory.student()
         course = utils.course.lazy_add(teacher=teacher)
         problem = utils.problem.lazy_add(course=course)
         teacher_client = forge_client(teacher.username)
-        user_client = forge_client(user.username)
 
-        assert user_client.get(f'problem/{problem.id}').get_json(
-        )['data']['acceptance'] == engine.Comment.Acceptance.NOT_TRY
+        # Haven't tried
+        assert problem.acceptance(user) == engine.Comment.Acceptance.NOT_TRY
         submission = utils.submission.lazy_add_new(problem=problem, user=user)
-        submission.complete(
-            files=[],
-            stderr='err',
-            stdout='output',
-            judge_result=None,
+        submission.complete(judge_result=None)
+        problem.reload()
+        assert problem.acceptance(user) == engine.Comment.Acceptance.PENDING
+        # Accept a submission
+        rv = teacher_client.put(
+            f'/submission/{submission.id}/state',
+            json={'state': engine.Submission.State.ACCEPT},
         )
-        assert user_client.get(f'problem/{problem.id}').get_json(
-        )['data']['acceptance'] == engine.Comment.Acceptance.PENDING
-        teacher_client.put(f'/submission/{submission.id}/state',
-                           json={'state': engine.Submission.State.ACCEPT})
-        assert user_client.get(f'problem/{problem.id}').get_json(
-        )['data']['acceptance'] == engine.Comment.Acceptance.ACCEPTED
-        teacher_client.put(f'/submission/{submission.id}/state',
-                           json={'state': engine.Submission.State.DENIED})
-        assert user_client.get(f'problem/{problem.id}').get_json(
-        )['data']['acceptance'] == engine.Comment.Acceptance.REJECTED
+        assert rv.status_code == 200, rv.get_json()
+        problem.reload()
+        assert problem.acceptance(user) == engine.Comment.Acceptance.ACCEPTED
+        # Reject a submission
+        rv = teacher_client.put(
+            f'/submission/{submission.id}/state',
+            json={'state': engine.Submission.State.DENIED},
+        )
+        assert rv.status_code == 200, rv.get_json()
+        problem.reload()
+        assert problem.acceptance(user) == engine.Comment.Acceptance.REJECTED
 
 
 class TestAttachment(BaseTester):
@@ -444,7 +454,14 @@ class TestComment(ProblemTester):
         rv = client.get(f'/comment/{_id}/permission')
         json = rv.get_json()
         assert rv.status_code == 200, json
-        assert set(json['data']) == {*'wjdsr'}
+        excepted_permission = ( \
+            Comment.Permission.READ |
+            Comment.Permission.WRITE |
+            Comment.Permission.DELETE |
+            Comment.Permission.REJUDGE |
+            Comment.Permission.UPDATE_STATE
+        )
+        assert json['data'] == excepted_permission.value
 
     def test_oj_comment_permission(
         self,
@@ -465,7 +482,7 @@ class TestComment(ProblemTester):
         rv = client.get(f'/comment/{_id}/permission')
         rv_json = rv.get_json()
         assert rv.status_code == 200, rv_json
-        assert {*rv_json['data']} == set()
+        assert rv_json['data'] == Comment.Permission(0).value
 
     def test_get_own_OJ_comments(self, forge_client, problem_ids, config_app):
         # Get comments
@@ -473,14 +490,16 @@ class TestComment(ProblemTester):
         clients = [forge_client('teacher1'), forge_client('admin')]
 
         for client in clients:
-            rv = client.post('/comment',
-                             json={
-                                 'target': 'problem',
-                                 'id': 1,
-                                 'title': 'comment',
-                                 'content': '',
-                                 'code': ''
-                             })
+            rv = client.post(
+                '/comment',
+                json={
+                    'target': 'problem',
+                    'id': 1,
+                    'title': 'comment',
+                    'content': '',
+                    'code': ''
+                },
+            )
             assert rv.status_code == 200
 
         rv = clients[0].get(f'/problem/1')

@@ -1,5 +1,4 @@
 from dateutil import parser
-from tracemalloc import start
 from mongo import Course
 from mongo import requirement
 from mongo.sandbox import ISandbox
@@ -50,3 +49,22 @@ def test_progress():
     submission = utils.submission.lazy_add_new(user=user, problem=problem)
     submission.complete(judge_result=submission.engine.JudgeResult.AC)
     assert task.reload().progress(user) == (1, 1)
+
+
+def test_tmp_copy_wont_affect_original_task():
+    task = utils.task.lazy_add()
+    problem = utils.problem.lazy_add(
+        course=task.course,
+        is_oj=True,
+    )
+    task.reload()
+    req = requirement.SolveOJProblem.add(
+        task=task,
+        problems=[problem],
+    )
+    task.reload()
+    with task.tmp_copy() as tmp_task:
+        assert len(tmp_task.requirements) == 1
+        assert tmp_task.requirements[0].id != req.id
+    task.reload()
+    assert task.requirements[0].id == req.id

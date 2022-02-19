@@ -194,7 +194,7 @@ def batch_signup(user, csv_string, course):
         course = Course(course)
         if not course:
             return HTTPError(f'{course} not found', 404)
-        if not course.permission(user=user, req={'w'}):
+        if not course.permission(user=user, req=Course.Permission.WRITE):
             return HTTPError('Not enough permission', 403)
     # Read csv
     user_data = [*csv.DictReader(io.StringIO(csv_string))]

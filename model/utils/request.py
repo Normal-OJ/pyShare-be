@@ -4,6 +4,7 @@ from functools import wraps
 from flask import request
 
 from mongo import *
+from mongo.utils import logger
 from .response import *
 
 __all__ = ['Request', 'timing_request']
@@ -96,9 +97,12 @@ class Request(metaclass=_Request):
                 # TODO: this line may catch a unexpected exception
                 #   which is hard to debug. Define a special exception
                 #   may be a solution.
-                except TypeError as e:
+                except ValueError as e:
                     return HTTPError(e, 500)
-                except ValidationError as e:
+                except ValidationError as ve:
+                    logger().info(
+                        f'Validation error. [src={src}, err={ve.to_dict()}]')
+                    # TODO: provide more detailed information
                     return HTTPError('Invalid parameter', 400)
 
             return real_wrapper

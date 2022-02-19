@@ -13,7 +13,7 @@ __all__ = ['problem_api']
 problem_api = Blueprint('problem_api', __name__)
 
 
-@problem_api.route('/', methods=['GET'])
+@problem_api.get('/')
 @Request.args(
     'offset',
     'count',
@@ -68,22 +68,22 @@ def get_problem_list(
         p.acceptance(user=user),
     } for p in ps if p.permission(
         user=user,
-        req={'r'},
+        req=Problem.Permission.READ,
     )]
     return HTTPResponse('here you are, bro', data=ps)
 
 
-@problem_api.route('/<int:pid>', methods=['GET'])
+@problem_api.get('/<int:pid>')
 @login_required
 @Request.doc('pid', 'problem', Problem)
 def get_single_problem(user, problem):
-    if not problem.permission(user=user, req={'r'}):
+    if not problem.permission(user=user, req=Problem.Permission.READ):
         return HTTPError('Not enough permission', 403)
     # Filter comments (according to read permission)
     p = problem.to_dict_without_others_OJ(user=user)
     p['comments'] = [
         str(c.id) for c in map(Comment, p['comments'])
-        if c.permission(user=user, req='r')
+        if c.permission(user=user, req=Comment.Permission.READ)
     ]
     p['acceptance'] = problem.acceptance(user=user)
     return HTTPResponse(
@@ -92,11 +92,11 @@ def get_single_problem(user, problem):
     )
 
 
-@problem_api.route('/<int:pid>/io', methods=['GET'])
+@problem_api.get('/<int:pid>/io')
 @login_required
 @Request.doc('pid', 'problem', Problem)
 def get_single_problem_io(user, problem):
-    if not problem.permission(user=user, req={'r'}):
+    if not problem.permission(user=user, req=Problem.Permission.READ):
         return HTTPError('Not enough permission', 403)
     if not problem.is_OJ:
         return HTTPError('Not an OJ problem', 400)
@@ -109,17 +109,14 @@ def get_single_problem_io(user, problem):
     )
 
 
-@problem_api.route('/<int:pid>/permission', methods=['GET'])
+@problem_api.get('/<int:pid>/permission')
 @login_required
 @Request.doc('pid', 'problem', Problem)
 def get_problem_permission(user, problem):
-    return HTTPResponse(
-        'here you are, bro',
-        data=list(problem.own_permission(user=user)),
-    )
+    return HTTPResponse(data=problem.own_permission(user=user).value)
 
 
-@problem_api.route('/', methods=['POST'])
+@problem_api.post('/')
 @Request.json(
     'title: str',
     'description: str',
@@ -163,7 +160,7 @@ def create_problem(
     )
 
 
-@problem_api.route('/<int:pid>', methods=['PUT'])
+@problem_api.put('/<int:pid>')
 @Request.json(
     'title: str',
     'description: str',
@@ -184,7 +181,7 @@ def modify_problem(
     extra,
     **p_ks,
 ):
-    if not problem.permission(user=user, req={'w'}):
+    if not problem.permission(user=user, req=Problem.Permission.WRITE):
         return HTTPError('Permission denied.', 403)
     # if allow_multiple_comments is False
     if user < 'teacher' and p_ks.get('allow_multiple_comments') == False:
@@ -209,7 +206,7 @@ def modify_problem(
     return HTTPResponse('success')
 
 
-@problem_api.route('/<int:pid>', methods=['DELETE'])
+@problem_api.delete('/<int:pid>')
 @Request.doc('pid', 'problem', Problem)
 @login_required
 @fe_update('PROBLEM', 'course')
@@ -218,7 +215,7 @@ def delete_problem(user, problem):
     delete a problem
     '''
     # student can delete only self problem
-    if not problem.permission(user=user, req={'w'}):
+    if not problem.permission(user=user, req=Problem.Permission.DELETE):
         return HTTPError('Not enough permission', 403)
     problem.delete()
     return HTTPResponse(f'{problem} deleted.')
@@ -239,7 +236,7 @@ def patch_attachment(
     '''
     update the problem's attachment
     '''
-    if not problem.permission(user=user, req={'w'}):
+    if not problem.permission(user=user, req=Problem.Permission.WRITE):
         return HTTPError('Not enough permission', 403)
     if attachment_name is None:
         return HTTPError('you need an attachment name', 400)
@@ -286,11 +283,11 @@ def patch_attachment(
         return HTTPResponse('successfully delete')
 
 
-@problem_api.route('/<int:pid>/attachment/<name>', methods=['GET'])
+@problem_api.get('/<int:pid>/attachment/<name>')
 @login_required
 @Request.doc('pid', 'problem', Problem)
 def get_attachment(user, problem, name):
-    if not problem.permission(user=user, req={'r'}):
+    if not problem.permission(user=user, req=Problem.Permission.READ):
         return HTTPError('Permission denied.', 403)
     name = parse.unquote(name)
     for att in problem.attachments:
@@ -304,10 +301,9 @@ def get_attachment(user, problem, name):
     return HTTPError('file not found', 404)
 
 
-@problem_api.route('/<int:pid>/clone/<course>', methods=['GET'])
+@problem_api.get('/<int:pid>/clone/<course>')
 @login_required
-@Request.args(
-    'is_template', )
+@Request.args('is_template')
 @Request.doc('pid', 'problem', Problem)
 @Request.doc('course', Course)
 @fe_update('PROBLEM', 'course')
@@ -315,7 +311,7 @@ def clone_problem(user, problem, course, is_template):
     '''
     clone a problem to another course
     '''
-    if not problem.permission(user=user, req={'c'}):
+    if not problem.permission(user=user, req=Problem.Permission.CLONE):
         return HTTPError('Permission denied.', 403)
     try:
         problem.copy(target_course=course,
@@ -328,13 +324,12 @@ def clone_problem(user, problem, course, is_template):
     return HTTPResponse('Success.')
 
 
-@problem_api.route('/<int:pid>/rejudge', methods=['GET'])
+@problem_api.post('/<int:pid>/rejudge')
 @login_required
 @Request.doc('pid', 'problem', Problem)
 def rejudge_problem(user, problem):
-    if not problem.permission(user=user, req={'w'}):
+    if not problem.permission(user=user, req=Problem.Permission.REJUDGE):
         return HTTPError('Permission denied.', 403)
-
     try:
         problem.rejudge()
     except Submission.Pending as e:

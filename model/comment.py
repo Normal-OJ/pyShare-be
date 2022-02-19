@@ -11,7 +11,7 @@ __all__ = ['comment_api']
 comment_api = Blueprint('comment_api', __name__)
 
 
-@comment_api.route('/', methods=['POST'])
+@comment_api.post('/')
 @login_required
 @Request.json(
     'target: str',
@@ -59,24 +59,23 @@ def create_comment(user, target, code, id_, **ks):
     )
 
 
-@comment_api.route('/<_id>', methods=['GET'])
+@comment_api.get('/<_id>')
 @login_required
 @Request.doc('_id', 'comment', Comment)
 def get_comment(user, comment: Comment):
-    if not comment.permission(user=user, req={'r'}):
+    if not comment.permission(user=user, req=Comment.Permission.READ):
         return HTTPError('permission denied', 403)
     return HTTPResponse('success', data=comment.to_dict())
 
 
-@comment_api.route('/<_id>/permission', methods=['GET'])
+@comment_api.get('/<_id>/permission')
 @login_required
 @Request.doc('_id', 'comment', Comment)
 def get_comment_permission(user, comment: Comment):
-    return HTTPResponse('success',
-                        data=list(comment.own_permission(user=user)))
+    return HTTPResponse(data=comment.own_permission(user=user).value)
 
 
-@comment_api.route('/<_id>', methods=['PUT'])
+@comment_api.put('/<_id>')
 @Request.json(
     'content: str',
     'title: str',
@@ -90,7 +89,7 @@ def modify_comment(
     content,
     title,
 ):
-    if not comment.permission(user=user, req={'w'}):
+    if not comment.permission(user=user, req=Comment.Permission.WRITE):
         return HTTPError('Permission denied.', 403)
     try:
         # update content
@@ -123,12 +122,12 @@ def modify_comment(
     )
 
 
-@comment_api.route('/<_id>/submission', methods=['POST'])
+@comment_api.post('/<_id>/submission')
 @login_required
 @Request.json('code: str')
 @Request.doc('_id', 'comment', Comment)
 def create_new_submission(user, code, comment: Comment):
-    if not comment.permission(user=user, req={'j'}):
+    if not comment.permission(user=user, req=Comment.Permission.REJUDGE):
         return HTTPError('Permission denied.', 403)
     try:
         submission = comment.add_new_submission(code)
@@ -142,7 +141,7 @@ def create_new_submission(user, code, comment: Comment):
     )
 
 
-@comment_api.route('/<_id>', methods=['DELETE'])
+@comment_api.delete('/<_id>')
 @login_required
 @Request.doc('_id', 'comment', Comment)
 @fe_update('COMMENT', 'target', 'target_id')
@@ -150,7 +149,7 @@ def delete_comment(
     user,
     comment: Comment,
 ):
-    if not comment.permission(user=user, req={'d'}):
+    if not comment.permission(user=user, req=Comment.Permission.DELETE):
         return HTTPError('Permission denied', 403)
     comment.delete()
     return HTTPResponse(
@@ -171,23 +170,23 @@ def delete_comment(
     )
 
 
-@comment_api.route('<_id>/like', methods=['GET'])
+@comment_api.get('<_id>/like')
 @login_required
 @Request.doc('_id', 'comment', Comment)
 def like_comment(user, comment: Comment):
-    if not comment.permission(user=user, req={'r'}):
+    if not comment.permission(user=user, req=Comment.Permission.READ):
         return HTTPError('Permission denied', 403)
     comment.like(user=user)
     return HTTPResponse('success')
 
 
-@comment_api.route('/<_id>/rejudge', methods=['GET'])
+@comment_api.post('/<_id>/rejudge')
 @login_required
 @Request.doc('_id', 'comment', Comment)
 def rejudge(user, comment: Comment):
     if not comment.is_comment:
         return HTTPError('Not a submission', 400)
-    if not comment.permission(user=user, req={'j'}):
+    if not comment.permission(user=user, req=Comment.Permission.REJUDGE):
         return HTTPError('Forbidden', 403)
     try:
         comment.submit()

@@ -9,7 +9,7 @@ __all__ = ['submission_api']
 submission_api = Blueprint('submission_api', __name__)
 
 
-@submission_api.route('/<_id>', methods=['GET'])
+@submission_api.get('/<_id>')
 @Request.doc('_id', 'submission', Submission)
 def get_single(submission):
     # temporary submissions
@@ -24,7 +24,7 @@ def get_single(submission):
     )
 
 
-@submission_api.route('/<_id>/file/<name>', methods=['GET'])
+@submission_api.get('/<_id>/file/<name>')
 @login_required
 @Request.doc('_id', 'submission', Submission)
 def get_submission_file(
@@ -41,11 +41,11 @@ def get_submission_file(
         )
     except FileNotFoundError:
         return HTTPError('File not found', 404)
-    except SubmissionPending:
+    except Submission.Pending:
         return HTTPError('Submission is still in pending', 400)
 
 
-@submission_api.route('/', methods=['POST'])
+@submission_api.post('/')
 @login_required
 @Request.json(
     'code: str',
@@ -106,7 +106,7 @@ def change_state(user, submission: Submission, state):
     if submission.comment is None:
         return HTTPError('The submission is not in a comment.', 400)
     comment = Comment(submission.comment.id)
-    if not comment.permission(user=user, req={'s'}):
+    if not comment.permission(user=user, req=Comment.Permission.UPDATE_STATE):
         return HTTPError('Permission denied.', 403)
     try:
         submission.update(state=state)

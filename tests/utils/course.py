@@ -55,13 +55,13 @@ def lazy_add(
     return Course.add(**course_data)
 
 
+@doc_required('course', Course)
 def student(course: Course):
     '''
     Create a user with participate permission to `course`'s problems
     '''
     u = user.Factory.student()
-    if course.status != engine.Course.Status.PUBLIC:
-        course.add_student(u)
+    course.add_student(u)
     return u
 
 

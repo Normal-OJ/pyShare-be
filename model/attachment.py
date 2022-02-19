@@ -95,7 +95,7 @@ def edit_attachment(
     '''
     update an attachment
     '''
-    if not atta.permission(user=user, req={'w'}):
+    if not atta.permission(user=user, req=Attachment.Permission.WRITE):
         return HTTPError('Permission denied.', 403)
     try:
         with get_redis_client().lock(f'{atta}'):
@@ -117,7 +117,7 @@ def delete_attachment(
     '''
     delete an attachment
     '''
-    if not atta.permission(user=user, req={'w'}):
+    if not atta.permission(user=user, req=Attachment.Permission.WRITE):
         return HTTPError('Permission denied.', 403)
     atta.delete()
     return HTTPResponse('success')
