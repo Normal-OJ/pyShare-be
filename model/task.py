@@ -118,7 +118,7 @@ def edit_task(user, task, title, content, starts_at, ends_at):
 @task_api.delete('/<_id>')
 @Request.doc('_id', 'task', Task)
 @login_required
-def edit_task(user, task):
+def delete_task(user, task):
     if not course.permission(user=user, req=Course.Permission.WRITE):
         return HTTPError('Not enough permission', 403)
     task.delete()
@@ -249,3 +249,16 @@ def add_like_others_comment_requirement(
         return HTTPResponse(f'success', data=requirement.id)
     except ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())
+
+
+@task_api.delete('/<_id>/requirement')
+@Request.doc('_id', 'requirement', Requirement)
+@login_required
+def delete_requirement(requirement):
+    if not Course(task.course).permission(
+            user=user,
+            req=Course.Permission.WRITE,
+    ):
+        return HTTPError('Not enough permission', 403)
+    requirement.delete()
+    return HTTPResponse(f'success', data=requirement.id)
