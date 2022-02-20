@@ -1,7 +1,8 @@
 from typing import Callable
 from flask.testing import FlaskClient
-from mongo import Course, Task
+from mongo import Course, Task, requirement
 from tests import utils
+from datetime import datetime, timedelta
 
 
 def setup_function(_):
@@ -30,6 +31,100 @@ def test_add_task(forge_client: Callable[[str], FlaskClient], config_app):
     # The timestamps should be ISO string
     for key in ('endsAt', 'startsAt'):
         assert isinstance(rv.get_json()['data'][key], str)
+
+
+def test_edit_task(forge_client: Callable[[str], FlaskClient]):
+    now = datetime.now()
+    reply = utils.comment.lazy_add_reply()
+    course = Course(reply.problem.course)
+    task = utils.task.lazy_add(
+        course=course,
+        starts_at=now - timedelta(days=1),
+        ends_at=now,
+    )
+    user = reply.author
+    client = forge_client(task.course.teacher.username)
+
+    utils.comment.lazy_add_reply()
+    req = requirement.ReplyToComment.add(
+        task=task,
+        required_number=1,
+    )
+    assert req.progress(user) == (0, 1)
+
+    data = {
+        'title': 'My task',
+        'content': 'haha',
+        'startsAt': (now - timedelta(days=2)).isoformat(),
+        'endsAt': (now + timedelta(days=1)).isoformat(),
+    }
+    rv = client.put(
+        f'/task/{task.id}',
+        json=data,
+    )
+    assert rv.status_code == 200, rv.get_json()
+    rv = client.get(f'/task/{task.id}')
+    assert rv.status_code == 200, rv.get_json()
+    for key in ('title', 'content'):
+        assert data[key] == rv.get_json()['data'][key]
+    assert req.reload().progress(user) == (1, 1)
+
+
+def test_edit_task_with_shrink_time(forge_client: Callable[[str],
+                                                           FlaskClient]):
+    now = datetime.now()
+    reply = utils.comment.lazy_add_reply()
+    course = Course(reply.problem.course)
+    task = utils.task.lazy_add(
+        course=course,
+        starts_at=now - timedelta(days=3),
+        ends_at=now + timedelta(days=1),
+    )
+    user = reply.author
+    client = forge_client(task.course.teacher.username)
+
+    utils.comment.lazy_add_reply()
+    req = requirement.ReplyToComment.add(
+        task=task,
+        required_number=1,
+    )
+    req.sync()
+    assert req.reload().progress(user) == (1, 1)
+
+    data = {
+        'title': 'My task',
+        'content': 'haha',
+        'startsAt': (now - timedelta(days=2)).isoformat(),
+        'endsAt': (now - timedelta(days=1)).isoformat(),
+    }
+    rv = client.put(
+        f'/task/{task.id}',
+        json=data,
+    )
+    assert rv.status_code == 200, rv.get_json()
+    rv = client.get(f'/task/{task.id}')
+    assert rv.status_code == 200, rv.get_json()
+    for key in ('title', 'content'):
+        assert data[key] == rv.get_json()['data'][key]
+    assert req.reload().progress(user) == (0, 1)
+
+
+def test_delete_task(forge_client: Callable[[str], FlaskClient]):
+    reply = utils.comment.lazy_add_reply()
+    course = Course(reply.problem.course)
+    task = utils.task.lazy_add(course=course)
+    client = forge_client(task.course.teacher.username)
+    req = requirement.ReplyToComment.add(
+        task=task,
+        required_number=1,
+    )
+
+    rv = client.delete(f'/task/{task.id}')
+    assert rv.status_code == 200, rv.get_json()
+    rv = client.get(f'/task/{task.id}')
+    assert rv.status_code == 404, rv.get_json()
+    rv = client.get(f'/requirement/{req.id}')
+    assert rv.status_code == 404, rv.get_json()
 
 
 def test_like_others_comment_requirement(
@@ -152,3 +247,24 @@ def test_get_course_task(
     rv = client.get(f'/course/{cid}/tasks')
     assert rv.status_code == 200, rv.get_json()
     assert tid in rv.get_json()['data']
+
+
+def test_delete_requirement(forge_client: Callable[[str], FlaskClient]):
+    reply = utils.comment.lazy_add_reply()
+    course = Course(reply.problem.course)
+    task = utils.task.lazy_add(course=course)
+    client = forge_client(task.course.teacher.username)
+    req = requirement.ReplyToComment.add(
+        task=task,
+        required_number=1,
+    )
+    rv = client.get(f'/requirement/{req.id}')
+    assert rv.status_code == 200, rv.get_json()
+
+    rv = client.delete(f'/requirement/{req.id}')
+    assert rv.status_code == 200, rv.get_json()
+    rv = client.get(f'/requirement/{req.id}')
+    assert rv.status_code == 404, rv.get_json()
+    rv = client.get(f'/task/{task.id}')
+    assert rv.status_code == 200, rv.get_json()
+    assert str(req.id) not in rv.get_json()['data']['requirements']

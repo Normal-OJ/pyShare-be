@@ -22,3 +22,16 @@ def get_requirement(user, req):
     data = req.to_mongo().to_dict()
     data['progress'] = req.progress(user)
     return HTTPResponse(data=data)
+
+
+@requirement_api.delete('/<_id>')
+@Request.doc('_id', 'requirement', Requirement)
+@login_required
+def delete_requirement(user, requirement):
+    if not Course(requirement.task.course).permission(
+            user=user,
+            req=Course.Permission.WRITE,
+    ):
+        return HTTPError('Not enough permission', 403)
+    requirement.delete()
+    return HTTPResponse(f'success', data=requirement.id)

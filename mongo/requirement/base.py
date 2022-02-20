@@ -23,4 +23,12 @@ def default_on_task_due_extended(
 
 
 class Requirement(MongoBase, engine=engine.Requirement):
-    pass
+    def get_cls(self):
+        from . import LeaveComment, LikeOthersComment, ReplyToComment, SolveOJProblem
+        cls_table = {
+            'LeaveComment': LeaveComment,
+            'LikeOthersComment': LikeOthersComment,
+            'ReplyToComment': ReplyToComment,
+            'SolveOJProblem': SolveOJProblem,
+        }
+        return cls_table[self._cls.split('.')[-1]](self.obj)
