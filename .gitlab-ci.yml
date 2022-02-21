@@ -33,10 +33,10 @@ build:
   only:
     variables:
       - $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  image: docker:19.03.12
+  image: docker:20.10.12
   stage: build
   services:
-    - docker:19.03.12-dind
+    - docker:20.10.12-dind
   variables:
     IMAGE_TAG: $CI_REGISTRY_IMAGE:latest
   script:
