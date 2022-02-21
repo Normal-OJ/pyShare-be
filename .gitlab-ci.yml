@@ -15,7 +15,7 @@ test:
   script:
     - pip install -r requirements.txt
     - pip install -r tests/requirements.txt
-    - yapf -pqr .
+    - yapf -pr .
     - pytest --cov=./ --cov-config=.coveragerc --junitxml=$IMAGE-report.xml
   artifacts:
     when: always
