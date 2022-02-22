@@ -70,8 +70,10 @@ def add_task(user, course, title, content, starts_at, ends_at):
 @Request.doc('_id', 'task', Task)
 @login_required
 def edit_task(user, task, title, content, starts_at, ends_at):
-    if not Course(task.course).permission(user=user,
-                                          req=Course.Permission.WRITE):
+    if not Course(task.course).permission(
+            user=user,
+            req=Course.Permission.WRITE,
+    ):
         return HTTPError('Not enough permission', 403)
     try:
         if starts_at is not None:
@@ -81,36 +83,12 @@ def edit_task(user, task, title, content, starts_at, ends_at):
     except parser.ParserError:
         return HTTPError('Invalid or unknown string format', 400)
     try:
-        old_starts_at = task.starts_at
-        old_ends_at = task.ends_at
-        task.update(**drop_none({
+        task.edit(**drop_none({
             'title': title,
             'content': content,
             'starts_at': starts_at,
             'ends_at': ends_at,
         }))
-        task.reload()
-        if task.starts_at > old_starts_at or task.ends_at < old_ends_at:
-            for req in task.requirements:
-                req.update(records={})
-                req.reload()
-                Requirement(req).get_cls().sync(
-                    starts_at=task.starts_at,
-                    ends_at=task.ends_at,
-                )
-        else:
-            if task.starts_at < old_starts_at:
-                for req in task.requirements:
-                    Requirement(req).get_cls().sync(
-                        starts_at=task.starts_at,
-                        ends_at=old_starts_at,
-                    )
-            if task.ends_at > old_ends_at:
-                for req in task.requirements:
-                    Requirement(req).get_cls().sync(
-                        starts_at=old_ends_at,
-                        ends_at=task.ends_at,
-                    )
     except engine.ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())
     return HTTPResponse('success')
@@ -120,8 +98,10 @@ def edit_task(user, task, title, content, starts_at, ends_at):
 @Request.doc('_id', 'task', Task)
 @login_required
 def delete_task(user, task):
-    if not Course(task.course).permission(user=user,
-                                          req=Course.Permission.WRITE):
+    if not Course(task.course).permission(
+            user=user,
+            req=Course.Permission.WRITE,
+    ):
         return HTTPError('Not enough permission', 403)
     task.delete()
     return HTTPResponse('success')

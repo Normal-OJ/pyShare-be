@@ -45,7 +45,6 @@ def test_edit_task(forge_client: Callable[[str], FlaskClient]):
     user = reply.author
     client = forge_client(task.course.teacher.username)
 
-    utils.comment.lazy_add_reply()
     req = requirement.ReplyToComment.add(
         task=task,
         required_number=1,
@@ -83,7 +82,6 @@ def test_edit_task_with_shrink_time(forge_client: Callable[[str],
     user = reply.author
     client = forge_client(task.course.teacher.username)
 
-    utils.comment.lazy_add_reply()
     req = requirement.ReplyToComment.add(
         task=task,
         required_number=1,
