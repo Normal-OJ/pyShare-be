@@ -12,13 +12,14 @@ from mongo.event import (
     task_due_extended,
     requirement_added,
     reply_created,
+    task_time_change,
 )
 from mongo.utils import (
     get_redis_client,
     doc_required,
     drop_none,
 )
-from .base import default_on_task_due_extended
+from .base import (default_on_task_due_extended, default_on_task_time_change)
 
 
 class ReplyToComment(MongoBase, engine=engine.ReplyToComment):
@@ -28,6 +29,7 @@ class ReplyToComment(MongoBase, engine=engine.ReplyToComment):
         if not cls.__initialized:
             reply_created.connect(cls.on_reply_created)
             task_due_extended.connect(cls.on_task_due_extended)
+            task_time_change.connect(cls.on_task_time_change)
             cls.__initialized = True
         return super().__new__(cls, pk, *args, **kwargs)
 
@@ -35,6 +37,10 @@ class ReplyToComment(MongoBase, engine=engine.ReplyToComment):
     @classmethod
     def on_task_due_extended(cls, *args, **ks):
         default_on_task_due_extended(cls, *args, **ks)
+
+    @classmethod
+    def on_task_time_change(cls, *args, **ks):
+        default_on_task_time_change(cls, *args, **ks)
 
     @classmethod
     def is_valid_reply(cls, reply):

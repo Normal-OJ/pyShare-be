@@ -22,13 +22,41 @@ def default_on_task_due_extended(
         )
 
 
+def default_on_task_time_change(
+    cls,
+    task,
+    old_starts_at: datetime,
+    old_ends_at: datetime,
+):
+    '''
+    Default implementation of on_task_time_change.
+    '''
+    reqs = filter(
+        lambda r: isinstance(r, cls.engine),
+        task.requirements,
+    )
+    if task.starts_at > old_starts_at or task.ends_at < old_ends_at:
+        for req in reqs:
+            req.update(records={})
+            req.reload()
+            cls(req).sync(
+                starts_at=task.starts_at,
+                ends_at=task.ends_at,
+            )
+    else:
+        if task.starts_at < old_starts_at:
+            for req in reqs:
+                cls(req).sync(
+                    starts_at=task.starts_at,
+                    ends_at=old_starts_at,
+                )
+        if task.ends_at > old_ends_at:
+            for req in reqs:
+                cls(req).sync(
+                    starts_at=old_ends_at,
+                    ends_at=task.ends_at,
+                )
+
+
 class Requirement(MongoBase, engine=engine.Requirement):
-    def get_cls(self):
-        from . import LeaveComment, LikeOthersComment, ReplyToComment, SolveOJProblem
-        cls_table = {
-            'LeaveComment': LeaveComment,
-            'LikeOthersComment': LikeOthersComment,
-            'ReplyToComment': ReplyToComment,
-            'SolveOJProblem': SolveOJProblem,
-        }
-        return cls_table[self._cls.split('.')[-1]](self.obj)
+    pass

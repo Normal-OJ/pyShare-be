@@ -12,12 +12,13 @@ from mongo.event import (
     task_due_extended,
     requirement_added,
     comment_liked,
+    task_time_change,
 )
 from mongo.utils import (
     get_redis_client,
     doc_required,
 )
-from .base import default_on_task_due_extended
+from .base import (default_on_task_due_extended, default_on_task_time_change)
 
 
 class LikeOthersComment(MongoBase, engine=engine.LikeOthersComment):
@@ -27,6 +28,7 @@ class LikeOthersComment(MongoBase, engine=engine.LikeOthersComment):
         if not cls.__initialized:
             comment_liked.connect(cls.on_liked)
             task_due_extended.connect(cls.on_task_due_extended)
+            task_time_change.connect(cls.on_task_time_change)
             cls.__initialized = True
         return super().__new__(cls, pk, *args, **kwargs)
 
@@ -34,6 +36,10 @@ class LikeOthersComment(MongoBase, engine=engine.LikeOthersComment):
     @classmethod
     def on_task_due_extended(cls, *args, **ks):
         default_on_task_due_extended(cls, *args, **ks)
+
+    @classmethod
+    def on_task_time_change(cls, *args, **ks):
+        default_on_task_time_change(cls, *args, **ks)
 
     @classmethod
     def is_valid_liker(cls, comment, user):
