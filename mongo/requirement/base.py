@@ -31,10 +31,12 @@ def default_on_task_time_change(
     '''
     Default implementation of on_task_time_change.
     '''
-    reqs = filter(
-        lambda r: isinstance(r, cls.engine),
-        task.requirements,
-    )
+    # use list() because filter object can only be iterated once
+    reqs = list(
+        filter(
+            lambda r: isinstance(r, cls.engine),
+            task.requirements,
+        ))
     if task.starts_at > old_starts_at or task.ends_at < old_ends_at:
         for req in reqs:
             req.update(records={})
