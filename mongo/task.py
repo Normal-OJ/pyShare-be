@@ -95,19 +95,6 @@ class Task(MongoBase, engine=engine.Task):
         yield tmp
         tmp.delete()
 
-    def extend_due(self, ends_at: datetime):
-        with get_redis_client().lock(f'{self}'):
-            if ends_at < self.ends_at:
-                return
-            # Update field
-            old_ends_at = self.ends_at
-            self.ends_at = ends_at
-            self.save()
-            # Add reload to ensure the requirements field is up-to-date
-            self.reload('requirements')
-            task_time_changed.send(self, old_ends_at=old_ends_at)
-            self.reload('requirements')
-
     def edit(self, **ks):
         old_starts_at = self.starts_at
         old_ends_at = self.ends_at
