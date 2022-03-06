@@ -1,3 +1,4 @@
+from typing import Optional, List
 from flask import Blueprint
 from dateutil import parser
 
@@ -15,7 +16,7 @@ task_api = Blueprint('task_api', __name__)
 @course_api.get('/<course>/tasks')
 @Request.doc('course', Course)
 @login_required
-def get_task_list(user, course):
+def get_task_list(user: User, course: Course):
     if not course.permission(user=user, req=Course.Permission.READ):
         return HTTPError('Permission denied', 403)
     tasks = list(task.id for task in engine.Task.objects(course=course.obj))
@@ -32,7 +33,14 @@ def get_task_list(user, course):
 )
 @Request.doc('course', Course)
 @login_required
-def add_task(user, course, title, content, starts_at, ends_at):
+def add_task(
+    user: User,
+    course: Course,
+    title: str,
+    content: Optional[str],
+    starts_at: Optional[str],
+    ends_at: Optional[str],
+):
     if not course.permission(user=user, req=Course.Permission.WRITE):
         return HTTPError('Not enough permission', 403)
     try:
@@ -69,7 +77,14 @@ def add_task(user, course, title, content, starts_at, ends_at):
 )
 @Request.doc('_id', 'task', Task)
 @login_required
-def edit_task(user, task, title, content, starts_at, ends_at):
+def edit_task(
+    user: User,
+    task: Task,
+    title: Optional[str],
+    content: Optional[str],
+    starts_at: Optional[str],
+    ends_at: Optional[str],
+):
     if not Course(task.course).permission(
             user=user,
             req=Course.Permission.WRITE,
@@ -83,7 +98,7 @@ def edit_task(user, task, title, content, starts_at, ends_at):
     except parser.ParserError:
         return HTTPError('Invalid or unknown string format', 400)
     try:
-        task.edit(**drop_none({
+        task.update(**drop_none({
             'title': title,
             'content': content,
             'starts_at': starts_at,
@@ -97,7 +112,7 @@ def edit_task(user, task, title, content, starts_at, ends_at):
 @task_api.delete('/<_id>')
 @Request.doc('_id', 'task', Task)
 @login_required
-def delete_task(user, task):
+def delete_task(user: User, task: Task):
     if not Course(task.course).permission(
             user=user,
             req=Course.Permission.WRITE,
@@ -110,7 +125,7 @@ def delete_task(user, task):
 @task_api.get('/<_id>')
 @Request.doc('_id', 'task', Task)
 @login_required
-def get_task(user, task):
+def get_task(user: User, task: Task):
     if not Course(task.course).permission(
             user=user,
             req=Course.Permission.READ,
@@ -125,7 +140,12 @@ def get_task(user, task):
 @Request.json('problems: list', 'sync')
 @Request.doc('_id', 'task', Task)
 @login_required
-def add_solve_OJ_problem_requirement(user, task, problems, sync):
+def add_solve_OJ_problem_requirement(
+    user: User,
+    task: Task,
+    problems: List[int],
+    sync: Optional[bool],
+):
     if not Course(task.course).permission(
             user=user,
             req=Course.Permission.WRITE,
@@ -151,12 +171,12 @@ def add_solve_OJ_problem_requirement(user, task, problems, sync):
 @Request.doc('problem', Problem)
 @login_required
 def add_solve_comment_requirement(
-    user,
-    task,
-    problem,
-    required_number,
-    acceptance,
-    sync,
+    user: User,
+    task: Task,
+    problem: Problem,
+    required_number: Optional[int],
+    acceptance: Optional[int],
+    sync: Optional[bool],
 ):
     if not Course(task.course).permission(
             user=user,
@@ -184,10 +204,10 @@ def add_solve_comment_requirement(
 @Request.doc('_id', 'task', Task)
 @login_required
 def add_reply_to_comment_requirement(
-    user,
-    task,
-    required_number,
-    sync,
+    user: User,
+    task: Task,
+    required_number: int,
+    sync: Optional[bool],
 ):
     if not Course(task.course).permission(
             user=user,
@@ -211,10 +231,10 @@ def add_reply_to_comment_requirement(
 @Request.doc('_id', 'task', Task)
 @login_required
 def add_like_others_comment_requirement(
-    user,
-    task,
-    required_number,
-    sync,
+    user: User,
+    task: Task,
+    required_number: int,
+    sync: Optional[bool],
 ):
     if not Course(task.course).permission(
             user=user,

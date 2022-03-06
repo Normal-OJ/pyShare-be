@@ -95,10 +95,10 @@ class Task(MongoBase, engine=engine.Task):
         yield tmp
         tmp.delete()
 
-    def edit(self, **ks):
+    def update(self, **ks):
         old_starts_at = self.starts_at
         old_ends_at = self.ends_at
-        self.update(**ks)
+        self.obj.update(**ks)
         self.reload()
         if old_starts_at != self.starts_at or old_ends_at != self.ends_at:
             task_time_changed.send(

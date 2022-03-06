@@ -323,7 +323,7 @@ def get_task_record(
                 400,
             )
         with task.tmp_copy() as tmp_task:
-            tmp_task.edit(ends_at=ends_at)
+            tmp_task.update(ends_at=ends_at)
             ret = gen_task_record(tmp_task)
         # Use requirement id under the original task
         # so that frontend can get the correct resource
