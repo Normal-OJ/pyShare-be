@@ -9,7 +9,6 @@ from mongo.task import Task
 from mongo.user import User
 from mongo.base import MongoBase
 from mongo.event import (
-    task_due_extended,
     requirement_added,
     reply_created,
     task_time_changed,
@@ -19,7 +18,7 @@ from mongo.utils import (
     doc_required,
     drop_none,
 )
-from .base import (default_on_task_due_extended, default_on_task_time_changed)
+from .base import default_on_task_time_changed
 
 
 class ReplyToComment(MongoBase, engine=engine.ReplyToComment):
@@ -28,16 +27,11 @@ class ReplyToComment(MongoBase, engine=engine.ReplyToComment):
     def __new__(cls, pk, *args, **kwargs):
         if not cls.__initialized:
             reply_created.connect(cls.on_reply_created)
-            task_due_extended.connect(cls.on_task_due_extended)
             task_time_changed.connect(cls.on_task_time_changed)
             cls.__initialized = True
         return super().__new__(cls, pk, *args, **kwargs)
 
     # Declare again because blinker cannot accept `partial` as a reciever
-    @classmethod
-    def on_task_due_extended(cls, *args, **ks):
-        default_on_task_due_extended(cls, *args, **ks)
-
     @classmethod
     def on_task_time_changed(cls, *args, **ks):
         default_on_task_time_changed(cls, *args, **ks)

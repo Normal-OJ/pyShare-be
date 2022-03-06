@@ -1,36 +1,22 @@
 from datetime import datetime
 from mongo import engine
 from mongo.base import MongoBase
-
-
-def default_on_task_due_extended(
-    cls,
-    task,
-    starts_at: datetime,
-):
-    '''
-    Default implementation of on_task_due_extended.
-    '''
-    reqs = filter(
-        lambda r: isinstance(r, cls.engine),
-        task.requirements,
-    )
-    for req in reqs:
-        cls(req).sync(
-            starts_at=starts_at,
-            ends_at=task.ends_at,
-        )
+from typing import Optional
 
 
 def default_on_task_time_changed(
     cls,
     task,
-    old_starts_at: datetime,
-    old_ends_at: datetime,
+    old_starts_at: Optional[datetime] = None,
+    old_ends_at: Optional[datetime] = None,
 ):
     '''
     Default implementation of on_task_time_changed.
     '''
+    if old_starts_at is None:
+        old_starts_at = task.starts_at
+    if old_ends_at is None:
+        old_ends_at = task.ends_at
     # use list() because filter object can only be iterated once
     reqs = list(
         filter(

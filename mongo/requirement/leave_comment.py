@@ -10,7 +10,6 @@ from mongo.problem import Problem
 from mongo.user import User
 from mongo.base import MongoBase
 from mongo.event import (
-    task_due_extended,
     requirement_added,
     comment_created,
     task_time_changed,
@@ -20,7 +19,7 @@ from mongo.utils import (
     doc_required,
     drop_none,
 )
-from .base import (default_on_task_due_extended, default_on_task_time_changed)
+from .base import default_on_task_time_changed
 
 
 class LeaveComment(MongoBase, engine=engine.LeaveComment):
@@ -29,16 +28,11 @@ class LeaveComment(MongoBase, engine=engine.LeaveComment):
     def __new__(cls, pk, *args, **kwargs):
         if not cls.__initialized:
             comment_created.connect(cls.on_comment_created)
-            task_due_extended.connect(cls.on_task_due_extended)
             task_time_changed.connect(cls.on_task_time_changed)
             cls.__initialized = True
         return super().__new__(cls, pk, *args, **kwargs)
 
     # Declare again because blinker cannot accept `partial` as a reciever
-    @classmethod
-    def on_task_due_extended(cls, *args, **ks):
-        default_on_task_due_extended(cls, *args, **ks)
-
     @classmethod
     def on_task_time_changed(cls, *args, **ks):
         default_on_task_time_changed(cls, *args, **ks)
