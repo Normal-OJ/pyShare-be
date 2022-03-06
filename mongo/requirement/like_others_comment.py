@@ -9,15 +9,15 @@ from mongo.task import Task
 from mongo.user import User
 from mongo.base import MongoBase
 from mongo.event import (
-    task_due_extended,
     requirement_added,
     comment_liked,
+    task_time_changed,
 )
 from mongo.utils import (
     get_redis_client,
     doc_required,
 )
-from .base import default_on_task_due_extended
+from .base import default_on_task_time_changed
 
 
 class LikeOthersComment(MongoBase, engine=engine.LikeOthersComment):
@@ -26,14 +26,14 @@ class LikeOthersComment(MongoBase, engine=engine.LikeOthersComment):
     def __new__(cls, pk, *args, **kwargs):
         if not cls.__initialized:
             comment_liked.connect(cls.on_liked)
-            task_due_extended.connect(cls.on_task_due_extended)
+            task_time_changed.connect(cls.on_task_time_changed)
             cls.__initialized = True
         return super().__new__(cls, pk, *args, **kwargs)
 
     # Declare again because blinker cannot accept `partial` as a reciever
     @classmethod
-    def on_task_due_extended(cls, *args, **ks):
-        default_on_task_due_extended(cls, *args, **ks)
+    def on_task_time_changed(cls, *args, **ks):
+        default_on_task_time_changed(cls, *args, **ks)
 
     @classmethod
     def is_valid_liker(cls, comment, user):

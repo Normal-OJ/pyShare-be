@@ -88,5 +88,5 @@ def test_extend_task_due_can_update_requirement():
         required_number=1,
     )
     assert req.progress(user) == (0, 1)
-    task.extend_due(now + timedelta(days=1))
+    task.update(ends_at=now + timedelta(days=1))
     assert req.reload().progress(user) == (1, 1)

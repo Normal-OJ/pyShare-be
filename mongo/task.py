@@ -11,7 +11,7 @@ from .utils import (
     get_redis_client,
     drop_none,
 )
-from .event import (task_due_extended, requirement_added)
+from .event import (requirement_added, task_time_changed)
 
 __all__ = ['Task']
 
@@ -95,15 +95,15 @@ class Task(MongoBase, engine=engine.Task):
         yield tmp
         tmp.delete()
 
-    def extend_due(self, ends_at: datetime):
-        with get_redis_client().lock(f'{self}'):
-            if ends_at < self.ends_at:
-                return
-            # Update field
-            starts_at = self.ends_at
-            self.ends_at = ends_at
-            self.save()
-            # Add reload to ensure the requirements field is up-to-date
-            self.reload('requirements')
-            task_due_extended.send(self, starts_at=starts_at)
+    def update(self, **ks):
+        old_starts_at = self.starts_at
+        old_ends_at = self.ends_at
+        self.obj.update(**ks)
+        self.reload()
+        if old_starts_at != self.starts_at or old_ends_at != self.ends_at:
+            task_time_changed.send(
+                self,
+                old_starts_at=old_starts_at,
+                old_ends_at=old_ends_at,
+            )
             self.reload('requirements')

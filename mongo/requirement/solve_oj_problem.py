@@ -12,15 +12,15 @@ from mongo.user import User
 from mongo.base import MongoBase
 from mongo.event import (
     submission_completed,
-    task_due_extended,
     requirement_added,
+    task_time_changed,
 )
 from mongo.utils import (
     get_redis_client,
     doc_required,
     drop_none,
 )
-from .base import default_on_task_due_extended
+from .base import default_on_task_time_changed
 
 
 class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
@@ -30,14 +30,14 @@ class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
         # TODO: handle rejudge, which might convert a AC submission into WA
         if not cls.__initialized:
             submission_completed.connect(cls.on_submission_completed)
-            task_due_extended.connect(cls.on_task_due_extended)
+            task_time_changed.connect(cls.on_task_time_changed)
             cls.__initialized = True
         return super().__new__(cls, pk, *args, **kwargs)
 
     # Declare again because blinker cannot accept `partial` as a reciever
     @classmethod
-    def on_task_due_extended(cls, *args, **ks):
-        default_on_task_due_extended(cls, *args, **ks)
+    def on_task_time_changed(cls, *args, **ks):
+        default_on_task_time_changed(cls, *args, **ks)
 
     @classmethod
     def is_valid_submission(cls, submission):
