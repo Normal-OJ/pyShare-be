@@ -11,7 +11,7 @@ from .utils import (
     get_redis_client,
     drop_none,
 )
-from .event import (task_due_extended, requirement_added, task_time_change)
+from .event import (task_due_extended, requirement_added, task_time_changed)
 
 __all__ = ['Task']
 
@@ -114,7 +114,7 @@ class Task(MongoBase, engine=engine.Task):
         self.update(**ks)
         self.reload()
         if old_starts_at != self.starts_at or old_ends_at != self.ends_at:
-            task_time_change.send(
+            task_time_changed.send(
                 self,
                 old_starts_at=old_starts_at,
                 old_ends_at=old_ends_at,

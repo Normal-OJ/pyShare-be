@@ -13,14 +13,14 @@ from mongo.event import (
     task_due_extended,
     requirement_added,
     comment_created,
-    task_time_change,
+    task_time_changed,
 )
 from mongo.utils import (
     get_redis_client,
     doc_required,
     drop_none,
 )
-from .base import (default_on_task_due_extended, default_on_task_time_change)
+from .base import (default_on_task_due_extended, default_on_task_time_changed)
 
 
 class LeaveComment(MongoBase, engine=engine.LeaveComment):
@@ -30,7 +30,7 @@ class LeaveComment(MongoBase, engine=engine.LeaveComment):
         if not cls.__initialized:
             comment_created.connect(cls.on_comment_created)
             task_due_extended.connect(cls.on_task_due_extended)
-            task_time_change.connect(cls.on_task_time_change)
+            task_time_changed.connect(cls.on_task_time_changed)
             cls.__initialized = True
         return super().__new__(cls, pk, *args, **kwargs)
 
@@ -40,8 +40,8 @@ class LeaveComment(MongoBase, engine=engine.LeaveComment):
         default_on_task_due_extended(cls, *args, **ks)
 
     @classmethod
-    def on_task_time_change(cls, *args, **ks):
-        default_on_task_time_change(cls, *args, **ks)
+    def on_task_time_changed(cls, *args, **ks):
+        default_on_task_time_changed(cls, *args, **ks)
 
     @classmethod
     def is_valid_comment(cls, comment):

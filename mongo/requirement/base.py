@@ -22,14 +22,14 @@ def default_on_task_due_extended(
         )
 
 
-def default_on_task_time_change(
+def default_on_task_time_changed(
     cls,
     task,
     old_starts_at: datetime,
     old_ends_at: datetime,
 ):
     '''
-    Default implementation of on_task_time_change.
+    Default implementation of on_task_time_changed.
     '''
     # use list() because filter object can only be iterated once
     reqs = list(

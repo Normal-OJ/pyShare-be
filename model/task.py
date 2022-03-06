@@ -62,7 +62,7 @@ def add_task(user, course, title, content, starts_at, ends_at):
 
 @task_api.put('/<_id>')
 @Request.json(
-    'title: str',
+    'title',
     'content',
     'starts_at',
     'ends_at',
