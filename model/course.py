@@ -346,5 +346,5 @@ def get_all_task_record(user: User, course: Course):
                 course.students,
             ),
         ],
-    } for t in Task.filter(course=course)]
+    } for t in Task.filter(course=course, include_inactive=True)]
     return HTTPResponse(data=ret)
