@@ -33,11 +33,15 @@ class Task(MongoBase, engine=engine.Task):
     def filter(
         cls,
         course: Optional[Union[Course, str]] = None,
+        include_inactive: bool = False,
     ):
         if isinstance(course, Course):
             course = course.id
         params = drop_none({'course': course})
-        tasks = [cls(t) for t in cls.engine.active_objects(**params)]
+        if not include_inactive:
+            tasks = [cls(t) for t in cls.engine.active_objects(**params)]
+        else:
+            tasks = [cls(t) for t in cls.engine.objects(**params)]
         return tasks
 
     @classmethod
