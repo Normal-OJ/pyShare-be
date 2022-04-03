@@ -19,6 +19,7 @@ from mongo.utils import (
     get_redis_client,
     doc_required,
     drop_none,
+    logger,
 )
 from .base import default_on_task_time_changed
 
@@ -60,6 +61,9 @@ class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
             cls(req).add_submission(submission)
 
     def add_submission(self, submission):
+        logger().debug(
+            f'New submission added to requirement [type=SolveOJProblem, id={self.id}]'
+        )
         if not self.is_valid_submission(submission):
             return
         if submission.problem not in self.problems:
@@ -75,8 +79,15 @@ class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
             if problem in completes:
                 return
             completes.append(problem.id)
+            logger().info(
+                'User solved a new OJ problem '
+                f'[user={user.id}, problem={problem.id}, requirement={self.id}]'
+            )
             if len(completes) >= len(self.problems):
                 record.completed_at = datetime.now()
+                logger().info(
+                    f'User complete requirement [user={user.id}, requirement={self.id}]'
+                )
             self.set_record(user, record)
 
     @classmethod
@@ -97,6 +108,7 @@ class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
             problems=[p.id for p in problems],
         ).save()
         requirement_added.send(req)
+        logger().info(f'Requirement created [requirement={req.id}]')
         return cls(req)
 
     def sync(

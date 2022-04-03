@@ -18,6 +18,7 @@ from mongo.utils import (
     get_redis_client,
     doc_required,
     drop_none,
+    logger,
 )
 from .base import default_on_task_time_changed
 
@@ -92,6 +93,7 @@ class LeaveComment(MongoBase, engine=engine.LeaveComment):
         params = {k: v for k, v in params.items() if v is not None}
         req = cls.engine(**params).save()
         requirement_added.send(req)
+        logger().info(f'Requirement created [requirement={req.id}]')
         return cls(req)
 
     def sync(

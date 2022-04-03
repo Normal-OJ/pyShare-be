@@ -16,6 +16,7 @@ from mongo.event import (
 from mongo.utils import (
     get_redis_client,
     doc_required,
+    logger,
 )
 from .base import default_on_task_time_changed
 
@@ -75,6 +76,7 @@ class LikeOthersComment(MongoBase, engine=engine.LikeOthersComment):
             required_number=required_number,
         ).save()
         requirement_added.send(req)
+        logger().info(f'Requirement created [requirement={req.id}]')
         return cls(req)
 
     def sync(
