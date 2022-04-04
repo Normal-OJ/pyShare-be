@@ -26,12 +26,18 @@ from .base import default_on_task_time_changed
 class LeaveComment(MongoBase, engine=engine.LeaveComment):
     __initialized = False
 
-    def __new__(cls, pk, *args, **kwargs):
-        if not cls.__initialized:
-            comment_created.connect(cls.on_comment_created)
-            task_time_changed.connect(cls.on_task_time_changed)
-            cls.__initialized = True
-        return super().__new__(cls, pk, *args, **kwargs)
+    def __new__(cls, *args, **kwargs):
+        cls.register_event_listener()
+        return super().__new__(cls, *args, **kwargs)
+
+    @classmethod
+    def register_event_listener(cls):
+        if cls.__initialized:
+            return
+        cls.__initialized = True
+        comment_created.connect(cls.on_comment_created)
+        task_time_changed.connect(cls.on_task_time_changed)
+        logger().info(f'Event listener registered [class={cls.__name__}]')
 
     # Declare again because blinker cannot accept `partial` as a reciever
     @classmethod
@@ -114,3 +120,6 @@ class LeaveComment(MongoBase, engine=engine.LeaveComment):
         }))
         for comment in comments:
             self.add_comment(comment)
+
+
+LeaveComment.register_event_listener()

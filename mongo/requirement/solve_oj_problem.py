@@ -27,13 +27,19 @@ from .base import default_on_task_time_changed
 class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
     __initialized = False
 
-    def __new__(cls, pk, *args, **kwargs):
+    def __new__(cls, *args, **kwargs):
+        cls.register_event_listener()
+        return super().__new__(cls, *args, **kwargs)
+
+    @classmethod
+    def register_event_listener(cls):
+        if cls.__initialized:
+            return
+        cls.__initialized = True
         # TODO: handle rejudge, which might convert a AC submission into WA
-        if not cls.__initialized:
-            submission_completed.connect(cls.on_submission_completed)
-            task_time_changed.connect(cls.on_task_time_changed)
-            cls.__initialized = True
-        return super().__new__(cls, pk, *args, **kwargs)
+        submission_completed.connect(cls.on_submission_completed)
+        task_time_changed.connect(cls.on_task_time_changed)
+        logger().info(f'Event listener registered [class={cls.__name__}]')
 
     # Declare again because blinker cannot accept `partial` as a reciever
     @classmethod
@@ -130,3 +136,6 @@ class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
             }))
         for submission in submissions:
             self.add_submission(submission)
+
+
+SolveOJProblem.register_event_listener()
