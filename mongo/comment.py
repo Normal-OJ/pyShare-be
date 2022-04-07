@@ -6,7 +6,11 @@ from .problem import Problem
 from .course import Course
 from .user import User
 from .notif import Notif
-from .utils import doc_required, get_redis_client
+from .utils import (
+    doc_required,
+    get_redis_client,
+    logger,
+)
 from .submission import *
 from .event import (
     submission_completed,
@@ -51,11 +55,6 @@ class Comment(MongoBase, engine=engine.Comment):
             submission_completed.connect(cls.on_submission_completed)
             cls.__initialized = True
         return super().__new__(cls, pk, *args, **kwargs)
-
-    def __init__(self, _id):
-        if isinstance(_id, self.engine):
-            _id = _id.id
-        self.id = _id
 
     @classmethod
     def on_submission_completed(cls, submission):
@@ -131,7 +130,7 @@ class Comment(MongoBase, engine=engine.Comment):
         return self
 
     @doc_required('user', 'user', User)
-    def like(self, user):
+    def like(self, user: User):
         '''
         Like/Unlike a comment
         '''
@@ -155,6 +154,8 @@ class Comment(MongoBase, engine=engine.Comment):
         self.reload()
         user.reload()
         event.send(self, user=user)
+        logger().info(
+            f'User like/unlike comment [user={user.id}, comment={self.id}]')
 
     def submit(self, code=None):
         '''
@@ -187,6 +188,7 @@ class Comment(MongoBase, engine=engine.Comment):
             self.update(inc__success=1)
         # Process OJ problem
         if self.problem.is_OJ:
+            # FIXME: There might exists unfinished submissions, their `result` will be `None`
             is_ac = lambda s: s.result.judge_result == Submission.engine.JudgeResult.AC
             self.update(acceptance=self.Acceptance.ACCEPTED if any(
                 map(is_ac, self.submissions)) else self.Acceptance.REJECTED)
@@ -240,6 +242,7 @@ class Comment(MongoBase, engine=engine.Comment):
             notif = Notif.new(info)
             target.author.update(push__notifs=notif.pk)
         comment_created.send(comment.reload())
+        logger().info(f'Comment created [comment={comment.id}]')
         return comment
 
     def new_submission(self, code: str):
@@ -271,27 +274,28 @@ class Comment(MongoBase, engine=engine.Comment):
         if not target:
             raise engine.DoesNotExist
         # create new comment
-        comment = cls.add(
+        reply = cls.add(
             floor=target.floor,
             depth=1,
             problem=target.problem,
             **ks,
         )
-        target.update(push__replies=comment.obj)
+        target.update(push__replies=reply.obj)
         # notify relevant users
         info = Notif.types.NewReply(
             comment=target.pk,
             problem=target.problem,
         )
         authors = {target.author, target.problem.author} - {
-            comment.author,
+            reply.author,
         }
         if authors:
             notif = Notif.new(info)
         for author in authors:
             author.update(push__notifs=notif.pk)
-        reply_created.send(comment.reload())
-        return comment
+        reply_created.send(reply.reload())
+        logger().info(f'Reply created [comment={target.id}, reply={reply.id}]')
+        return reply
 
     @classmethod
     @doc_required('author', User)

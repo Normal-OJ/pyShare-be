@@ -19,6 +19,7 @@ from mongo.utils import (
     get_redis_client,
     doc_required,
     drop_none,
+    logger,
 )
 from .base import default_on_task_time_changed
 
@@ -26,13 +27,19 @@ from .base import default_on_task_time_changed
 class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
     __initialized = False
 
-    def __new__(cls, pk, *args, **kwargs):
+    def __new__(cls, *args, **kwargs):
+        cls.register_event_listener()
+        return super().__new__(cls, *args, **kwargs)
+
+    @classmethod
+    def register_event_listener(cls):
+        if cls.__initialized:
+            return
+        cls.__initialized = True
         # TODO: handle rejudge, which might convert a AC submission into WA
-        if not cls.__initialized:
-            submission_completed.connect(cls.on_submission_completed)
-            task_time_changed.connect(cls.on_task_time_changed)
-            cls.__initialized = True
-        return super().__new__(cls, pk, *args, **kwargs)
+        submission_completed.connect(cls.on_submission_completed)
+        task_time_changed.connect(cls.on_task_time_changed)
+        logger().info(f'Event listener registered [class={cls.__name__}]')
 
     # Declare again because blinker cannot accept `partial` as a reciever
     @classmethod
@@ -60,6 +67,9 @@ class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
             cls(req).add_submission(submission)
 
     def add_submission(self, submission):
+        logger().debug(
+            f'New submission added to requirement [type=SolveOJProblem, id={self.id}]'
+        )
         if not self.is_valid_submission(submission):
             return
         if submission.problem not in self.problems:
@@ -75,8 +85,15 @@ class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
             if problem in completes:
                 return
             completes.append(problem.id)
+            logger().info(
+                'User solved a new OJ problem '
+                f'[user={user.id}, problem={problem.id}, requirement={self.id}]'
+            )
             if len(completes) >= len(self.problems):
                 record.completed_at = datetime.now()
+                logger().info(
+                    f'User complete requirement [user={user.id}, requirement={self.id}]'
+                )
             self.set_record(user, record)
 
     @classmethod
@@ -97,6 +114,7 @@ class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
             problems=[p.id for p in problems],
         ).save()
         requirement_added.send(req)
+        logger().info(f'Requirement created [requirement={req.id}]')
         return cls(req)
 
     def sync(
@@ -118,3 +136,6 @@ class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
             }))
         for submission in submissions:
             self.add_submission(submission)
+
+
+SolveOJProblem.register_event_listener()

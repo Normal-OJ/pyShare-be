@@ -1,5 +1,4 @@
-# TODO: move test dependencies to tests/requirements.txt
-flask==2.0.1
+flask~=2.1
 gunicorn==20.1.0
 mongoengine==0.23.1
 PyJWT==2.1.0
@@ -7,10 +6,9 @@ requests==2.26.0
 pre-commit==2.8.2
 yapf==0.31.0
 redis==3.5.3
+# TODO: move test dependencies to tests/requirements.txt
 fakeredis==1.6.0
-flask-socketio<5
-python-socketio<5
-python-engineio<4
+flask-socketio~=5.1
 eventlet==0.29.1
 dynaconf==3.1.5
 blinker==1.4

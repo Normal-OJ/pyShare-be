@@ -17,6 +17,7 @@ from mongo.utils import (
     get_redis_client,
     doc_required,
     drop_none,
+    logger,
 )
 from .base import default_on_task_time_changed
 
@@ -24,12 +25,18 @@ from .base import default_on_task_time_changed
 class ReplyToComment(MongoBase, engine=engine.ReplyToComment):
     __initialized = False
 
-    def __new__(cls, pk, *args, **kwargs):
-        if not cls.__initialized:
-            reply_created.connect(cls.on_reply_created)
-            task_time_changed.connect(cls.on_task_time_changed)
-            cls.__initialized = True
-        return super().__new__(cls, pk, *args, **kwargs)
+    def __new__(cls, *args, **kwargs):
+        cls.register_event_listener()
+        return super().__new__(cls, *args, **kwargs)
+
+    @classmethod
+    def register_event_listener(cls):
+        if cls.__initialized:
+            return
+        cls.__initialized = True
+        reply_created.connect(cls.on_reply_created)
+        task_time_changed.connect(cls.on_task_time_changed)
+        logger().info(f'Event listener registered [class={cls.__name__}]')
 
     # Declare again because blinker cannot accept `partial` as a reciever
     @classmethod
@@ -77,6 +84,7 @@ class ReplyToComment(MongoBase, engine=engine.ReplyToComment):
         params = {k: v for k, v in params.items() if v is not None}
         req = cls.engine(**params).save()
         requirement_added.send(req)
+        logger().info(f'Requirement created [requirement={req.id}]')
         return cls(req)
 
     def sync(
@@ -97,3 +105,6 @@ class ReplyToComment(MongoBase, engine=engine.ReplyToComment):
         }))
         for reply in replies:
             self.add_reply(reply)
+
+
+ReplyToComment.register_event_listener()

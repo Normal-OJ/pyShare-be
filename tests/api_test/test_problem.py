@@ -407,7 +407,7 @@ class TestAttachment(BaseTester):
 
 
 class TestComment(ProblemTester):
-    def test_get_comments(self, forge_client, problem_ids, config_app):
+    def test_get_comments(self, forge_client, config_app):
         # Get comments
         config_app(env='test')
         client = forge_client('teacher1')
@@ -484,7 +484,7 @@ class TestComment(ProblemTester):
         assert rv.status_code == 200, rv_json
         assert rv_json['data'] == Comment.Permission(0).value
 
-    def test_get_own_OJ_comments(self, forge_client, problem_ids, config_app):
+    def test_get_own_OJ_comments(self, forge_client, config_app):
         # Get comments
         config_app(env='test')
         clients = [forge_client('teacher1'), forge_client('admin')]

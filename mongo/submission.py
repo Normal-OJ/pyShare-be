@@ -1,12 +1,15 @@
 from typing import List, Optional
 import base64
-from blinker import signal
 from . import engine
 from .base import MongoBase
 from .user import User
 from .problem import Problem
 from .comment import Comment
-from .utils import doc_required, get_redis_client
+from .utils import (
+    doc_required,
+    get_redis_client,
+    logger,
+)
 from .token import TokenExistError
 from .event import submission_completed
 
@@ -117,6 +120,7 @@ class Submission(MongoBase, engine=engine.Submission):
             self.result.files = files
             self.save()
             submission_completed.send(self.reload())
+            logger().info(f'Submission judge complete [submission={self.id}]')
         return True
 
     def get_file(self, filename):

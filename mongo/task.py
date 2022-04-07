@@ -8,8 +8,8 @@ from .course import Course
 from .base import MongoBase
 from .utils import (
     doc_required,
-    get_redis_client,
     drop_none,
+    logger,
 )
 from .event import (requirement_added, task_time_changed)
 
@@ -111,3 +111,4 @@ class Task(MongoBase, engine=engine.Task):
                 old_ends_at=old_ends_at,
             )
             self.reload('requirements')
+            logger().info(f'Task interval updated [task={self.id}]')

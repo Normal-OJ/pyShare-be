@@ -16,6 +16,7 @@ from mongo.event import (
 from mongo.utils import (
     get_redis_client,
     doc_required,
+    logger,
 )
 from .base import default_on_task_time_changed
 
@@ -23,12 +24,18 @@ from .base import default_on_task_time_changed
 class LikeOthersComment(MongoBase, engine=engine.LikeOthersComment):
     __initialized = False
 
-    def __new__(cls, pk, *args, **kwargs):
-        if not cls.__initialized:
-            comment_liked.connect(cls.on_liked)
-            task_time_changed.connect(cls.on_task_time_changed)
-            cls.__initialized = True
-        return super().__new__(cls, pk, *args, **kwargs)
+    def __new__(cls, *args, **kwargs):
+        cls.register_event_listener()
+        return super().__new__(cls, *args, **kwargs)
+
+    @classmethod
+    def register_event_listener(cls):
+        if cls.__initialized:
+            return
+        cls.__initialized = True
+        comment_liked.connect(cls.on_liked)
+        task_time_changed.connect(cls.on_task_time_changed)
+        logger().info(f'Event listener registered [class={cls.__name__}]')
 
     # Declare again because blinker cannot accept `partial` as a reciever
     @classmethod
@@ -75,6 +82,7 @@ class LikeOthersComment(MongoBase, engine=engine.LikeOthersComment):
             required_number=required_number,
         ).save()
         requirement_added.send(req)
+        logger().info(f'Requirement created [requirement={req.id}]')
         return cls(req)
 
     def sync(
@@ -93,3 +101,6 @@ class LikeOthersComment(MongoBase, engine=engine.LikeOthersComment):
                 #   instead of when the comment was created
                 if starts_at < comment.created < ends_at:
                     self.add_like(comment, user)
+
+
+LikeOthersComment.register_event_listener()
