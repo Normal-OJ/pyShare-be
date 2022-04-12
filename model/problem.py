@@ -212,13 +212,30 @@ def modify_problem(
 @fe_update('PROBLEM', 'course')
 def delete_problem(user, problem):
     '''
-    delete a problem
+    modify a problem's status
     '''
     # student can delete only self problem
     if not problem.permission(user=user, req=Problem.Permission.DELETE):
         return HTTPError('Not enough permission', 403)
     problem.delete()
     return HTTPResponse(f'{problem} deleted.')
+
+
+@problem_api.put('/<int:pid>/visibility')
+@Request.doc('pid', 'problem', Problem)
+@Request.json(
+    'status: int', )
+@login_required
+@fe_update('PROBLEM', 'course')
+def change_problem_visibility(user, problem, status):
+    '''
+    modify a problem's visibility
+    '''
+    # student can delete only self problem
+    if not problem.permission(user=user, req=Problem.Permission.WRITE):
+        return HTTPError('Not enough permission', 403)
+    problem.update(status=status)
+    return HTTPResponse(f'{problem}\'s visibility is updated.')
 
 
 @problem_api.route('/<int:pid>/attachment', methods=['POST', 'PUT', 'DELETE'])
