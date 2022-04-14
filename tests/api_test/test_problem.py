@@ -111,7 +111,7 @@ class TestProblem(ProblemTester):
                 'tags': [],
                 'course': str(Course.get_by_name('course_108-1').id),
                 'defaultCode': '',
-                'status': 1,
+                'hidden': False,
                 'isTemplate': False,
                 'allowMultipleComments': True,
             },
@@ -167,6 +167,28 @@ class TestProblem(ProblemTester):
         assert len(json['data']) == 2
         assert json['data'][0]['author']['username'] != teacher
         assert json['data'][1]['author']['username'] == teacher
+
+    def test_change_visibility(
+        self,
+        forge_client: Callable[[str, Optional[str]], FlaskClient],
+        config_app,
+    ):
+        config_app(env='test')
+        client = forge_client('student1')
+
+        rv = client.get(f'/problem/2')
+        json = rv.get_json()
+        assert rv.status_code == 200, json
+        assert json['data']['hidden'] == False
+
+        rv = client.put('/problem/2/visibility', json={'hidden': True})
+        json = rv.get_json()
+        assert rv.status_code == 200
+
+        rv = client.get(f'/problem/2')
+        json = rv.get_json()
+        assert rv.status_code == 200, json
+        assert json['data']['hidden'] == True
 
     def test_rejudge(
         self,

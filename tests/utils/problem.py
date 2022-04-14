@@ -50,7 +50,7 @@ def data(
         'description': secrets.token_hex(),
         'default_code': None,
         'tags': None,
-        'status': None,
+        'hidden': None,
         'is_template': None,
     }
     for k, v in defaults.items():

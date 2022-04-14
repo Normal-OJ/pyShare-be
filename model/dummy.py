@@ -85,7 +85,7 @@ def create_course(**ks):
     'description',
     'default_code',
     'tags',
-    'status',
+    'hidden',
     'is_template',
     'allow_multiple_comments',
 )

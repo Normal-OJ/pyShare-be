@@ -127,10 +127,6 @@ class Problem(MongoBase, engine=engine.Problem):
         self.update(inc__reference_count=1)
         return p.reload()
 
-    @property
-    def online(self):
-        return self.status == 1
-
     def update(self, **ks):
         c = Course(self.course)
         for tag in ks.get('tags', []):
