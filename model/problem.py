@@ -223,8 +223,7 @@ def delete_problem(user, problem):
 
 @problem_api.put('/<int:pid>/visibility')
 @Request.doc('pid', 'problem', Problem)
-@Request.json(
-    'hidden: bool')
+@Request.json('hidden: bool')
 @login_required
 @fe_update('PROBLEM', 'course')
 def change_problem_visibility(user, problem, hidden):
