@@ -230,7 +230,6 @@ def change_problem_visibility(user, problem, hidden):
     '''
     modify a problem's visibility
     '''
-    # student can delete only self problem
     if not problem.permission(user=user, req=Problem.Permission.WRITE):
         return HTTPError('Not enough permission', 403)
     try:
