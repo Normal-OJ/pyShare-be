@@ -257,7 +257,7 @@ def setup_problem(problems):
                 continue
             keys = {
                 'title', 'description', 'course', 'author', 'tags',
-                'default_code', 'status', 'allow_multiple_comments', 'extra'
+                'default_code', 'hidden', 'allow_multiple_comments', 'extra'
             }
             ks = {v: problem_data[v] for v in problem_data.keys() & keys}
             ks['course'] = course

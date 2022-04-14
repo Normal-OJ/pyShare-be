@@ -6,7 +6,7 @@
         "author": "",
         "tags": [],
         "default_code": "",
-        "status": 1
+        "hidden": false
     },
     "p1": {
         "title": "p1",
@@ -15,7 +15,7 @@
         "author": "teacher1",
         "tags": [],
         "default_code": "",
-        "status": 1,
+        "hidden": false,
         "attachments": [
             {
                 "name": "att",
@@ -39,7 +39,7 @@
         "author": "student1",
         "tags": [],
         "default_code": "",
-        "status": 1,
+        "hidden": false,
         "allow_multiple_comments": true,
         "attachments": [
             {
@@ -55,7 +55,7 @@
         "author": "teacher1",
         "tags": [],
         "default_code": "",
-        "status": 1,
+        "hidden": false,
         "allow_multiple_comments": true,
         "attachments": [
             {

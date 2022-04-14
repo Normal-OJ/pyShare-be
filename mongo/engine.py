@@ -239,10 +239,6 @@ class Attachment(Document):
 
 
 class Problem(Document):
-    class Status(Enum):
-        ONLINE = 1
-        OFFLINE = 0
-
     class Type(Enum):
         class OJProblem(EmbeddedDocument):
             input = StringField(max_length=5000000, required=True)
@@ -278,10 +274,7 @@ class Problem(Document):
     )
     comments = ListField(ReferenceField('Comment'), default=[])
     timestamp = DateTimeField(default=datetime.now)
-    status = IntField(
-        default=Status.ONLINE,
-        choices=Status.choices(),
-    )
+    hidden = BooleanField(default=False)
     default_code = StringField(
         default='',
         max_length=100000,
@@ -300,7 +293,7 @@ class Problem(Document):
 
     @property
     def online(self):
-        return self.status == self.Status.ONLINE
+        return not self.hidden
 
     @property
     def is_OJ(self):

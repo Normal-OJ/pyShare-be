@@ -111,7 +111,7 @@ class TestProblem(ProblemTester):
                 'tags': [],
                 'course': str(Course.get_by_name('course_108-1').id),
                 'defaultCode': '',
-                'status': 1,
+                'hidden': False,
                 'isTemplate': False,
                 'allowMultipleComments': True,
             },
@@ -179,16 +179,16 @@ class TestProblem(ProblemTester):
         rv = client.get(f'/problem/2')
         json = rv.get_json()
         assert rv.status_code == 200, json
-        assert json['data']['status'] == 1
+        assert json['data']['hidden'] == False
 
-        rv = client.put('/problem/2/visibility', json={'status': 0})
+        rv = client.put('/problem/2/visibility', json={'hidden': True})
         json = rv.get_json()
         assert rv.status_code == 200
 
         rv = client.get(f'/problem/2')
         json = rv.get_json()
         assert rv.status_code == 200, json
-        assert json['data']['status'] == 0
+        assert json['data']['hidden'] == True
 
     def test_rejudge(
         self,

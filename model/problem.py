@@ -123,7 +123,7 @@ def get_problem_permission(user, problem):
     'tags: list',
     'course: str',
     'default_code: str',
-    'status: int',
+    'hidden: bool',
     'is_template: bool',
     'allow_multiple_comments: bool',
     'extra',
@@ -166,7 +166,7 @@ def create_problem(
     'description: str',
     'tags: list',
     'default_code: str',
-    'status: int',
+    'hidden: bool',
     'is_template: bool',
     'allow_multiple_comments: bool',
     'extra',
@@ -224,10 +224,10 @@ def delete_problem(user, problem):
 @problem_api.put('/<int:pid>/visibility')
 @Request.doc('pid', 'problem', Problem)
 @Request.json(
-    'status: int', )
+    'hidden: bool')
 @login_required
 @fe_update('PROBLEM', 'course')
-def change_problem_visibility(user, problem, status):
+def change_problem_visibility(user, problem, hidden):
     '''
     modify a problem's visibility
     '''
@@ -235,7 +235,7 @@ def change_problem_visibility(user, problem, status):
     if not problem.permission(user=user, req=Problem.Permission.WRITE):
         return HTTPError('Not enough permission', 403)
     try:
-        problem.update(status=status)
+        problem.update(hidden=hidden)
     except engine.ValidationError as ve:
         return HTTPError(ve, 400, data=ve.to_dict())
     return HTTPResponse(f'{problem}\'s visibility is updated.')
