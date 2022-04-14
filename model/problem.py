@@ -212,7 +212,7 @@ def modify_problem(
 @fe_update('PROBLEM', 'course')
 def delete_problem(user, problem):
     '''
-    modify a problem's status
+    delete a problem
     '''
     # student can delete only self problem
     if not problem.permission(user=user, req=Problem.Permission.DELETE):
@@ -234,7 +234,10 @@ def change_problem_visibility(user, problem, status):
     # student can delete only self problem
     if not problem.permission(user=user, req=Problem.Permission.WRITE):
         return HTTPError('Not enough permission', 403)
-    problem.update(status=status)
+    try:
+        problem.update(status=status)
+    except engine.ValidationError as ve:
+        return HTTPError(ve, 400, data=ve.to_dict())
     return HTTPResponse(f'{problem}\'s visibility is updated.')
 
 
