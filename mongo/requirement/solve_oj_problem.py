@@ -39,7 +39,7 @@ class SolveOJProblem(MongoBase, engine=engine.SolveOJProblem):
         # TODO: handle rejudge, which might convert a AC submission into WA
         submission_completed.connect(cls.on_submission_completed)
         task_time_changed.connect(cls.on_task_time_changed)
-        logger().info(f'Event listener registered [class={cls.__name__}]')
+        logger().debug(f'Event listener registered [class={cls.__name__}]')
 
     # Declare again because blinker cannot accept `partial` as a reciever
     @classmethod

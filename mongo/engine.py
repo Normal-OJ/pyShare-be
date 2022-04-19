@@ -16,7 +16,7 @@ def _connect():
     MOCK_URL = 'mongomock://localhost'
     MONGO_HOST = MOCK_URL if config.TESTING else config['MONGO']['HOST']
     conn = connect(config['MONGO']['DB'], host=MONGO_HOST)
-    logger().info(f'Connect to {MONGO_HOST}')
+    logger().debug(f'Connect to {MONGO_HOST}')
     return conn
 
 

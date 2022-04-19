@@ -1,7 +1,12 @@
 import hashlib
 import json
 from functools import wraps
-from typing import Optional, Dict
+from typing import (
+    Any,
+    Callable,
+    Optional,
+    Dict,
+)
 from bson import ObjectId
 import redis
 from . import engine
@@ -82,7 +87,7 @@ def doc_required(
         cls = des
         des = src
 
-    def deco(func):
+    def deco(func: Callable[..., Any]):
         @wraps(func)
         def wrapper(*args, **ks):
             # try get source param

@@ -37,7 +37,7 @@ def login_required(func):
     @Request.cookies(vars_dict={'token': 'piann'})
     def wrapper(token, *args, **kwargs):
         if token is None:
-            raise InvalidTokenError('Not logged in')
+            raise InvalidTokenError('Token not found')
         json = jwt_decode(token)
         if json is None or not json.get('secret'):
             raise InvalidTokenError('Invalid token')
@@ -63,7 +63,7 @@ def login_required(func):
             return wrapper(*args, **ks)
         except InvalidTokenError as e:
             # logout user
-            current_app.logger.info(f'Token exception: {e}')
+            current_app.logger.info(f'Login failed. [err={e}]')
             return HTTPRedirect(url_for('auth_api.session'))
 
     return wrapper_with_exception_handling

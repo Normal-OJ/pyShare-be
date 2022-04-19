@@ -35,7 +35,7 @@ def send_noreply(
     content: str,
 ):
     if config['ENV'] == 'development':
-        logger().debug('Send email is disabled in dev mode.')
+        logger().warning('Send email is disabled in dev mode.')
         return
     args = (
         config['SMTP']['NOREPLY'],
