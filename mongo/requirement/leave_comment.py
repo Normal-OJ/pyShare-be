@@ -37,7 +37,7 @@ class LeaveComment(MongoBase, engine=engine.LeaveComment):
         cls.__initialized = True
         comment_created.connect(cls.on_comment_created)
         task_time_changed.connect(cls.on_task_time_changed)
-        logger().info(f'Event listener registered [class={cls.__name__}]')
+        logger().debug(f'Event listener registered [class={cls.__name__}]')
 
     # Declare again because blinker cannot accept `partial` as a reciever
     @classmethod
