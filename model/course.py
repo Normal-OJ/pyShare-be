@@ -78,7 +78,7 @@ def statistic(user, course):
 @login_required
 @Request.args('pids')
 @Request.doc('course', Course)
-def oj_statistic(user, course, pids: str):
+def oj_statistic(user: User, course: Course, pids: str):
     if not course.permission(user=user, req=Course.Permission.PARTICIPATE):
         return HTTPError('Not enough permission', 403)
     if pids == '' or pids is None:

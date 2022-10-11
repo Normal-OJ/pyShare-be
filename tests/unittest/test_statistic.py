@@ -66,3 +66,10 @@ def test_user_statistic_liked_does_not_contain_comments_without_like_by_default(
     assert len(stats['liked']) == 0
     stats = author.statistic(full=True)
     assert len(stats['liked']) == 1
+
+
+def test_user_statistic_with_incomplete_submissions():
+    user = utils.user.Factory.student()
+    comment = utils.comment.lazy_add_comment(author=user)
+    stats = user.oj_comment_statistic(comment)
+    assert stats['tryCount'] == 1
