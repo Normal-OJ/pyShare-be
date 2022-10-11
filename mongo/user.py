@@ -369,10 +369,15 @@ class User(MongoBase, engine=engine.User):
             stat['result'] = self.OJProblemResult.NO_TRY
         else:
             # Check whether there exists any AC submission
-            stat['result'] = (
-                self.OJProblemResult.FAIL,
-                self.OJProblemResult.PASS,
-            )[any(s.result.judge_result == 0 for s in comment.submissions)]
+            result = self.OJProblemResult.NO_TRY
+            for s in comment.submissions:
+                judge_result = getattr(s.result, 'judge_result', -1)
+                if judge_result == 0:
+                    result = self.OJProblemResult.PASS
+                    break
+                elif judge_result != -1:
+                    result = self.OJProblemResult.FAIL
+            stat['result'] = result
         stat['tryCount'] = len(comment.submissions)
         return stat
 

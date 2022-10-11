@@ -56,7 +56,7 @@ class MockSandbox(ISandbox):
         _id: str,
         payload: Payload,
     ):
-        pass
+        self.store[_id] = payload
 
     def complete(
         self,
